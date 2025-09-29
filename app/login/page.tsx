@@ -28,7 +28,7 @@ export default function AdminLoginPage() {
         data: { session },
       } = await supabase.auth.getSession();
       if (session) {
-        router.push("/admin");
+        router.push("/admin/dashboard");
       }
     };
 
@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
           title: "Welcome back!",
           description: "You have been successfully logged in.",
         });
-        router.push("/admin");
+        router.push("/admin/dashboard");
       }
     } catch (error) {
       toast({

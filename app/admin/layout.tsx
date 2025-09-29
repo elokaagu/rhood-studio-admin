@@ -148,7 +148,7 @@ export default function AdminLayout({
           title: "Logged out",
           description: "You have been successfully logged out.",
         });
-        router.push("/admin/login");
+        router.push("/login");
       }
     } catch (error) {
       toast({

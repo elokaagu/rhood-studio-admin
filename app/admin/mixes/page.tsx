@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { textStyles } from "@/lib/typography";
 import {
   Play,
+  Pause,
   Download,
   Eye,
   Trash2,
@@ -19,6 +22,10 @@ import {
 } from "lucide-react";
 
 export default function MixesPage() {
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const mixes = [
     {
       id: 1,
@@ -31,6 +38,7 @@ export default function MixesPage() {
       appliedFor: "Underground Warehouse Rave",
       genre: "Techno",
       status: "approved",
+      audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
     },
     {
       id: 2,
@@ -43,6 +51,7 @@ export default function MixesPage() {
       appliedFor: "Rooftop Summer Sessions",
       genre: "House",
       status: "pending",
+      audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
     },
     {
       id: 3,
@@ -55,6 +64,7 @@ export default function MixesPage() {
       appliedFor: "Club Residency Audition",
       genre: "Drum & Bass",
       status: "approved",
+      audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
     },
     {
       id: 4,
@@ -67,6 +77,7 @@ export default function MixesPage() {
       appliedFor: "Rooftop Summer Sessions",
       genre: "Deep House",
       status: "rejected",
+      audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
     },
   ];
 
@@ -100,6 +111,58 @@ export default function MixesPage() {
         {genre}
       </Badge>
     );
+  };
+
+  const handlePlayPause = (mixId: number, audioUrl: string) => {
+    if (currentlyPlaying === mixId && isPlaying) {
+      // Pause current audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+    } else {
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+
+      // Create new audio element
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      // Set up event listeners
+      audio.onplay = () => {
+        setIsPlaying(true);
+        setCurrentlyPlaying(mixId);
+      };
+
+      audio.onpause = () => {
+        setIsPlaying(false);
+      };
+
+      audio.onended = () => {
+        setIsPlaying(false);
+        setCurrentlyPlaying(null);
+      };
+
+      audio.onerror = () => {
+        console.error("Error playing audio");
+        alert("Unable to play audio. This is a demo with placeholder audio files.");
+      };
+
+      // Play the audio
+      audio.play().catch((error) => {
+        console.error("Error playing audio:", error);
+        alert("Unable to play audio. This is a demo with placeholder audio files.");
+      });
+    }
+  };
+
+  const handleDownload = (mixTitle: string) => {
+    // In a real app, this would download the actual mix file
+    console.log(`Downloading mix: ${mixTitle}`);
+    alert(`Download functionality would download the actual mix file for: ${mixTitle}`);
   };
 
   return (
@@ -157,8 +220,13 @@ export default function MixesPage() {
                     variant="outline"
                     size="icon"
                     className="h-12 w-12 rounded-full bg-secondary border-border hover:bg-accent"
+                    onClick={() => handlePlayPause(mix.id, mix.audioUrl)}
                   >
-                    <Play className="h-4 w-4 text-foreground" />
+                    {currentlyPlaying === mix.id && isPlaying ? (
+                      <Pause className="h-4 w-4 text-foreground" />
+                    ) : (
+                      <Play className="h-4 w-4 text-foreground" />
+                    )}
                   </Button>
 
                   {/* Mix Info */}
@@ -213,7 +281,11 @@ export default function MixesPage() {
                     </Button>
                   )}
 
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleDownload(mix.title)}
+                  >
                     <Download className="h-4 w-4 mr-1" />
                     Download
                   </Button>

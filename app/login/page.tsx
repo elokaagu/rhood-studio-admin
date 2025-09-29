@@ -111,9 +111,7 @@ export default function AdminLoginPage() {
         <p className={textStyles.headline.section}>
           R/HOOD
           <br />
-          STUDIO
-          <br />
-          MANAGEMENT
+          STUDIO MANAGEMENT
         </p>
       </div>
 

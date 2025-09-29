@@ -35,21 +35,29 @@ export default function ApplicationDetailsPage() {
     try {
       const { data, error } = await supabase
         .from("applications")
-        .select(`
+        .select(
+          `
           *,
           opportunities!inner(title, description, location, event_date, payment, genre),
           user_profiles!inner(dj_name, city, genres, email, bio)
-        `)
+        `
+        )
         .eq("id", applicationId as string)
         .single();
 
       if (error) {
         // Check if it's a table doesn't exist error
-        if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
-          console.warn("Applications table doesn't exist yet. Using demo data.");
+        if (
+          error.message?.includes("relation") &&
+          error.message?.includes("does not exist")
+        ) {
+          console.warn(
+            "Applications table doesn't exist yet. Using demo data."
+          );
           toast({
             title: "Database Setup Required",
-            description: "Applications table not found. Please create it in Supabase dashboard. Using demo data for now.",
+            description:
+              "Applications table not found. Please create it in Supabase dashboard. Using demo data for now.",
             variant: "destructive",
           });
         } else {
@@ -71,14 +79,16 @@ export default function ApplicationDetailsPage() {
           },
           opportunity: data.opportunities?.title || "Unknown Opportunity",
           opportunityId: data.opportunity_id,
-          appliedDate: data.created_at ? new Date(data.created_at).toISOString().split('T')[0] : "Unknown",
+          appliedDate: data.created_at
+            ? new Date(data.created_at).toISOString().split("T")[0]
+            : "Unknown",
           status: data.status || "pending",
           experience: "Unknown", // This field might need to be added to the database
           portfolio: "Unknown", // This field might need to be added to the database
           coverLetter: data.message || "No cover letter provided",
           equipment: "Unknown", // This field might need to be added to the database
         };
-        
+
         setApplication(transformedApplication);
         setIsLoading(false);
         return; // Exit early if successful
@@ -87,85 +97,86 @@ export default function ApplicationDetailsPage() {
       console.error("Error fetching application:", error);
       toast({
         title: "Database Error",
-        description: "Failed to load application from database. Using demo data.",
+        description:
+          "Failed to load application from database. Using demo data.",
         variant: "destructive",
       });
     }
-    
+
     // Fallback to demo data
     const applications = [
-    {
-      id: 1,
-      applicant: {
-        name: "Alex Thompson",
-        djName: "DJ AlexT",
-        avatar: "/person1.jpg",
-        location: "London, UK",
-        genres: ["Techno", "House"],
-        email: "alex.thompson@email.com",
-        phone: "+44 7700 900123",
-        bio: "Passionate techno DJ with 3+ years of experience in underground venues across London.",
+      {
+        id: 1,
+        applicant: {
+          name: "Alex Thompson",
+          djName: "DJ AlexT",
+          avatar: "/person1.jpg",
+          location: "London, UK",
+          genres: ["Techno", "House"],
+          email: "alex.thompson@email.com",
+          phone: "+44 7700 900123",
+          bio: "Passionate techno DJ with 3+ years of experience in underground venues across London.",
+        },
+        opportunity: "Underground Warehouse Rave",
+        opportunityId: 1,
+        appliedDate: "2024-01-15",
+        status: "pending",
+        experience: "3 years",
+        portfolio: "soundcloud.com/alexthompson",
+        coverLetter:
+          "I'm excited to apply for this opportunity. I have extensive experience playing techno sets in underground venues and would love to bring my energy to this event.",
+        equipment: "Pioneer DDJ-1000, MacBook Pro, Audio-Technica ATH-M50x",
       },
-      opportunity: "Underground Warehouse Rave",
-      opportunityId: 1,
-      appliedDate: "2024-01-15",
-      status: "pending",
-      experience: "3 years",
-      portfolio: "soundcloud.com/alexthompson",
-      coverLetter:
-        "I'm excited to apply for this opportunity. I have extensive experience playing techno sets in underground venues and would love to bring my energy to this event.",
-      equipment: "Pioneer DDJ-1000, MacBook Pro, Audio-Technica ATH-M50x",
-    },
-    {
-      id: 2,
-      applicant: {
-        name: "Maya Rodriguez",
-        djName: "Maya R",
-        avatar: "/person2.jpg",
-        location: "Berlin, Germany",
-        genres: ["Electronic", "Progressive"],
-        email: "maya.rodriguez@email.com",
-        phone: "+49 30 12345678",
-        bio: "Electronic music producer and DJ based in Berlin, specializing in progressive house and techno.",
+      {
+        id: 2,
+        applicant: {
+          name: "Maya Rodriguez",
+          djName: "Maya R",
+          avatar: "/person2.jpg",
+          location: "Berlin, Germany",
+          genres: ["Electronic", "Progressive"],
+          email: "maya.rodriguez@email.com",
+          phone: "+49 30 12345678",
+          bio: "Electronic music producer and DJ based in Berlin, specializing in progressive house and techno.",
+        },
+        opportunity: "Rooftop Summer Sessions",
+        opportunityId: 2,
+        appliedDate: "2024-01-18",
+        status: "approved",
+        experience: "5 years",
+        portfolio: "soundcloud.com/mayarodriguez",
+        coverLetter:
+          "As a Berlin-based DJ, I bring a unique perspective to house music. I'm excited about the opportunity to play at this rooftop venue.",
+        equipment: "Pioneer XDJ-RX2, MacBook Air, Sennheiser HD-25",
       },
-      opportunity: "Rooftop Summer Sessions",
-      opportunityId: 2,
-      appliedDate: "2024-01-18",
-      status: "approved",
-      experience: "5 years",
-      portfolio: "soundcloud.com/mayarodriguez",
-      coverLetter:
-        "As a Berlin-based DJ, I bring a unique perspective to house music. I'm excited about the opportunity to play at this rooftop venue.",
-      equipment: "Pioneer XDJ-RX2, MacBook Air, Sennheiser HD-25",
-    },
-    {
-      id: 3,
-      applicant: {
-        name: "James Chen",
-        djName: "JC Beats",
-        avatar: "/person1.jpg",
-        location: "Amsterdam, Netherlands",
-        genres: ["Drum & Bass", "Dubstep"],
-        email: "james.chen@email.com",
-        phone: "+31 6 12345678",
-        bio: "Drum & Bass enthusiast with a passion for high-energy sets and crowd interaction.",
+      {
+        id: 3,
+        applicant: {
+          name: "James Chen",
+          djName: "JC Beats",
+          avatar: "/person1.jpg",
+          location: "Amsterdam, Netherlands",
+          genres: ["Drum & Bass", "Dubstep"],
+          email: "james.chen@email.com",
+          phone: "+31 6 12345678",
+          bio: "Drum & Bass enthusiast with a passion for high-energy sets and crowd interaction.",
+        },
+        opportunity: "Club Residency Audition",
+        opportunityId: 3,
+        appliedDate: "2024-01-20",
+        status: "rejected",
+        experience: "2 years",
+        portfolio: "soundcloud.com/jcbeats",
+        coverLetter:
+          "I'm applying for this residency opportunity to showcase my drum & bass skills and build a long-term relationship with the venue.",
+        equipment: "Pioneer DDJ-SX3, MacBook Pro, KRK Rokit 5",
       },
-      opportunity: "Club Residency Audition",
-      opportunityId: 3,
-      appliedDate: "2024-01-20",
-      status: "rejected",
-      experience: "2 years",
-      portfolio: "soundcloud.com/jcbeats",
-      coverLetter:
-        "I'm applying for this residency opportunity to showcase my drum & bass skills and build a long-term relationship with the venue.",
-      equipment: "Pioneer DDJ-SX3, MacBook Pro, KRK Rokit 5",
-    },
     ];
 
     const foundApplication = applications.find(
       (app) => app.id === parseInt(applicationId as string)
     );
-    
+
     setApplication(foundApplication || applications[0]);
     setIsLoading(false);
   };

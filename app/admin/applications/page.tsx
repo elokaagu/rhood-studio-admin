@@ -33,20 +33,28 @@ function ApplicationsContent() {
     try {
       const { data, error } = await supabase
         .from("applications")
-        .select(`
+        .select(
+          `
           *,
           opportunities!inner(title),
           user_profiles!inner(dj_name, city, genres)
-        `)
+        `
+        )
         .order("created_at", { ascending: false });
 
       if (error) {
         // Check if it's a table doesn't exist error
-        if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
-          console.warn("Applications table doesn't exist yet. Using demo data.");
+        if (
+          error.message?.includes("relation") &&
+          error.message?.includes("does not exist")
+        ) {
+          console.warn(
+            "Applications table doesn't exist yet. Using demo data."
+          );
           toast({
             title: "Database Setup Required",
-            description: "Applications table not found. Please create it in Supabase dashboard. Using demo data for now.",
+            description:
+              "Applications table not found. Please create it in Supabase dashboard. Using demo data for now.",
             variant: "destructive",
           });
         } else {
@@ -54,23 +62,26 @@ function ApplicationsContent() {
         }
       } else {
         // Transform the data to match the expected format
-        const transformedApplications = data?.map((app: any) => ({
-          id: app.id,
-          applicant: {
-            name: app.user_profiles?.dj_name || "Unknown",
-            djName: app.user_profiles?.dj_name || "Unknown",
-            avatar: "/person1.jpg", // Default avatar
-            location: app.user_profiles?.city || "Unknown",
-            genres: app.user_profiles?.genres || [],
-          },
-          opportunity: app.opportunities?.title || "Unknown Opportunity",
-          opportunityId: app.opportunity_id,
-          appliedDate: app.created_at ? new Date(app.created_at).toISOString().split('T')[0] : "Unknown",
-          status: app.status || "pending",
-          experience: "Unknown", // This field might need to be added to the database
-          portfolio: "Unknown", // This field might need to be added to the database
-        })) || [];
-        
+        const transformedApplications =
+          data?.map((app: any) => ({
+            id: app.id,
+            applicant: {
+              name: app.user_profiles?.dj_name || "Unknown",
+              djName: app.user_profiles?.dj_name || "Unknown",
+              avatar: "/person1.jpg", // Default avatar
+              location: app.user_profiles?.city || "Unknown",
+              genres: app.user_profiles?.genres || [],
+            },
+            opportunity: app.opportunities?.title || "Unknown Opportunity",
+            opportunityId: app.opportunity_id,
+            appliedDate: app.created_at
+              ? new Date(app.created_at).toISOString().split("T")[0]
+              : "Unknown",
+            status: app.status || "pending",
+            experience: "Unknown", // This field might need to be added to the database
+            portfolio: "Unknown", // This field might need to be added to the database
+          })) || [];
+
         setApplications(transformedApplications);
         return; // Exit early if successful
       }
@@ -78,11 +89,12 @@ function ApplicationsContent() {
       console.error("Error fetching applications:", error);
       toast({
         title: "Database Error",
-        description: "Failed to load applications from database. Using demo data.",
+        description:
+          "Failed to load applications from database. Using demo data.",
         variant: "destructive",
       });
     }
-    
+
     // Fallback to demo data
     setApplications([
       {
@@ -134,7 +146,7 @@ function ApplicationsContent() {
         portfolio: "soundcloud.com/jcbeats",
       },
     ]);
-    
+
     setIsLoading(false);
   };
 
@@ -297,107 +309,105 @@ function ApplicationsContent() {
           </div>
         ) : filteredApplications.length === 0 ? (
           <div className="text-center py-8">
-            <p className={textStyles.body.regular}>
-              No applications found.
-            </p>
+            <p className={textStyles.body.regular}>No applications found.</p>
           </div>
         ) : (
           filteredApplications.map((application) => (
-          <Card key={application.id} className="bg-card border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className={textStyles.subheading.large}>
-                    {application.opportunity}
-                  </h3>
+            <Card key={application.id} className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className={textStyles.subheading.large}>
+                      {application.opportunity}
+                    </h3>
 
-                  <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {application.appliedDate}
+                    <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        {application.appliedDate}
+                      </div>
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        {application.applicant.location}
+                      </div>
+                      <div className="flex items-center">
+                        <Users className="h-4 w-4 mr-1" />
+                        {application.experience}
+                      </div>
                     </div>
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      {application.applicant.location}
-                    </div>
-                    <div className="flex items-center">
-                      <Users className="h-4 w-4 mr-1" />
-                      {application.experience}
+
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-2">
+                      <div className="flex items-center">
+                        <span className="text-foreground font-medium">
+                          {application.applicant.name}
+                        </span>
+                        <span className="ml-2">
+                          ({application.applicant.djName})
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {application.applicant.genres.map((genre: string) => (
+                          <Badge
+                            key={genre}
+                            variant="outline"
+                            className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                          >
+                            <Music className="h-3 w-3 mr-1" />
+                            {genre}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   </div>
-
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-2">
-                    <div className="flex items-center">
-                      <span className="text-foreground font-medium">
-                        {application.applicant.name}
-                      </span>
-                      <span className="ml-2">
-                        ({application.applicant.djName})
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {application.applicant.genres.map((genre: string) => (
-                        <Badge
-                          key={genre}
-                          variant="outline"
-                          className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
-                        >
-                          <Music className="h-3 w-3 mr-1" />
-                          {genre}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Badge
-                    variant="outline"
-                    className="border-gray-400 text-gray-400 bg-transparent text-xs"
-                  >
-                    {getStatusIcon(application.status)}
-                    <span className="ml-1">{application.status}</span>
-                  </Badge>
 
                   <div className="flex items-center space-x-2">
-                    <Button
+                    <Badge
                       variant="outline"
-                      size="sm"
-                      className="text-foreground"
-                      onClick={() =>
-                        (window.location.href = `/admin/applications/${application.id}`)
-                      }
+                      className="border-gray-400 text-gray-400 bg-transparent text-xs"
                     >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Details
-                    </Button>
-                    {application.status === "pending" && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-brand-green hover:text-brand-green/80"
-                          onClick={() => handleApprove(application.id)}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => handleReject(application.id)}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Reject
-                        </Button>
-                      </>
-                    )}
+                      {getStatusIcon(application.status)}
+                      <span className="ml-1">{application.status}</span>
+                    </Badge>
+
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-foreground"
+                        onClick={() =>
+                          (window.location.href = `/admin/applications/${application.id}`)
+                        }
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Details
+                      </Button>
+                      {application.status === "pending" && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-brand-green hover:text-brand-green/80"
+                            onClick={() => handleApprove(application.id)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleReject(application.id)}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>

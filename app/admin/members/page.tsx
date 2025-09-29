@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Search,
   MapPin,
@@ -41,69 +42,141 @@ export default function MembersPage() {
     email: "",
     message: "",
   });
+  const [members, setMembers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const members = [
-    {
-      id: 1,
-      name: "Alex Thompson",
-      email: "alex@example.com",
-      location: "London, UK",
-      joinedDate: "2024-01-15",
-      gigs: 12,
-      rating: 4.8,
-      genres: ["Techno", "House"],
-      status: "active",
-      lastActive: "2 hours ago",
-    },
-    {
-      id: 2,
-      name: "Maya Rodriguez",
-      email: "maya@example.com",
-      location: "Berlin, Germany",
-      joinedDate: "2024-02-03",
-      gigs: 18,
-      rating: 4.9,
-      genres: ["Techno", "Industrial"],
-      status: "active",
-      lastActive: "1 day ago",
-    },
-    {
-      id: 3,
-      name: "Kai Johnson",
-      email: "kai@example.com",
-      location: "Amsterdam, Netherlands",
-      joinedDate: "2024-03-12",
-      gigs: 8,
-      rating: 4.7,
-      genres: ["Drum & Bass", "Techno"],
-      status: "active",
-      lastActive: "3 hours ago",
-    },
-    {
-      id: 4,
-      name: "Sofia Martinez",
-      email: "sofia@example.com",
-      location: "Barcelona, Spain",
-      joinedDate: "2024-04-20",
-      gigs: 15,
-      rating: 4.6,
-      genres: ["Deep House", "Melodic Techno"],
-      status: "inactive",
-      lastActive: "2 weeks ago",
-    },
-    {
-      id: 5,
-      name: "Chen Wei",
-      email: "chen@example.com",
-      location: "Tokyo, Japan",
-      joinedDate: "2024-05-08",
-      gigs: 6,
-      rating: 4.5,
-      genres: ["Minimal", "Ambient"],
-      status: "active",
-      lastActive: "5 minutes ago",
-    },
-  ];
+  // Fetch members from database
+  const fetchMembers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        // Check if it's a table doesn't exist error
+        if (
+          error.message?.includes("relation") &&
+          error.message?.includes("does not exist")
+        ) {
+          console.warn("User profiles table doesn't exist yet. Using demo data.");
+          toast({
+            title: "Database Setup Required",
+            description:
+              "User profiles table not found. Please create it in Supabase dashboard. Using demo data for now.",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        // Transform the data to match the expected format
+        const transformedMembers =
+          data?.map((member: any) => ({
+            id: member.id,
+            name: `${member.first_name} ${member.last_name}`,
+            email: member.email,
+            location: member.city,
+            joinedDate: member.created_at
+              ? new Date(member.created_at).toISOString().split("T")[0]
+              : "Unknown",
+            gigs: 0, // This field might need to be calculated from applications
+            rating: 0.0, // This field might need to be calculated from feedback
+            genres: member.genres || [],
+            status: "active", // Default status
+            lastActive: "Unknown", // This field might need to be tracked
+            djName: member.dj_name,
+            bio: member.bio,
+            instagram: member.instagram,
+            soundcloud: member.soundcloud,
+            profileImageUrl: member.profile_image_url,
+          })) || [];
+
+        setMembers(transformedMembers);
+        setIsLoading(false);
+        return; // Exit early if successful
+      }
+    } catch (error) {
+      console.error("Error fetching members:", error);
+      toast({
+        title: "Database Error",
+        description:
+          "Failed to load members from database. Using demo data.",
+        variant: "destructive",
+      });
+    }
+
+    // Fallback to demo data
+    setMembers([
+      {
+        id: 1,
+        name: "Alex Thompson",
+        email: "alex@example.com",
+        location: "London, UK",
+        joinedDate: "2024-01-15",
+        gigs: 12,
+        rating: 4.8,
+        genres: ["Techno", "House"],
+        status: "active",
+        lastActive: "2 hours ago",
+      },
+      {
+        id: 2,
+        name: "Maya Rodriguez",
+        email: "maya@example.com",
+        location: "Berlin, Germany",
+        joinedDate: "2024-02-03",
+        gigs: 18,
+        rating: 4.9,
+        genres: ["Techno", "Industrial"],
+        status: "active",
+        lastActive: "1 day ago",
+      },
+      {
+        id: 3,
+        name: "Kai Johnson",
+        email: "kai@example.com",
+        location: "Amsterdam, Netherlands",
+        joinedDate: "2024-03-12",
+        gigs: 8,
+        rating: 4.7,
+        genres: ["Drum & Bass", "Techno"],
+        status: "active",
+        lastActive: "3 hours ago",
+      },
+      {
+        id: 4,
+        name: "Sofia Martinez",
+        email: "sofia@example.com",
+        location: "Barcelona, Spain",
+        joinedDate: "2024-04-20",
+        gigs: 15,
+        rating: 4.6,
+        genres: ["Deep House", "Melodic Techno"],
+        status: "inactive",
+        lastActive: "2 weeks ago",
+      },
+      {
+        id: 5,
+        name: "Chen Wei",
+        email: "chen@example.com",
+        location: "Tokyo, Japan",
+        joinedDate: "2024-05-08",
+        gigs: 6,
+        rating: 4.5,
+        genres: ["Minimal", "Ambient"],
+        status: "active",
+        lastActive: "5 minutes ago",
+      },
+    ]);
+
+    setIsLoading(false);
+  };
+
+  // Load members on component mount
+  useEffect(() => {
+    fetchMembers();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -153,7 +226,7 @@ export default function MembersPage() {
       member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.genres.some((genre) =>
+      member.genres.some((genre: string) =>
         genre.toLowerCase().includes(searchTerm.toLowerCase())
       );
 
@@ -167,19 +240,28 @@ export default function MembersPage() {
     setIsInviteModalOpen(true);
   };
 
-  const handleInviteSubmit = (e: React.FormEvent) => {
+  const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Inviting member:", inviteFormData);
+    
+    try {
+      // In a real app, this would send the invite to the backend
+      // For now, we'll just show a success message
+      toast({
+        title: "Invite Sent",
+        description: `Invite sent to ${inviteFormData.name} (${inviteFormData.email})!`,
+      });
 
-    // In a real app, this would send the invite to the backend
-    toast({
-      title: "Invite Sent",
-      description: `Invite sent to ${inviteFormData.name} (${inviteFormData.email})!`,
-    });
-
-    // Reset form and close modal
-    setInviteFormData({ name: "", email: "", message: "" });
-    setIsInviteModalOpen(false);
+      // Reset form and close modal
+      setInviteFormData({ name: "", email: "", message: "" });
+      setIsInviteModalOpen(false);
+    } catch (error) {
+      console.error("Error sending invite:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send invitation. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleInviteCancel = () => {
@@ -361,7 +443,16 @@ export default function MembersPage() {
 
       {/* Members List */}
       <div className="space-y-4">
-        {filteredMembers.map((member) => (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p className={textStyles.body.regular}>Loading members...</p>
+          </div>
+        ) : filteredMembers.length === 0 ? (
+          <div className="text-center py-8">
+            <p className={textStyles.body.regular}>No members found.</p>
+          </div>
+        ) : (
+          filteredMembers.map((member) => (
           <Card key={member.id} className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -413,7 +504,7 @@ export default function MembersPage() {
 
                 {/* Right Side - Tags and Actions */}
                 <div className="flex items-center space-x-2">
-                  {member.genres.map((genre) => (
+                  {member.genres.map((genre: string) => (
                     <div key={genre}>{getGenreBadge(genre)}</div>
                   ))}
                   {getStatusBadge(member.status)}
@@ -432,7 +523,8 @@ export default function MembersPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

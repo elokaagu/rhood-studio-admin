@@ -75,11 +75,11 @@ export default function AdminLoginPage() {
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
             <Image
-              src="/rhood_logo.webp"
+              src="/RHOOD_Lettering_Logo.png"
               alt="R/HOOD"
-              width={48}
-              height={48}
-              className="h-12 w-auto"
+              width={200}
+              height={60}
+              className="h-16 w-auto"
             />
         </div>
         <p className="text-muted-foreground">R/HOOD Studio Management</p>

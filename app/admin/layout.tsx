@@ -169,13 +169,14 @@ export default function AdminLayout({
           <header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-4">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="h-8 w-8" />
-              <div className="flex flex-col">
-                <h1 className="text-lg font-bold text-foreground leading-tight">
-                  R/HOOD Studio
-                </h1>
-                <p className="text-xs text-muted-foreground leading-tight">
-                  Management Dashboard
-                </p>
+              <div className="flex items-center">
+                <Image
+                  src="/RHOOD_Lettering_Logo.png"
+                  alt="R/HOOD"
+                  width={120}
+                  height={36}
+                  className="h-8 w-auto"
+                />
               </div>
             </div>
             <div className="flex items-center space-x-3">

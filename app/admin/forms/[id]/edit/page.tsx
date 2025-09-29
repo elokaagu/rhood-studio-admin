@@ -17,13 +17,7 @@ import {
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Save,
-  X,
-  Plus,
-  ArrowLeft,
-  FileText,
-} from "lucide-react";
+import { Save, X, Plus, ArrowLeft, FileText } from "lucide-react";
 
 interface FormField {
   id: string;
@@ -49,7 +43,9 @@ export default function EditFormPage() {
     is_active: true,
   });
   const [fields, setFields] = useState<FormField[]>([]);
-  const [availableOpportunities, setAvailableOpportunities] = useState<any[]>([]);
+  const [availableOpportunities, setAvailableOpportunities] = useState<any[]>(
+    []
+  );
 
   // Load form data and opportunities on component mount
   useEffect(() => {
@@ -116,7 +112,7 @@ export default function EditFormPage() {
           description: "Failed to load form data. Using demo data.",
           variant: "destructive",
         });
-        
+
         // Fallback to demo data
         setFormData({
           title: "Barcelona Beach Club",
@@ -241,7 +237,10 @@ export default function EditFormPage() {
         .update({
           title: formData.title,
           description: formData.description,
-          opportunity_id: formData.opportunity_id === "none" ? null : formData.opportunity_id || null,
+          opportunity_id:
+            formData.opportunity_id === "none"
+              ? null
+              : formData.opportunity_id || null,
           is_active: formData.is_active,
         })
         .eq("id", formId as string);
@@ -435,8 +434,8 @@ export default function EditFormPage() {
               <div className="text-center py-8">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className={textStyles.body.regular}>
-                  No fields added yet. Click &quot;Add Field&quot; to start building your
-                  form.
+                  No fields added yet. Click &quot;Add Field&quot; to start
+                  building your form.
                 </p>
               </div>
             ) : (

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,10 +37,12 @@ export default function FormResponsesPage() {
         // Fetch form data
         const { data: formData, error: formError } = await supabase
           .from("application_forms")
-          .select(`
+          .select(
+            `
             *,
             opportunities(title)
-          `)
+          `
+          )
           .eq("id", formId as string)
           .single();
 
@@ -66,10 +69,12 @@ export default function FormResponsesPage() {
           // Fetch responses
           const { data: responsesData, error: responsesError } = await supabase
             .from("application_form_responses")
-            .select(`
+            .select(
+              `
               *,
               user_profiles(dj_name, email, first_name, last_name)
-            `)
+            `
+            )
             .eq("form_id", formId as string)
             .order("submitted_at", { ascending: false });
 
@@ -86,7 +91,7 @@ export default function FormResponsesPage() {
           description: "Failed to load form data. Using demo data.",
           variant: "destructive",
         });
-        
+
         // Fallback to demo data
         setForm({
           id: formId,
@@ -165,18 +170,19 @@ export default function FormResponsesPage() {
         );
       default:
         return (
-          <Badge className="bg-gray-500 text-white text-xs">
-            {status}
-          </Badge>
+          <Badge className="bg-gray-500 text-white text-xs">{status}</Badge>
         );
     }
   };
 
-  const updateResponseStatus = async (responseId: string, newStatus: string) => {
+  const updateResponseStatus = async (
+    responseId: string,
+    newStatus: string
+  ) => {
     try {
       const { error } = await supabase
         .from("application_form_responses")
-        .update({ 
+        .update({
           status: newStatus,
           reviewed_at: new Date().toISOString(),
         })
@@ -187,11 +193,17 @@ export default function FormResponsesPage() {
       }
 
       // Update local state
-      setResponses(responses.map(response => 
-        response.id === responseId 
-          ? { ...response, status: newStatus, reviewed_at: new Date().toISOString() }
-          : response
-      ));
+      setResponses(
+        responses.map((response) =>
+          response.id === responseId
+            ? {
+                ...response,
+                status: newStatus,
+                reviewed_at: new Date().toISOString(),
+              }
+            : response
+        )
+      );
 
       toast({
         title: "Success",
@@ -258,19 +270,25 @@ export default function FormResponsesPage() {
                 Total Responses: {responses.length}
               </p>
               <div className="flex space-x-2">
-                {responses.filter(r => r.status === "submitted").length > 0 && (
+                {responses.filter((r) => r.status === "submitted").length >
+                  0 && (
                   <Badge variant="outline" className="text-xs">
-                    {responses.filter(r => r.status === "submitted").length} pending
+                    {responses.filter((r) => r.status === "submitted").length}{" "}
+                    pending
                   </Badge>
                 )}
-                {responses.filter(r => r.status === "approved").length > 0 && (
+                {responses.filter((r) => r.status === "approved").length >
+                  0 && (
                   <Badge variant="outline" className="text-xs text-green-600">
-                    {responses.filter(r => r.status === "approved").length} approved
+                    {responses.filter((r) => r.status === "approved").length}{" "}
+                    approved
                   </Badge>
                 )}
-                {responses.filter(r => r.status === "rejected").length > 0 && (
+                {responses.filter((r) => r.status === "rejected").length >
+                  0 && (
                   <Badge variant="outline" className="text-xs text-red-600">
-                    {responses.filter(r => r.status === "rejected").length} rejected
+                    {responses.filter((r) => r.status === "rejected").length}{" "}
+                    rejected
                   </Badge>
                 )}
               </div>
@@ -299,11 +317,13 @@ export default function FormResponsesPage() {
                     </div>
                     <div>
                       <h4 className={`${textStyles.subheading.small} mb-1`}>
-                        {response.user_profiles?.dj_name || 
-                         `${response.user_profiles?.first_name} ${response.user_profiles?.last_name}` ||
-                         "Unknown User"}
+                        {response.user_profiles?.dj_name ||
+                          `${response.user_profiles?.first_name} ${response.user_profiles?.last_name}` ||
+                          "Unknown User"}
                       </h4>
-                      <p className={`${textStyles.body.small} text-muted-foreground`}>
+                      <p
+                        className={`${textStyles.body.small} text-muted-foreground`}
+                      >
                         {response.user_profiles?.email}
                       </p>
                     </div>
@@ -311,7 +331,9 @@ export default function FormResponsesPage() {
                   <div className="flex items-center space-x-3">
                     {getStatusBadge(response.status)}
                     <div className="text-right">
-                      <p className={`${textStyles.body.small} text-muted-foreground`}>
+                      <p
+                        className={`${textStyles.body.small} text-muted-foreground`}
+                      >
                         <Calendar className="h-3 w-3 inline mr-1" />
                         {new Date(response.submitted_at).toLocaleDateString()}
                       </p>
@@ -339,7 +361,9 @@ export default function FormResponsesPage() {
                     <Button
                       size="sm"
                       className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => updateResponseStatus(response.id, "approved")}
+                      onClick={() =>
+                        updateResponseStatus(response.id, "approved")
+                      }
                     >
                       <CheckCircle className="h-4 w-4 mr-1" />
                       Approve
@@ -347,7 +371,9 @@ export default function FormResponsesPage() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => updateResponseStatus(response.id, "rejected")}
+                      onClick={() =>
+                        updateResponseStatus(response.id, "rejected")
+                      }
                     >
                       <XCircle className="h-4 w-4 mr-1" />
                       Reject
@@ -355,7 +381,9 @@ export default function FormResponsesPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => updateResponseStatus(response.id, "under_review")}
+                      onClick={() =>
+                        updateResponseStatus(response.id, "under_review")
+                      }
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       Mark Under Review

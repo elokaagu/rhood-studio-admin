@@ -65,9 +65,9 @@ export default function MixesPage() {
   const fetchMixes = async () => {
     try {
       const { data, error } = await supabase
-        .from('mixes')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("mixes")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) {
         throw error;
@@ -75,7 +75,7 @@ export default function MixesPage() {
 
       setMixes(data || []);
     } catch (error) {
-      console.error('Error fetching mixes:', error);
+      console.error("Error fetching mixes:", error);
       toast({
         title: "Error",
         description: "Failed to load mixes. Using demo data.",
@@ -83,59 +83,59 @@ export default function MixesPage() {
       });
       // Fallback to demo data
       setMixes([
-    {
-      id: 1,
-      title: "Underground Techno Mix #1",
-      artist: "Alex Thompson",
-      duration: "58:23",
-      uploadDate: "2024-08-10",
-      plays: 1247,
-      rating: 4.8,
-      appliedFor: "Underground Warehouse Rave",
-      genre: "Techno",
-      status: "approved",
-      audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-    },
-    {
-      id: 2,
-      title: "Summer House Vibes",
-      artist: "Maya Rodriguez",
-      duration: "45:12",
-      uploadDate: "2024-08-12",
-      plays: 892,
-      rating: 4.9,
-      appliedFor: "Rooftop Summer Sessions",
-      genre: "House",
-      status: "pending",
-      audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-    },
-    {
-      id: 3,
-      title: "Drum & Bass Energy",
-      artist: "Kai Johnson",
-      duration: "52:45",
-      uploadDate: "2024-08-14",
-      plays: 634,
-      rating: 4.7,
-      appliedFor: "Club Residency Audition",
-      genre: "Drum & Bass",
-      status: "approved",
-      audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-    },
-    {
-      id: 4,
-      title: "Deep House Journey",
-      artist: "Sofia Martinez",
-      duration: "61:18",
-      uploadDate: "2024-08-16",
-      plays: 1105,
-      rating: 4.6,
-      appliedFor: "Rooftop Summer Sessions",
-      genre: "Deep House",
-      status: "rejected",
-      audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-    },
-  ]);
+        {
+          id: 1,
+          title: "Underground Techno Mix #1",
+          artist: "Alex Thompson",
+          duration: "58:23",
+          uploadDate: "2024-08-10",
+          plays: 1247,
+          rating: 4.8,
+          appliedFor: "Underground Warehouse Rave",
+          genre: "Techno",
+          status: "approved",
+          audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+        },
+        {
+          id: 2,
+          title: "Summer House Vibes",
+          artist: "Maya Rodriguez",
+          duration: "45:12",
+          uploadDate: "2024-08-12",
+          plays: 892,
+          rating: 4.9,
+          appliedFor: "Rooftop Summer Sessions",
+          genre: "House",
+          status: "pending",
+          audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+        },
+        {
+          id: 3,
+          title: "Drum & Bass Energy",
+          artist: "Kai Johnson",
+          duration: "52:45",
+          uploadDate: "2024-08-14",
+          plays: 634,
+          rating: 4.7,
+          appliedFor: "Club Residency Audition",
+          genre: "Drum & Bass",
+          status: "approved",
+          audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+        },
+        {
+          id: 4,
+          title: "Deep House Journey",
+          artist: "Sofia Martinez",
+          duration: "61:18",
+          uploadDate: "2024-08-16",
+          plays: 1105,
+          rating: 4.6,
+          appliedFor: "Rooftop Summer Sessions",
+          genre: "Deep House",
+          status: "rejected",
+          audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -284,12 +284,14 @@ export default function MixesPage() {
     setIsUploading(true);
     try {
       // Upload file to Supabase Storage
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const fileExt = selectedFile.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2)}.${fileExt}`;
       const filePath = `mixes/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('mixes')
+        .from("mixes")
         .upload(filePath, selectedFile);
 
       if (uploadError) {
@@ -297,26 +299,24 @@ export default function MixesPage() {
       }
 
       // Get the public URL for the uploaded file
-      const { data: { publicUrl } } = supabase.storage
-        .from('mixes')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("mixes").getPublicUrl(filePath);
 
       // Save mix metadata to database
-      const { error: dbError } = await supabase
-        .from('mixes')
-        .insert({
-          title: uploadFormData.title,
-          artist: uploadFormData.artist,
-          genre: uploadFormData.genre,
-          description: uploadFormData.description || null,
-          applied_for: uploadFormData.appliedFor || null,
-          status: uploadFormData.status,
-          file_url: publicUrl,
-          file_name: selectedFile.name,
-          file_size: selectedFile.size,
-          // Note: duration would need to be extracted from audio file metadata
-          // For now, we'll leave it null and it can be updated later
-        });
+      const { error: dbError } = await supabase.from("mixes").insert({
+        title: uploadFormData.title,
+        artist: uploadFormData.artist,
+        genre: uploadFormData.genre,
+        description: uploadFormData.description || null,
+        applied_for: uploadFormData.appliedFor || null,
+        status: uploadFormData.status,
+        file_url: publicUrl,
+        file_name: selectedFile.name,
+        file_size: selectedFile.size,
+        // Note: duration would need to be extracted from audio file metadata
+        // For now, we'll leave it null and it can be updated later
+      });
 
       if (dbError) {
         throw dbError;
@@ -338,7 +338,7 @@ export default function MixesPage() {
       });
       setSelectedFile(null);
       setIsUploadModalOpen(false);
-      
+
       // Refresh the mixes list
       fetchMixes();
     } catch (error) {
@@ -680,92 +680,101 @@ export default function MixesPage() {
           </div>
         ) : mixes.length === 0 ? (
           <div className="text-center py-8">
-            <p className={textStyles.body.regular}>No mixes found. Upload your first mix!</p>
+            <p className={textStyles.body.regular}>
+              No mixes found. Upload your first mix!
+            </p>
           </div>
         ) : (
           mixes.map((mix) => (
-          <Card key={mix.id} className="bg-card border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4 flex-1">
-                  {/* Play Button */}
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-12 w-12 rounded-full bg-secondary border-border hover:bg-accent"
-                    onClick={() => handlePlayPause(mix.id, mix.file_url || mix.audioUrl)}
-                  >
-                    {currentlyPlaying === mix.id && isPlaying ? (
-                      <Pause className="h-4 w-4 text-foreground" />
-                    ) : (
-                      <Play className="h-4 w-4 text-foreground" />
-                    )}
-                  </Button>
-
-                  {/* Mix Info */}
-                  <div className="flex-1">
-                    <h3 className={textStyles.subheading.large}>{mix.title}</h3>
-                    <p
-                      className={`${textStyles.body.regular} text-muted-foreground`}
+            <Card key={mix.id} className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1">
+                    {/* Play Button */}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-12 w-12 rounded-full bg-secondary border-border hover:bg-accent"
+                      onClick={() =>
+                        handlePlayPause(mix.id, mix.file_url || mix.audioUrl)
+                      }
                     >
-                      by {mix.artist}
-                    </p>
+                      {currentlyPlaying === mix.id && isPlaying ? (
+                        <Pause className="h-4 w-4 text-foreground" />
+                      ) : (
+                        <Play className="h-4 w-4 text-foreground" />
+                      )}
+                    </Button>
 
-                    {/* Metadata Row */}
-                    <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {mix.duration || "Unknown"}
+                    {/* Mix Info */}
+                    <div className="flex-1">
+                      <h3 className={textStyles.subheading.large}>
+                        {mix.title}
+                      </h3>
+                      <p
+                        className={`${textStyles.body.regular} text-muted-foreground`}
+                      >
+                        by {mix.artist}
+                      </p>
+
+                      {/* Metadata Row */}
+                      <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-1" />
+                          {mix.duration || "Unknown"}
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          {mix.created_at
+                            ? new Date(mix.created_at).toLocaleDateString()
+                            : mix.uploadDate}
+                        </div>
+                        <div className="flex items-center">
+                          <Eye className="h-4 w-4 mr-1" />
+                          {mix.plays || 0} plays
+                        </div>
+                        <div className="flex items-center">
+                          <Star className="h-4 w-4 mr-1" />
+                          {mix.rating || 0.0}
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {mix.created_at ? new Date(mix.created_at).toLocaleDateString() : mix.uploadDate}
-                      </div>
-                      <div className="flex items-center">
-                        <Eye className="h-4 w-4 mr-1" />
-                        {mix.plays || 0} plays
-                      </div>
-                      <div className="flex items-center">
-                        <Star className="h-4 w-4 mr-1" />
-                        {mix.rating || 0.0}
-                      </div>
+
+                      {/* Applied For */}
+                      <p className={`${textStyles.body.small} mt-2`}>
+                        Applied for:{" "}
+                        {mix.applied_for || mix.appliedFor || "N/A"}
+                      </p>
                     </div>
-
-                    {/* Applied For */}
-                    <p className={`${textStyles.body.small} mt-2`}>
-                      Applied for: {mix.applied_for || mix.appliedFor || "N/A"}
-                    </p>
                   </div>
-                </div>
 
-                {/* Right Side - Tags and Actions */}
-                <div className="flex items-center space-x-2">
-                  {getGenreBadge(mix.genre)}
-                  {getStatusBadge(mix.status)}
+                  {/* Right Side - Tags and Actions */}
+                  <div className="flex items-center space-x-2">
+                    {getGenreBadge(mix.genre)}
+                    {getStatusBadge(mix.status)}
 
-                  {mix.status === "pending" && (
+                    {mix.status === "pending" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Review
+                      </Button>
+                    )}
+
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+                      onClick={() => handleDownload(mix.title)}
                     >
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Review
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
                     </Button>
-                  )}
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDownload(mix.title)}
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>

@@ -1,10 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Plus,
   Calendar,
@@ -18,43 +20,77 @@ import {
 } from "lucide-react";
 
 export default function OpportunitiesPage() {
-  const opportunities = [
-    {
-      id: 1,
-      title: "Underground Warehouse Rave",
-      location: "East London",
-      date: "2024-08-15",
-      pay: "£300",
-      applicants: 12,
-      status: "active",
-      genre: "Techno",
-      description:
-        "High-energy underground techno event in a converted warehouse space.",
-    },
-    {
-      id: 2,
-      title: "Rooftop Summer Sessions",
-      location: "Shoreditch",
-      date: "2024-08-20",
-      pay: "£450",
-      applicants: 8,
-      status: "active",
-      genre: "House",
-      description: "Sunset house music sessions with panoramic city views.",
-    },
-    {
-      id: 3,
-      title: "Club Residency Audition",
-      location: "Camden",
-      date: "2024-08-25",
-      pay: "£200 + Residency",
-      applicants: 15,
-      status: "completed",
-      genre: "Drum & Bass",
-      selected: "Alex Thompson",
-      description: "Weekly residency opportunity at premier London club.",
-    },
-  ];
+  const { toast } = useToast();
+  const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch opportunities from database
+  const fetchOpportunities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("opportunities")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setOpportunities(data || []);
+    } catch (error) {
+      console.error("Error fetching opportunities:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load opportunities. Using demo data.",
+        variant: "destructive",
+      });
+      // Fallback to demo data
+      setOpportunities([
+        {
+          id: 1,
+          title: "Underground Warehouse Rave",
+          location: "East London",
+          date: "2024-08-15",
+          pay: "£300",
+          applicants: 12,
+          status: "active",
+          genre: "Techno",
+          description:
+            "High-energy underground techno event in a converted warehouse space.",
+        },
+        {
+          id: 2,
+          title: "Rooftop Summer Sessions",
+          location: "Shoreditch",
+          date: "2024-08-20",
+          pay: "£450",
+          applicants: 8,
+          status: "active",
+          genre: "House",
+          description: "Sunset house music sessions with panoramic city views.",
+        },
+        {
+          id: 3,
+          title: "Club Residency Audition",
+          location: "Camden",
+          date: "2024-08-25",
+          pay: "£200 + Residency",
+          applicants: 15,
+          status: "completed",
+          genre: "Drum & Bass",
+          selected: "Alex Thompson",
+          description: "Weekly residency opportunity at premier London club.",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load opportunities on component mount
+  useEffect(() => {
+    fetchOpportunities();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -182,7 +218,18 @@ export default function OpportunitiesPage() {
 
       {/* Opportunities List */}
       <div className="space-y-4">
-        {opportunities.map((opportunity) => (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p className={textStyles.body.regular}>Loading opportunities...</p>
+          </div>
+        ) : opportunities.length === 0 ? (
+          <div className="text-center py-8">
+            <p className={textStyles.body.regular}>
+              No opportunities found. Create your first opportunity!
+            </p>
+          </div>
+        ) : (
+          opportunities.map((opportunity) => (
           <Card key={opportunity.id} className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
@@ -194,19 +241,21 @@ export default function OpportunitiesPage() {
                   <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-4">
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
-                      {opportunity.date}
+                      {opportunity.event_date ? new Date(opportunity.event_date).toLocaleDateString() : opportunity.date}
                     </div>
                     <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-1" />
                       {opportunity.location}
                     </div>
-                    <div className="flex items-center">{opportunity.pay}</div>
+                    <div className="flex items-center">
+                      {opportunity.payment ? `£${opportunity.payment}` : opportunity.pay}
+                    </div>
                   </div>
 
                   <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">
                     <div className="flex items-center">
                       <Users className="h-4 w-4 mr-1" />
-                      {opportunity.applicants} applicants
+                      {opportunity.applicants || 0} applicants
                     </div>
                     {opportunity.selected && (
                       <div className="flex items-center">
@@ -221,7 +270,7 @@ export default function OpportunitiesPage() {
 
                 <div className="flex flex-col items-end space-y-2">
                   <div className="flex items-center space-x-2">
-                    {getStatusBadge(opportunity.status)}
+                    {getStatusBadge(opportunity.is_active ? "active" : opportunity.status)}
                     <Badge
                       variant="outline"
                       className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
@@ -244,7 +293,8 @@ export default function OpportunitiesPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

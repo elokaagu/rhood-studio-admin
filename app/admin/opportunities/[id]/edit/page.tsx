@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { textStyles } from "@/lib/typography";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Calendar,
   MapPin,
@@ -30,67 +32,132 @@ import {
 export default function EditOpportunityPage() {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const opportunityId = params.id;
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock data - in a real app, this would be fetched from an API
-  const opportunities = [
-    {
-      id: 1,
-      title: "Underground Warehouse Rave",
-      location: "East London",
-      date: "2024-08-15",
-      pay: "£300",
-      applicants: 12,
-      status: "active",
-      genre: "Techno",
-      description:
-        "High-energy underground techno event in a converted warehouse space.",
-      requirements: "Professional DJ equipment, 3+ years experience",
-      additionalInfo: "Contact: events@warehouse.com",
-    },
-    {
-      id: 2,
-      title: "Rooftop Summer Sessions",
-      location: "Shoreditch",
-      date: "2024-08-20",
-      pay: "£450",
-      applicants: 8,
-      status: "active",
-      genre: "House",
-      description: "Sunset house music sessions with panoramic city views.",
-      requirements: "House music experience, own equipment preferred",
-      additionalInfo: "Venue provides sound system",
-    },
-    {
-      id: 3,
-      title: "Club Residency Audition",
-      location: "Camden",
-      date: "2024-08-25",
-      pay: "£200 + Residency",
-      applicants: 15,
-      status: "completed",
-      genre: "Drum & Bass",
-      selected: "Alex Thompson",
-      description: "Weekly residency opportunity at premier London club.",
-      requirements: "Drum & Bass expertise, club experience",
-      additionalInfo: "Selected candidate will receive ongoing residency",
-    },
-  ];
+  // Fetch opportunity data from database
+  const fetchOpportunity = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("opportunities")
+        .select("*")
+        .eq("id", opportunityId as string)
+        .single();
 
-  const opportunity = opportunities.find(
-    (opp) => opp.id === parseInt(opportunityId as string)
-  );
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Parse the event_date to separate date and time
+        const eventDate = data.event_date ? new Date(data.event_date) : null;
+        const dateStr = eventDate ? eventDate.toISOString().split('T')[0] : '';
+        const timeStr = eventDate ? eventDate.toTimeString().split(' ')[0].substring(0, 5) : '';
+
+        setFormData({
+          title: data.title || "",
+          description: data.description || "",
+          location: data.location || "",
+          date: dateStr,
+          time: timeStr,
+          pay: data.payment ? data.payment.toString() : "",
+          genre: data.genre || "",
+          requirements: data.skill_level || "",
+          additionalInfo: "",
+          status: data.is_active ? "active" : "draft",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching opportunity:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load opportunity data. Using demo data.",
+        variant: "destructive",
+      });
+      // Fallback to demo data
+      const opportunities = [
+        {
+          id: 1,
+          title: "Underground Warehouse Rave",
+          location: "East London",
+          date: "2024-08-15",
+          pay: "£300",
+          applicants: 12,
+          status: "active",
+          genre: "Techno",
+          description:
+            "High-energy underground techno event in a converted warehouse space.",
+          requirements: "Professional DJ equipment, 3+ years experience",
+          additionalInfo: "Contact: events@warehouse.com",
+        },
+        {
+          id: 2,
+          title: "Rooftop Summer Sessions",
+          location: "Shoreditch",
+          date: "2024-08-20",
+          pay: "£450",
+          applicants: 8,
+          status: "active",
+          genre: "House",
+          description: "Sunset house music sessions with panoramic city views.",
+          requirements: "House music experience, own equipment preferred",
+          additionalInfo: "Venue provides sound system",
+        },
+        {
+          id: 3,
+          title: "Club Residency Audition",
+          location: "Camden",
+          date: "2024-08-25",
+          pay: "£200 + Residency",
+          applicants: 15,
+          status: "completed",
+          genre: "Drum & Bass",
+          selected: "Alex Thompson",
+          description: "Weekly residency opportunity at premier London club.",
+          requirements: "Drum & Bass expertise, club experience",
+          additionalInfo: "Selected candidate will receive ongoing residency",
+        },
+      ];
+
+      const opportunity = opportunities.find(
+        (opp) => opp.id === parseInt(opportunityId as string)
+      );
+
+      setFormData({
+        title: opportunity?.title || "",
+        description: opportunity?.description || "",
+        location: opportunity?.location || "",
+        date: opportunity?.date || "",
+        time: "",
+        pay: opportunity?.pay || "",
+        genre: opportunity?.genre || "",
+        requirements: opportunity?.requirements || "",
+        additionalInfo: opportunity?.additionalInfo || "",
+        status: opportunity?.status || "draft",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load opportunity data on component mount
+  useEffect(() => {
+    fetchOpportunity();
+  }, [opportunityId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [formData, setFormData] = useState({
-    title: opportunity?.title || "",
-    description: opportunity?.description || "",
-    location: opportunity?.location || "",
-    date: opportunity?.date || "",
-    pay: opportunity?.pay || "",
-    genre: opportunity?.genre || "",
-    requirements: opportunity?.requirements || "",
-    additionalInfo: opportunity?.additionalInfo || "",
-    status: opportunity?.status || "draft",
+    title: "",
+    description: "",
+    location: "",
+    date: "",
+    time: "",
+    pay: "",
+    genre: "",
+    requirements: "",
+    additionalInfo: "",
+    status: "draft",
   });
 
   const genres = [
@@ -107,33 +174,110 @@ export default function EditOpportunityPage() {
     "Breakbeat",
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log("Updating opportunity:", formData);
-    router.push(`/admin/opportunities/${opportunityId}`);
+    setIsSubmitting(true);
+
+    try {
+      // Combine date and time into event_date
+      const eventDate = formData.date && formData.time 
+        ? new Date(`${formData.date}T${formData.time}`).toISOString()
+        : formData.date 
+        ? new Date(formData.date).toISOString()
+        : null;
+
+      // Parse payment amount
+      const paymentAmount = formData.pay ? parseFloat(formData.pay.replace(/[£,]/g, '')) : null;
+
+      const { error } = await supabase
+        .from("opportunities")
+        .update({
+          title: formData.title,
+          description: formData.description,
+          location: formData.location,
+          event_date: eventDate,
+          payment: paymentAmount,
+          genre: formData.genre,
+          skill_level: formData.requirements,
+          is_active: formData.status === "active",
+        })
+        .eq("id", opportunityId as string);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Opportunity updated successfully!",
+      });
+
+      router.push(`/admin/opportunities/${opportunityId}`);
+    } catch (error) {
+      console.error("Error updating opportunity:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update opportunity. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSaveDraft = () => {
-    console.log("Saving draft:", { ...formData, status: "draft" });
-    router.push(`/admin/opportunities/${opportunityId}`);
+  const handleSaveDraft = async () => {
+    setIsSubmitting(true);
+
+    try {
+      const eventDate = formData.date && formData.time 
+        ? new Date(`${formData.date}T${formData.time}`).toISOString()
+        : formData.date 
+        ? new Date(formData.date).toISOString()
+        : null;
+
+      const paymentAmount = formData.pay ? parseFloat(formData.pay.replace(/[£,]/g, '')) : null;
+
+      const { error } = await supabase
+        .from("opportunities")
+        .update({
+          title: formData.title,
+          description: formData.description,
+          location: formData.location,
+          event_date: eventDate,
+          payment: paymentAmount,
+          genre: formData.genre,
+          skill_level: formData.requirements,
+          is_active: false, // Draft is not active
+        })
+        .eq("id", opportunityId as string);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Draft Saved",
+        description: "Opportunity saved as draft successfully!",
+      });
+
+      router.push(`/admin/opportunities/${opportunityId}`);
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save draft. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  if (!opportunity) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="text-center">
-          <h1 className={textStyles.headline.section}>OPPORTUNITY NOT FOUND</h1>
-          <p className={textStyles.body.regular}>
-            The opportunity you&apos;re looking for doesn&apos;t exist.
-          </p>
-          <Button
-            onClick={() => router.push("/admin/opportunities")}
-            className="mt-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Opportunities
-          </Button>
+        <div className="text-center py-8">
+          <p className={textStyles.body.regular}>Loading opportunity...</p>
         </div>
       </div>
     );
@@ -381,16 +525,22 @@ export default function EditOpportunityPage() {
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-4">
-          <Button type="button" variant="outline" onClick={handleSaveDraft}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleSaveDraft}
+            disabled={isSubmitting}
+          >
             <Save className="h-4 w-4 mr-2" />
-            Save Draft
+            {isSubmitting ? "Saving..." : "Save Draft"}
           </Button>
           <Button
             type="submit"
             className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+            disabled={isSubmitting}
           >
             <Save className="h-4 w-4 mr-2" />
-            Update Opportunity
+            {isSubmitting ? "Updating..." : "Update Opportunity"}
           </Button>
         </div>
       </form>

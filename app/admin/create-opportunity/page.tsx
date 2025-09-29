@@ -15,10 +15,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Calendar, MapPin, Music, Save, X, Plus } from "lucide-react";
 
 export default function CreateOpportunityPage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -54,23 +58,103 @@ export default function CreateOpportunityPage() {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log("Creating opportunity:", {
-      ...formData,
-      genres: selectedGenres,
-    });
-    router.push("/admin/opportunities");
+    setIsSubmitting(true);
+
+    try {
+      // Combine date and time into event_date
+      const eventDate = formData.date && formData.time 
+        ? new Date(`${formData.date}T${formData.time}`).toISOString()
+        : formData.date 
+        ? new Date(formData.date).toISOString()
+        : null;
+
+      // Parse payment amount
+      const paymentAmount = formData.pay ? parseFloat(formData.pay.replace(/[£,]/g, '')) : null;
+
+      const { error } = await supabase
+        .from("opportunities")
+        .insert({
+          title: formData.title,
+          description: formData.description,
+          location: formData.location,
+          event_date: eventDate,
+          payment: paymentAmount,
+          genre: selectedGenres[0] || formData.genre, // Use first selected genre or form genre
+          skill_level: formData.requirements,
+          organizer_name: "R/HOOD Studio", // Default organizer
+          is_active: true,
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Opportunity created successfully!",
+      });
+
+      router.push("/admin/opportunities");
+    } catch (error) {
+      console.error("Error creating opportunity:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create opportunity. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSaveDraft = () => {
-    console.log("Saving draft:", {
-      ...formData,
-      genres: selectedGenres,
-      status: "draft",
-    });
-    router.push("/admin/opportunities");
+  const handleSaveDraft = async () => {
+    setIsSubmitting(true);
+
+    try {
+      const eventDate = formData.date && formData.time 
+        ? new Date(`${formData.date}T${formData.time}`).toISOString()
+        : formData.date 
+        ? new Date(formData.date).toISOString()
+        : null;
+
+      const paymentAmount = formData.pay ? parseFloat(formData.pay.replace(/[£,]/g, '')) : null;
+
+      const { error } = await supabase
+        .from("opportunities")
+        .insert({
+          title: formData.title,
+          description: formData.description,
+          location: formData.location,
+          event_date: eventDate,
+          payment: paymentAmount,
+          genre: selectedGenres[0] || formData.genre,
+          skill_level: formData.requirements,
+          organizer_name: "R/HOOD Studio",
+          is_active: false, // Draft is not active
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Draft Saved",
+        description: "Opportunity saved as draft successfully!",
+      });
+
+      router.push("/admin/opportunities");
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save draft. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -318,13 +402,22 @@ export default function CreateOpportunityPage() {
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-4">
-          <Button type="button" variant="outline" onClick={handleSaveDraft}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleSaveDraft}
+            disabled={isSubmitting}
+          >
             <Save className="h-4 w-4 mr-2" />
-            Save Draft
+            {isSubmitting ? "Saving..." : "Save Draft"}
           </Button>
-          <Button type="submit" className="bg-primary hover:bg-primary/90">
+          <Button 
+            type="submit" 
+            className="bg-primary hover:bg-primary/90"
+            disabled={isSubmitting}
+          >
             <Plus className="h-4 w-4 mr-2" />
-            Create Opportunity
+            {isSubmitting ? "Creating..." : "Create Opportunity"}
           </Button>
         </div>
       </form>

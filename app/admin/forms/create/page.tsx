@@ -273,10 +273,10 @@ export default function CreateFormPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
-            Create Application Form
+            Create Application Brief
           </h1>
           <p className={textStyles.body.regular}>
-            Build a custom application form for DJs
+            Build a custom application brief for DJs
           </p>
         </div>
         <Button variant="outline" onClick={() => router.back()}>
@@ -295,19 +295,19 @@ export default function CreateFormPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title" className={textStyles.body.regular}>
-                Form Title
-              </Label>
-              <Input
-                id="title"
-                placeholder="e.g., DJ Application Form"
-                value={formData.title}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
-                className="bg-secondary border-border text-foreground"
-                required
-              />
+            <Label htmlFor="title" className={textStyles.body.regular}>
+              Brief Title
+            </Label>
+            <Input
+              id="title"
+              placeholder="e.g., DJ Application Brief"
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              className="bg-secondary border-border text-foreground"
+              required
+            />
             </div>
             <div className="space-y-2">
               <Label htmlFor="description" className={textStyles.body.regular}>
@@ -315,7 +315,7 @@ export default function CreateFormPage() {
               </Label>
               <Textarea
                 id="description"
-                placeholder="Describe what this form is for..."
+                placeholder="Describe what this brief is for..."
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
@@ -362,9 +362,9 @@ export default function CreateFormPage() {
         <Card className="bg-card border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className={textStyles.subheading.small}>
-                Form Fields
-              </CardTitle>
+            <CardTitle className={textStyles.subheading.small}>
+              Brief Fields
+            </CardTitle>
               <Button
                 type="button"
                 variant="outline"
@@ -382,7 +382,7 @@ export default function CreateFormPage() {
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className={textStyles.body.regular}>
                   No fields added yet. Click &quot;Add Field&quot; to start
-                  building your form.
+                  building your brief.
                 </p>
               </div>
             ) : (

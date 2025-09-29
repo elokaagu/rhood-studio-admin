@@ -39,15 +39,19 @@
     --ring: 65 100% 40%; /* R/HOOD Green */
 
     /* R/HOOD Brand gradients */
-    --gradient-primary: linear-gradient(135deg, #C2CC06, #B8C205);
-    --gradient-accent: linear-gradient(135deg, #C2CC06, #AEB804);
-    --gradient-dark: linear-gradient(180deg, #1D1D1B, #000000);
-    --gradient-image-overlay: linear-gradient(180deg, transparent 0%, rgba(29, 29, 27, 0.9) 100%);
-    
+    --gradient-primary: linear-gradient(135deg, #c2cc06, #b8c205);
+    --gradient-accent: linear-gradient(135deg, #c2cc06, #aeb804);
+    --gradient-dark: linear-gradient(180deg, #1d1d1b, #000000);
+    --gradient-image-overlay: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(29, 29, 27, 0.9) 100%
+    );
+
     /* R/HOOD signature glows */
     --glow-primary: 0 0 40px rgba(194, 204, 6, 0.4);
     --glow-accent: 0 0 30px rgba(194, 204, 6, 0.3);
-    
+
     /* Smooth premium transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 

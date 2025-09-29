@@ -122,10 +122,10 @@ export default function FormsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
-            APPLICATION FORMS
+            BRIEFS
           </h1>
           <p className={textStyles.body.regular}>
-            Create and manage custom application forms
+            Create and manage application briefs
           </p>
         </div>
         <Button
@@ -133,7 +133,7 @@ export default function FormsPage() {
           onClick={() => (window.location.href = "/admin/forms/create")}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Create Form
+          Create Brief
         </Button>
       </div>
 
@@ -143,7 +143,7 @@ export default function FormsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Forms</p>
+                <p className="text-sm text-muted-foreground">Total Briefs</p>
                 <p className="text-2xl font-bold text-foreground">
                   {forms.length}
                 </p>
@@ -158,7 +158,7 @@ export default function FormsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active Forms</p>
+                <p className="text-sm text-muted-foreground">Active Briefs</p>
                 <p className="text-2xl font-bold text-foreground">
                   {forms.filter((form) => form.is_active).length}
                 </p>
@@ -218,12 +218,12 @@ export default function FormsPage() {
       <div className="space-y-4">
         {isLoading ? (
           <div className="text-center py-8">
-            <p className={textStyles.body.regular}>Loading forms...</p>
+            <p className={textStyles.body.regular}>Loading briefs...</p>
           </div>
         ) : forms.length === 0 ? (
           <div className="text-center py-8">
             <p className={textStyles.body.regular}>
-              No forms found. Create your first application form!
+              No briefs found. Create your first application brief!
             </p>
           </div>
         ) : (

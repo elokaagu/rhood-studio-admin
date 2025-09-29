@@ -1,20 +1,22 @@
 # Messages Chat Interface Rebuild Instructions
 
 ## Overview
+
 The Messages component handles both group forum discussions and direct messaging with DJs. It switches between interfaces based on URL parameters and provides real-time-like chat functionality.
 
 ## Required Imports
+
 ```tsx
-import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  ArrowLeft, 
-  Send, 
+import React, { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  ArrowLeft,
+  Send,
   MoreVertical,
   Phone,
   Video,
@@ -25,17 +27,18 @@ import {
   Pin,
   Heart,
   MessageSquare,
-  ThumbsUp
-} from 'lucide-react';
-import rhoodLogo from '@/assets/rhood-logo.png';
-import person1 from '@/assets/person1.jpg';
-import person2 from '@/assets/person2.jpg';
-import alexProfile from '@/assets/alex-profile.jpg';
+  ThumbsUp,
+} from "lucide-react";
+import rhoodLogo from "@/assets/rhood-logo.png";
+import person1 from "@/assets/person1.jpg";
+import person2 from "@/assets/person2.jpg";
+import alexProfile from "@/assets/alex-profile.jpg";
 ```
 
 ## Mock Data Structures
 
 ### DJ Data
+
 ```tsx
 const mockDJs = [
   {
@@ -46,22 +49,23 @@ const mockDJs = [
     genres: ["House", "Techno", "Progressive"],
     rating: 4.9,
     profileImage: person1,
-    isOnline: true
+    isOnline: true,
   },
   {
     id: 2,
-    name: "Kai Johnson", 
+    name: "Kai Johnson",
     username: "@djkai",
     location: "Amsterdam, Netherlands",
     genres: ["Drum & Bass", "Breakbeat", "Electronic"],
     rating: 4.7,
     profileImage: person2,
-    isOnline: false
-  }
+    isOnline: false,
+  },
 ];
 ```
 
 ### Forum Posts Data
+
 ```tsx
 const mockForumPosts = [
   {
@@ -70,17 +74,19 @@ const mockForumPosts = [
     username: "@sofiavibes",
     avatar: person2,
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    content: "Just finished an incredible set at Fabric last night! The crowd was absolutely electric ⚡ Anyone else perform this weekend?",
+    content:
+      "Just finished an incredible set at Fabric last night! The crowd was absolutely electric ⚡ Anyone else perform this weekend?",
     likes: 24,
     replies: 8,
     isPinned: true,
-    tags: ["fabric", "weekend-sets"]
+    tags: ["fabric", "weekend-sets"],
   },
   // ... additional posts
 ];
 ```
 
 ### Messages Data
+
 ```tsx
 const mockMessages = [
   {
@@ -88,13 +94,14 @@ const mockMessages = [
     senderId: 1,
     text: "Hey! I saw your profile and love your sound. Are you available for a collaboration this weekend?",
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    isCurrentUser: false
+    isCurrentUser: false,
   },
   // ... additional messages
 ];
 ```
 
 ## Component State Management
+
 ```tsx
 const Messages = () => {
   const navigate = useNavigate();
@@ -105,20 +112,25 @@ const Messages = () => {
   const [messages, setMessages] = useState(mockMessages);
   const [newPost, setNewPost] = useState('');
   const [forumPosts, setForumPosts] = useState(mockForumPosts);
-  
+
   const currentDJ = mockDJs.find(dj => dj.id === djId) || mockDJs[0];
 ```
 
 ## Utility Functions
 
 ### Time Formatting
+
 ```tsx
 const formatTime = (date: Date) => {
   const now = new Date();
-  const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-  
+  const diffInHours = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+  );
+
   if (diffInHours < 1) {
-    const diffInMins = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    const diffInMins = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60)
+    );
     return `${diffInMins}m`;
   } else if (diffInHours < 24) {
     return `${diffInHours}h`;
@@ -130,25 +142,26 @@ const formatTime = (date: Date) => {
 ```
 
 ### Event Handlers
+
 ```tsx
 const handleSendMessage = () => {
   if (!newMessage.trim()) return;
-  
+
   const message = {
     id: messages.length + 1,
-    senderId: 'current',
+    senderId: "current",
     text: newMessage,
     timestamp: new Date(),
-    isCurrentUser: true
+    isCurrentUser: true,
   };
-  
+
   setMessages([...messages, message]);
-  setNewMessage('');
+  setNewMessage("");
 };
 
 const handlePostToForum = () => {
   if (!newPost.trim()) return;
-  
+
   const post = {
     id: forumPosts.length + 1,
     author: "Alex Thompson",
@@ -159,15 +172,15 @@ const handlePostToForum = () => {
     likes: 0,
     replies: 0,
     isPinned: false,
-    tags: []
+    tags: [],
   };
-  
+
   setForumPosts([post, ...forumPosts]);
-  setNewPost('');
+  setNewPost("");
 };
 
 const handleKeyPress = (e: React.KeyboardEvent) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
+  if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     if (isGroupChat) {
       handlePostToForum();
@@ -181,6 +194,7 @@ const handleKeyPress = (e: React.KeyboardEvent) => {
 ## Group Forum Interface
 
 ### Layout Structure
+
 ```tsx
 const renderGroupForum = () => (
   <div className="min-h-screen bg-gradient-dark flex flex-col">
@@ -190,9 +204,7 @@ const renderGroupForum = () => (
     </div>
 
     {/* Forum Posts */}
-    <div className="flex-1 overflow-y-auto p-4">
-      {/* Posts list */}
-    </div>
+    <div className="flex-1 overflow-y-auto p-4">{/* Posts list */}</div>
 
     {/* New Post Input */}
     <div className="p-4 bg-card border-t border-border flex-shrink-0">
@@ -203,18 +215,19 @@ const renderGroupForum = () => (
 ```
 
 ### Forum Header
+
 ```tsx
 <div className="flex items-center justify-between max-w-md mx-auto">
   <div className="flex items-center flex-1">
-    <Button variant="ghost" size="icon" onClick={() => navigate('/feed')}>
+    <Button variant="ghost" size="icon" onClick={() => navigate("/feed")}>
       <ArrowLeft className="h-5 w-5" />
     </Button>
-    
+
     <div className="flex items-center ml-3 flex-1">
       <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
         <Users className="h-5 w-5 text-primary-foreground" />
       </div>
-      
+
       <div className="ml-3 flex-1">
         <h2 className="font-semibold text-foreground text-sm">R/HOOD Group</h2>
         <div className="flex items-center text-xs text-muted-foreground">
@@ -233,6 +246,7 @@ const renderGroupForum = () => (
 ```
 
 ### Forum Post Card
+
 ```tsx
 <Card key={post.id} className="bg-card border-border/50">
   <CardContent className="p-4">
@@ -242,13 +256,13 @@ const renderGroupForum = () => (
         <AvatarImage src={post.avatar} alt={post.author} />
         <AvatarFallback>{post.author[0]}</AvatarFallback>
       </Avatar>
-      
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center space-x-2">
-          <h3 className="font-semibold text-foreground text-sm">{post.author}</h3>
-          {post.isPinned && (
-            <Pin className="h-3 w-3 text-primary" />
-          )}
+          <h3 className="font-semibold text-foreground text-sm">
+            {post.author}
+          </h3>
+          {post.isPinned && <Pin className="h-3 w-3 text-primary" />}
         </div>
         <div className="flex items-center space-x-2 text-xs text-muted-foreground">
           <span>{post.username}</span>
@@ -292,18 +306,23 @@ const renderGroupForum = () => (
 ## Direct Message Interface
 
 ### DM Header
+
 ```tsx
 <div className="bg-card border-b border-border p-4 flex-shrink-0">
   <div className="flex items-center justify-between max-w-md mx-auto">
     <div className="flex items-center flex-1">
-      <Button variant="ghost" size="icon" onClick={() => navigate('/community')}>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => navigate("/community")}
+      >
         <ArrowLeft className="h-5 w-5" />
       </Button>
-      
+
       <div className="flex items-center ml-3 flex-1">
         <div className="relative">
-          <img 
-            src={currentDJ.profileImage} 
+          <img
+            src={currentDJ.profileImage}
             alt={currentDJ.name}
             className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/20"
           />
@@ -311,9 +330,11 @@ const renderGroupForum = () => (
             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-accent rounded-full border-2 border-card"></div>
           )}
         </div>
-        
+
         <div className="ml-3 flex-1">
-          <h2 className="font-semibold text-foreground text-sm">{currentDJ.name}</h2>
+          <h2 className="font-semibold text-foreground text-sm">
+            {currentDJ.name}
+          </h2>
           <div className="flex items-center text-xs text-muted-foreground">
             <MapPin className="h-3 w-3 mr-1" />
             <span>{currentDJ.location}</span>
@@ -340,6 +361,7 @@ const renderGroupForum = () => (
 ```
 
 ### DJ Info Card
+
 ```tsx
 <div className="p-4 flex-shrink-0">
   <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 max-w-md mx-auto">
@@ -347,13 +369,15 @@ const renderGroupForum = () => (
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center">
           <Music className="h-4 w-4 text-primary mr-2" />
-          <span className="text-sm font-medium text-foreground">DJ Profile</span>
+          <span className="text-sm font-medium text-foreground">
+            DJ Profile
+          </span>
         </div>
         <Badge variant="outline" className="border-primary/50 text-primary">
           Connected
         </Badge>
       </div>
-      
+
       <div className="flex flex-wrap gap-1">
         {currentDJ.genres.map((genre) => (
           <Badge key={genre} variant="secondary" className="text-xs">
@@ -367,35 +391,43 @@ const renderGroupForum = () => (
 ```
 
 ### Message Bubbles
+
 ```tsx
-{messages.map((message) => (
-  <div
-    key={message.id}
-    className={`flex ${message.isCurrentUser ? 'justify-end' : 'justify-start'}`}
-  >
+{
+  messages.map((message) => (
     <div
-      className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-        message.isCurrentUser
-          ? 'bg-primary text-primary-foreground rounded-br-md'
-          : 'bg-secondary text-secondary-foreground rounded-bl-md'
+      key={message.id}
+      className={`flex ${
+        message.isCurrentUser ? "justify-end" : "justify-start"
       }`}
     >
-      <p className="text-sm leading-relaxed">{message.text}</p>
-      <p className={`text-xs mt-1 ${
-        message.isCurrentUser 
-          ? 'text-primary-foreground/70' 
-          : 'text-muted-foreground'
-      }`}>
-        {formatTime(message.timestamp)}
-      </p>
+      <div
+        className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+          message.isCurrentUser
+            ? "bg-primary text-primary-foreground rounded-br-md"
+            : "bg-secondary text-secondary-foreground rounded-bl-md"
+        }`}
+      >
+        <p className="text-sm leading-relaxed">{message.text}</p>
+        <p
+          className={`text-xs mt-1 ${
+            message.isCurrentUser
+              ? "text-primary-foreground/70"
+              : "text-muted-foreground"
+          }`}
+        >
+          {formatTime(message.timestamp)}
+        </p>
+      </div>
     </div>
-  </div>
-))}
+  ));
+}
 ```
 
 ## Input Components
 
 ### Message/Post Input
+
 ```tsx
 <div className="p-4 bg-card border-t border-border flex-shrink-0">
   <div className="max-w-md mx-auto">
@@ -403,9 +435,15 @@ const renderGroupForum = () => (
       <div className="flex-1">
         <Input
           value={isGroupChat ? newPost : newMessage}
-          onChange={(e) => isGroupChat ? setNewPost(e.target.value) : setNewMessage(e.target.value)}
+          onChange={(e) =>
+            isGroupChat
+              ? setNewPost(e.target.value)
+              : setNewMessage(e.target.value)
+          }
           onKeyPress={handleKeyPress}
-          placeholder={isGroupChat ? "Share with the community..." : "Type a message..."}
+          placeholder={
+            isGroupChat ? "Share with the community..." : "Type a message..."
+          }
           className="resize-none bg-secondary border-secondary-foreground/20 focus:border-primary"
         />
       </div>
@@ -422,6 +460,7 @@ const renderGroupForum = () => (
 ```
 
 ## Main Component Logic
+
 ```tsx
 const Messages = () => {
   // ... state and handlers
@@ -437,6 +476,7 @@ export default Messages;
 ```
 
 ## Key Features
+
 - **Responsive Design**: Maximum width of 400px (max-w-md) centered on larger screens
 - **URL Parameters**: Uses `?group=rhood` for forum, `?dj=1` for direct messages
 - **Real-time Style**: Immediate message/post addition with optimistic updates
@@ -449,6 +489,7 @@ export default Messages;
 - **Empty State Protection**: Buttons disabled when input is empty
 
 ## Styling Notes
+
 - Uses semantic color tokens (primary, secondary, card, border, etc.)
 - Gradient background: `bg-gradient-dark`
 - Message bubbles have rounded corners with slight modifications (rounded-br-md, rounded-bl-md)

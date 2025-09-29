@@ -312,10 +312,10 @@ export default function EditFormPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
-            Edit Application Form
+            Edit Application Brief
           </h1>
           <p className={textStyles.body.regular}>
-            Modify the form details and fields
+            Modify the brief details and fields
           </p>
         </div>
         <Button variant="outline" onClick={() => router.back()}>

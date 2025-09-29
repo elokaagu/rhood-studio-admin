@@ -252,7 +252,10 @@ function ApplicationsContent() {
               <div>
                 <p className="text-sm text-muted-foreground">Pending</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {applications.filter((app) => app.status === "pending").length}
+                  {
+                    applications.filter((app) => app.status === "pending")
+                      .length
+                  }
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
@@ -267,7 +270,10 @@ function ApplicationsContent() {
               <div>
                 <p className="text-sm text-muted-foreground">Approved</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {applications.filter((app) => app.status === "approved").length}
+                  {
+                    applications.filter((app) => app.status === "approved")
+                      .length
+                  }
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
@@ -282,7 +288,10 @@ function ApplicationsContent() {
               <div>
                 <p className="text-sm text-muted-foreground">Rejected</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {applications.filter((app) => app.status === "rejected").length}
+                  {
+                    applications.filter((app) => app.status === "rejected")
+                      .length
+                  }
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">

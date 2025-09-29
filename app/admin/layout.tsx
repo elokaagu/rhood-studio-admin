@@ -57,11 +57,11 @@ const sidebarItems = [
     url: "/admin/applications",
     icon: FileText,
   },
-  {
-    title: "Forms",
-    url: "/admin/forms",
-    icon: FileText,
-  },
+    {
+      title: "Briefs",
+      url: "/admin/forms",
+      icon: FileText,
+    },
   {
     title: "Mixes",
     url: "/admin/mixes",

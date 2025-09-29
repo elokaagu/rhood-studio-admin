@@ -235,7 +235,7 @@ export default function FormResponsesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
-            Form Responses
+            Brief Responses
           </h1>
           <p className={textStyles.body.regular}>
             {form?.title} - {responses.length} responses

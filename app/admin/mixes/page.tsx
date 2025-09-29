@@ -261,7 +261,7 @@ export default function MixesPage() {
       const { error } = await supabase
         .from("mixes")
         .delete()
-        .eq("id", mixToDelete.id);
+        .eq("id", mixToDelete.id.toString());
 
       if (error) {
         throw error;

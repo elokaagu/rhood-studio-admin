@@ -300,7 +300,7 @@ export default function MembersPage() {
       const { error } = await supabase
         .from("user_profiles")
         .delete()
-        .eq("id", memberToDelete.id);
+        .eq("id", memberToDelete.id.toString());
 
       if (error) {
         throw error;

@@ -251,7 +251,9 @@ function ApplicationsContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold text-foreground">1</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {applications.filter((app) => app.status === "pending").length}
+                </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
                 <Clock className="h-4 w-4 text-brand-green" />
@@ -264,7 +266,9 @@ function ApplicationsContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Approved</p>
-                <p className="text-2xl font-bold text-foreground">1</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {applications.filter((app) => app.status === "approved").length}
+                </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
                 <CheckCircle className="h-4 w-4 text-brand-green" />
@@ -277,7 +281,9 @@ function ApplicationsContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Rejected</p>
-                <p className="text-2xl font-bold text-foreground">1</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {applications.filter((app) => app.status === "rejected").length}
+                </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
                 <XCircle className="h-4 w-4 text-brand-green" />

@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield } from "lucide-react";
 import Image from "next/image";
 import { textStyles } from "@/lib/typography";
 
@@ -83,19 +82,36 @@ export default function AdminLoginPage() {
             className="h-16 w-auto"
           />
         </div>
-        <p className={`${textStyles.headline.section} text-center`}>R/HOOD<br />STUDIO<br />MANAGEMENT</p>
+        <p className={textStyles.headline.section}>
+          R/HOOD
+          <br />
+          STUDIO
+          <br />
+          MANAGEMENT
+        </p>
       </div>
 
       <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex items-center justify-center space-x-2 mb-2">
-            <Shield className="h-5 w-5 text-primary" />
+            <Image
+              src="/rhood_logo.webp"
+              alt="R/HOOD"
+              width={24}
+              height={24}
+              className="h-6 w-6"
+            />
             <CardTitle className={`text-center ${textStyles.headline.card}`}>
-              ADMIN<br />LOGIN
+              ADMIN
+              <br />
+              LOGIN
             </CardTitle>
           </div>
           <div className="text-center">
-            <Badge variant="outline" className={`border-primary ${textStyles.headline.badge}`}>
+            <Badge
+              variant="outline"
+              className={`border-primary ${textStyles.headline.badge}`}
+            >
               RHOOD TEAM ONLY
             </Badge>
           </div>

@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Calendar,
   MapPin,
@@ -21,55 +23,134 @@ export default function OpportunityDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const opportunityId = params.id;
+  const { toast } = useToast();
+  const [opportunity, setOpportunity] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data - in a real app, this would be fetched from an API
-  const opportunities = [
-    {
-      id: 1,
-      title: "Underground Warehouse Rave",
-      location: "East London",
-      date: "2024-08-15",
-      pay: "£300",
-      applicants: 12,
-      status: "active",
-      genre: "Techno",
-      description:
-        "High-energy underground techno event in a converted warehouse space.",
-      requirements: "Professional DJ equipment, 3+ years experience",
-      additionalInfo: "Contact: events@warehouse.com",
-    },
-    {
-      id: 2,
-      title: "Rooftop Summer Sessions",
-      location: "Shoreditch",
-      date: "2024-08-20",
-      pay: "£450",
-      applicants: 8,
-      status: "active",
-      genre: "House",
-      description: "Sunset house music sessions with panoramic city views.",
-      requirements: "House music experience, own equipment preferred",
-      additionalInfo: "Venue provides sound system",
-    },
-    {
-      id: 3,
-      title: "Club Residency Audition",
-      location: "Camden",
-      date: "2024-08-25",
-      pay: "£200 + Residency",
-      applicants: 15,
-      status: "completed",
-      genre: "Drum & Bass",
-      selected: "Alex Thompson",
-      description: "Weekly residency opportunity at premier London club.",
-      requirements: "Drum & Bass expertise, club experience",
-      additionalInfo: "Selected candidate will receive ongoing residency",
-    },
-  ];
+  // Fetch opportunity from database
+  const fetchOpportunity = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("opportunities")
+        .select("*")
+        .eq("id", opportunityId as string)
+        .single();
 
-  const opportunity = opportunities.find(
-    (opp) => opp.id === parseInt(opportunityId as string)
-  );
+      if (error) {
+        // Check if it's a table doesn't exist error
+        if (
+          error.message?.includes("relation") &&
+          error.message?.includes("does not exist")
+        ) {
+          console.warn("Opportunities table doesn't exist yet. Using demo data.");
+          toast({
+            title: "Database Setup Required",
+            description:
+              "Opportunities table not found. Please create it in Supabase dashboard. Using demo data for now.",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+      } else if (data) {
+        // Transform the data to match the expected format
+        const transformedOpportunity = {
+          id: data.id,
+          title: data.title,
+          location: data.location,
+          date: data.event_date
+            ? new Date(data.event_date).toISOString().split("T")[0]
+            : "Unknown",
+          pay: data.payment ? `£${data.payment}` : "N/A",
+          applicants: 0, // This would need to be calculated from applications
+          status: data.is_active ? "active" : "draft",
+          genre: data.genre,
+          description: data.description,
+          requirements: data.skill_level,
+          additionalInfo: "", // This field might need to be added to the database
+        };
+
+        setOpportunity(transformedOpportunity);
+        setIsLoading(false);
+        return; // Exit early if successful
+      }
+    } catch (error) {
+      console.error("Error fetching opportunity:", error);
+      toast({
+        title: "Database Error",
+        description:
+          "Failed to load opportunity from database. Using demo data.",
+        variant: "destructive",
+      });
+    }
+
+    // Fallback to demo data
+    const opportunities = [
+      {
+        id: 1,
+        title: "Underground Warehouse Rave",
+        location: "East London",
+        date: "2024-08-15",
+        pay: "£300",
+        applicants: 12,
+        status: "active",
+        genre: "Techno",
+        description:
+          "High-energy underground techno event in a converted warehouse space.",
+        requirements: "Professional DJ equipment, 3+ years experience",
+        additionalInfo: "Contact: events@warehouse.com",
+      },
+      {
+        id: 2,
+        title: "Rooftop Summer Sessions",
+        location: "Shoreditch",
+        date: "2024-08-20",
+        pay: "£450",
+        applicants: 8,
+        status: "active",
+        genre: "House",
+        description: "Sunset house music sessions with panoramic city views.",
+        requirements: "House music experience, own equipment preferred",
+        additionalInfo: "Venue provides sound system",
+      },
+      {
+        id: 3,
+        title: "Club Residency Audition",
+        location: "Camden",
+        date: "2024-08-25",
+        pay: "£200 + Residency",
+        applicants: 15,
+        status: "completed",
+        genre: "Drum & Bass",
+        selected: "Alex Thompson",
+        description: "Weekly residency opportunity at premier London club.",
+        requirements: "Drum & Bass expertise, club experience",
+        additionalInfo: "Selected candidate will receive ongoing residency",
+      },
+    ];
+
+    const foundOpportunity = opportunities.find(
+      (opp) => opp.id === parseInt(opportunityId as string)
+    );
+
+    setOpportunity(foundOpportunity || opportunities[0]);
+    setIsLoading(false);
+  };
+
+  // Load opportunity on component mount
+  useEffect(() => {
+    fetchOpportunity();
+  }, [opportunityId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <p className={textStyles.body.regular}>Loading opportunity...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!opportunity) {
     return (

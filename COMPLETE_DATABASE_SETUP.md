@@ -14,6 +14,7 @@ The error you're seeing is because the required database tables don't exist in y
 #### Run these SQL scripts in order:
 
 **1. First, run `setup-user-profiles-table.sql`:**
+
 ```sql
 -- Create user_profiles table
 CREATE TABLE IF NOT EXISTS user_profiles (
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 ```
 
 **2. Then, run `setup-opportunities-table.sql`:**
+
 ```sql
 -- Create opportunities table
 CREATE TABLE IF NOT EXISTS opportunities (
@@ -59,6 +61,7 @@ CREATE TABLE IF NOT EXISTS opportunities (
 ```
 
 **3. Finally, run `setup-applications-table.sql`:**
+
 ```sql
 -- Create applications table
 CREATE TABLE IF NOT EXISTS applications (
@@ -76,6 +79,7 @@ CREATE TABLE IF NOT EXISTS applications (
 ```
 
 **4. And run `setup-mixes-table.sql` (if you haven't already):**
+
 ```sql
 -- Create mixes table
 CREATE TABLE IF NOT EXISTS mixes (
@@ -104,12 +108,14 @@ CREATE TABLE IF NOT EXISTS mixes (
 ### Step 2: Verify the Setup
 
 After running all SQL scripts, you should see these tables in the **Table Editor**:
+
 - ✅ `user_profiles`
-- ✅ `opportunities` 
+- ✅ `opportunities`
 - ✅ `applications`
 - ✅ `mixes`
 
 And in **Storage**, you should see:
+
 - ✅ `mixes` bucket
 
 ### Step 3: Test the Application
@@ -121,21 +127,25 @@ And in **Storage**, you should see:
 ## What Each Table Does
 
 ### **user_profiles**
+
 - Stores DJ/member information
 - Used by the Members page
 - Referenced by applications and mixes
 
 ### **opportunities**
+
 - Stores DJ gig opportunities
 - Used by the Opportunities page
 - Referenced by applications
 
 ### **applications**
+
 - Stores applications from DJs to opportunities
 - Used by the Applications page
 - Links users to opportunities
 
 ### **mixes**
+
 - Stores uploaded DJ mixes
 - Used by the Mixes page
 - Includes file storage for audio files
@@ -152,6 +162,7 @@ If you still see errors:
 ## Next Steps
 
 Once all tables are created, the application will:
+
 - ✅ Create opportunities without errors
 - ✅ Load real data from the database
 - ✅ Allow you to manage applications, members, and mixes

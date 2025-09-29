@@ -70,10 +70,14 @@ export default function CreateOpportunityPage() {
         .limit(1);
 
       if (tableCheckError) {
-        if (tableCheckError.message?.includes("relation") && tableCheckError.message?.includes("does not exist")) {
+        if (
+          tableCheckError.message?.includes("relation") &&
+          tableCheckError.message?.includes("does not exist")
+        ) {
           toast({
             title: "Database Setup Required",
-            description: "Opportunities table doesn't exist. Please create it in Supabase dashboard first.",
+            description:
+              "Opportunities table doesn't exist. Please create it in Supabase dashboard first.",
             variant: "destructive",
           });
           return;
@@ -139,10 +143,14 @@ export default function CreateOpportunityPage() {
         .limit(1);
 
       if (tableCheckError) {
-        if (tableCheckError.message?.includes("relation") && tableCheckError.message?.includes("does not exist")) {
+        if (
+          tableCheckError.message?.includes("relation") &&
+          tableCheckError.message?.includes("does not exist")
+        ) {
           toast({
             title: "Database Setup Required",
-            description: "Opportunities table doesn't exist. Please create it in Supabase dashboard first.",
+            description:
+              "Opportunities table doesn't exist. Please create it in Supabase dashboard first.",
             variant: "destructive",
           });
           return;

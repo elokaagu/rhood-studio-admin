@@ -68,16 +68,20 @@ export default function OpportunityDetailsPage() {
     },
   ];
 
-  const opportunity = opportunities.find(opp => opp.id === parseInt(opportunityId as string));
+  const opportunity = opportunities.find(
+    (opp) => opp.id === parseInt(opportunityId as string)
+  );
 
   if (!opportunity) {
     return (
       <div className="space-y-6">
         <div className="text-center">
           <h1 className={textStyles.headline.section}>OPPORTUNITY NOT FOUND</h1>
-          <p className={textStyles.body.regular}>The opportunity you&apos;re looking for doesn&apos;t exist.</p>
-          <Button 
-            onClick={() => router.push('/admin/opportunities')}
+          <p className={textStyles.body.regular}>
+            The opportunity you&apos;re looking for doesn&apos;t exist.
+          </p>
+          <Button
+            onClick={() => router.push("/admin/opportunities")}
             className="mt-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -92,28 +96,40 @@ export default function OpportunityDetailsPage() {
     switch (status) {
       case "active":
         return (
-          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+          <Badge
+            variant="outline"
+            className="border-gray-400 text-gray-400 bg-transparent text-xs"
+          >
             <Clock className="h-3 w-3 mr-1" />
             Active
           </Badge>
         );
       case "completed":
         return (
-          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+          <Badge
+            variant="outline"
+            className="border-gray-400 text-gray-400 bg-transparent text-xs"
+          >
             <CheckCircle className="h-3 w-3 mr-1" />
             Completed
           </Badge>
         );
       case "closed":
         return (
-          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+          <Badge
+            variant="outline"
+            className="border-gray-400 text-gray-400 bg-transparent text-xs"
+          >
             <Clock className="h-3 w-3 mr-1" />
             Closed
           </Badge>
         );
       default:
         return (
-          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+          <Badge
+            variant="outline"
+            className="border-gray-400 text-gray-400 bg-transparent text-xs"
+          >
             {status}
           </Badge>
         );
@@ -127,14 +143,16 @@ export default function OpportunityDetailsPage() {
         <div className="flex items-center space-x-4">
           <Button
             variant="outline"
-            onClick={() => router.push('/admin/opportunities')}
+            onClick={() => router.push("/admin/opportunities")}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
           <div>
             <h1 className={textStyles.headline.section}>OPPORTUNITY DETAILS</h1>
-            <p className={textStyles.body.regular}>View and manage opportunity information</p>
+            <p className={textStyles.body.regular}>
+              View and manage opportunity information
+            </p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -191,20 +209,28 @@ export default function OpportunityDetailsPage() {
 
               <div className="space-y-2">
                 <h3 className={textStyles.subheading.small}>Description</h3>
-                <p className={textStyles.body.regular}>{opportunity.description}</p>
+                <p className={textStyles.body.regular}>
+                  {opportunity.description}
+                </p>
               </div>
 
               {opportunity.requirements && (
                 <div className="space-y-2">
                   <h3 className={textStyles.subheading.small}>Requirements</h3>
-                  <p className={textStyles.body.regular}>{opportunity.requirements}</p>
+                  <p className={textStyles.body.regular}>
+                    {opportunity.requirements}
+                  </p>
                 </div>
               )}
 
               {opportunity.additionalInfo && (
                 <div className="space-y-2">
-                  <h3 className={textStyles.subheading.small}>Additional Information</h3>
-                  <p className={textStyles.body.regular}>{opportunity.additionalInfo}</p>
+                  <h3 className={textStyles.subheading.small}>
+                    Additional Information
+                  </h3>
+                  <p className={textStyles.body.regular}>
+                    {opportunity.additionalInfo}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -216,21 +242,29 @@ export default function OpportunityDetailsPage() {
           {/* Statistics */}
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className={textStyles.subheading.small}>Statistics</CardTitle>
+              <CardTitle className={textStyles.subheading.small}>
+                Statistics
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className={textStyles.body.regular}>Total Applicants</span>
+                  <span className={textStyles.body.regular}>
+                    Total Applicants
+                  </span>
                 </div>
-                <span className={textStyles.subheading.small}>{opportunity.applicants}</span>
+                <span className={textStyles.subheading.small}>
+                  {opportunity.applicants}
+                </span>
               </div>
-              
+
               {opportunity.selected && (
                 <div className="flex items-center justify-between">
                   <span className={textStyles.body.regular}>Selected</span>
-                  <span className="text-brand-green font-bold">{opportunity.selected}</span>
+                  <span className="text-brand-green font-bold">
+                    {opportunity.selected}
+                  </span>
                 </div>
               )}
             </CardContent>
@@ -239,7 +273,9 @@ export default function OpportunityDetailsPage() {
           {/* Quick Actions */}
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className={textStyles.subheading.small}>Quick Actions</CardTitle>
+              <CardTitle className={textStyles.subheading.small}>
+                Quick Actions
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <Button variant="outline" className="w-full justify-start">

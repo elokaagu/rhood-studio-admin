@@ -106,14 +106,14 @@ export default function OpportunitiesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className={textStyles.headline.section}>OPPORTUNITIES</h1>
+          <h1 className={`${textStyles.headline.section} text-left`}>OPPORTUNITIES</h1>
           <p className={textStyles.body.regular}>
             Manage all DJ opportunities and gigs
           </p>
         </div>
-        <Button 
+        <Button
           className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
-          onClick={() => window.location.href = '/admin/create-opportunity'}
+          onClick={() => (window.location.href = "/admin/create-opportunity")}
         >
           <Plus className="h-4 w-4 mr-2" />
           Create Opportunity
@@ -235,7 +235,9 @@ export default function OpportunitiesPage() {
                     variant="outline"
                     size="sm"
                     className="text-foreground"
-                    onClick={() => window.location.href = `/admin/opportunities/${opportunity.id}`}
+                    onClick={() =>
+                      (window.location.href = `/admin/opportunities/${opportunity.id}`)
+                    }
                   >
                     <Eye className="h-4 w-4 mr-1" />
                     View Details

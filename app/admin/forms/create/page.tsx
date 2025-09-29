@@ -179,7 +179,10 @@ export default function CreateFormPage() {
         .insert({
           title: formData.title,
           description: formData.description,
-          opportunity_id: formData.opportunity_id === "none" ? null : formData.opportunity_id || null,
+          opportunity_id:
+            formData.opportunity_id === "none"
+              ? null
+              : formData.opportunity_id || null,
           is_active: true,
         })
         .select()
@@ -239,7 +242,10 @@ export default function CreateFormPage() {
         .insert({
           title: formData.title || "Untitled Form",
           description: formData.description,
-          opportunity_id: formData.opportunity_id === "none" ? null : formData.opportunity_id || null,
+          opportunity_id:
+            formData.opportunity_id === "none"
+              ? null
+              : formData.opportunity_id || null,
           is_active: false, // Draft is not active
         })
         .select()
@@ -295,19 +301,19 @@ export default function CreateFormPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-            <Label htmlFor="title" className={textStyles.body.regular}>
-              Brief Title
-            </Label>
-            <Input
-              id="title"
-              placeholder="e.g., DJ Application Brief"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              className="bg-secondary border-border text-foreground"
-              required
-            />
+              <Label htmlFor="title" className={textStyles.body.regular}>
+                Brief Title
+              </Label>
+              <Input
+                id="title"
+                placeholder="e.g., DJ Application Brief"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                className="bg-secondary border-border text-foreground"
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="description" className={textStyles.body.regular}>
@@ -362,9 +368,9 @@ export default function CreateFormPage() {
         <Card className="bg-card border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
-            <CardTitle className={textStyles.subheading.small}>
-              Brief Fields
-            </CardTitle>
+              <CardTitle className={textStyles.subheading.small}>
+                Brief Fields
+              </CardTitle>
               <Button
                 type="button"
                 variant="outline"

@@ -18,8 +18,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { textStyles } from "@/lib/typography";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Search,
   MapPin,
@@ -45,6 +43,8 @@ export default function MembersPage() {
   });
   const [members, setMembers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<{ id: number; name: string } | null>(null);
 
   // Fetch members from database
   const fetchMembers = async () => {
@@ -279,33 +279,42 @@ export default function MembersPage() {
   };
 
   const handleDeleteMember = async (memberId: number, memberName: string) => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete "${memberName}"? This action cannot be undone.`
-      )
-    ) {
-      try {
-        // In a real app, this would delete from the database
-        console.log(`Deleting member: ${memberName} (ID: ${memberId})`);
+    setMemberToDelete({ id: memberId, name: memberName });
+    setDeleteModalOpen(true);
+  };
 
-        // For demo purposes, remove from local state
-        setMembers((prevMembers) =>
-          prevMembers.filter((member) => member.id !== memberId)
-        );
+  const confirmDeleteMember = async () => {
+    if (!memberToDelete) return;
 
-        toast({
-          title: "Member Deleted",
-          description: `"${memberName}" has been deleted successfully.`,
-        });
-      } catch (error) {
-        console.error("Error deleting member:", error);
-        toast({
-          title: "Delete Failed",
-          description: "Failed to delete member. Please try again.",
-          variant: "destructive",
-        });
-      }
+    try {
+      // In a real app, this would delete from the database
+      console.log(`Deleting member: ${memberToDelete.name} (ID: ${memberToDelete.id})`);
+
+      // For demo purposes, remove from local state
+      setMembers((prevMembers) =>
+        prevMembers.filter((member) => member.id !== memberToDelete.id)
+      );
+
+      toast({
+        title: "Member Deleted",
+        description: `"${memberToDelete.name}" has been deleted successfully.`,
+      });
+    } catch (error) {
+      console.error("Error deleting member:", error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete member. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteModalOpen(false);
+      setMemberToDelete(null);
     }
+  };
+
+  const cancelDeleteMember = () => {
+    setDeleteModalOpen(false);
+    setMemberToDelete(null);
   };
 
   return (
@@ -567,6 +576,37 @@ export default function MembersPage() {
           ))
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
+              Delete Member
+            </DialogTitle>
+            <DialogDescription className={textStyles.body.regular}>
+              Are you sure you want to delete "{memberToDelete?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={cancelDeleteMember}
+              className="text-foreground border-border hover:bg-secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteMember}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

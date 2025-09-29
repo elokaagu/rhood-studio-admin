@@ -23,8 +23,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { textStyles } from "@/lib/typography";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Play,
   Pause,
@@ -60,6 +66,8 @@ export default function MixesPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [mixes, setMixes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [mixToDelete, setMixToDelete] = useState<{ id: number; title: string } | null>(null);
 
   // Fetch mixes from database
   const fetchMixes = async () => {
@@ -242,27 +250,40 @@ export default function MixesPage() {
   };
 
   const handleDelete = async (mixId: number, mixTitle: string) => {
-    if (window.confirm(`Are you sure you want to delete "${mixTitle}"? This action cannot be undone.`)) {
-      try {
-        // In a real app, this would delete from the database
-        console.log(`Deleting mix: ${mixTitle} (ID: ${mixId})`);
-        
-        // For demo purposes, remove from local state
-        setMixes(prevMixes => prevMixes.filter(mix => mix.id !== mixId));
-        
-        toast({
-          title: "Mix Deleted",
-          description: `"${mixTitle}" has been deleted successfully.`,
-        });
-      } catch (error) {
-        console.error("Error deleting mix:", error);
-        toast({
-          title: "Delete Failed",
-          description: "Failed to delete mix. Please try again.",
-          variant: "destructive",
-        });
-      }
+    setMixToDelete({ id: mixId, title: mixTitle });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!mixToDelete) return;
+
+    try {
+      // In a real app, this would delete from the database
+      console.log(`Deleting mix: ${mixToDelete.title} (ID: ${mixToDelete.id})`);
+
+      // For demo purposes, remove from local state
+      setMixes((prevMixes) => prevMixes.filter((mix) => mix.id !== mixToDelete.id));
+
+      toast({
+        title: "Mix Deleted",
+        description: `"${mixToDelete.title}" has been deleted successfully.`,
+      });
+    } catch (error) {
+      console.error("Error deleting mix:", error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete mix. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteModalOpen(false);
+      setMixToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteModalOpen(false);
+    setMixToDelete(null);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -838,6 +859,37 @@ export default function MixesPage() {
           ))
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
+              Delete Mix
+            </DialogTitle>
+            <DialogDescription className={textStyles.body.regular}>
+              Are you sure you want to delete "{mixToDelete?.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={cancelDelete}
+              className="text-foreground border-border hover:bg-secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

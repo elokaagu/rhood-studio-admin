@@ -99,13 +99,15 @@ export default function DashboardPage() {
         // Fetch recent applications
         const { data: recentApplications } = await supabase
           .from("applications")
-          .select(`
+          .select(
+            `
             id,
             created_at,
             status,
             opportunities!inner(title),
             user_profiles!inner(dj_name)
-          `)
+          `
+          )
           .order("created_at", { ascending: false })
           .limit(3);
 
@@ -163,7 +165,9 @@ export default function DashboardPage() {
         }
 
         // Sort by date and take top 4
-        activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+        activities.sort(
+          (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
+        );
         setRecentActivity(activities.slice(0, 4));
       } catch (error) {
         console.error("Error fetching recent activity:", error);
@@ -226,12 +230,8 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={textStyles.subheading.large}>
-                {stat.value}
-              </div>
-              <p className={`${textStyles.body.small} mt-1`}>
-                {stat.change}
-              </p>
+              <div className={textStyles.subheading.large}>{stat.value}</div>
+              <p className={`${textStyles.body.small} mt-1`}>{stat.change}</p>
             </CardContent>
           </Card>
         ))}
@@ -240,7 +240,11 @@ export default function DashboardPage() {
       {/* Recent Activity */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className={textStyles.headline.section}>RECENT<br />ACTIVITY</CardTitle>
+          <CardTitle className={textStyles.headline.section}>
+            RECENT
+            <br />
+            ACTIVITY
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

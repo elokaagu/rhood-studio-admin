@@ -16,6 +16,8 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
   });
@@ -142,6 +144,46 @@ export default function AdminLoginPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* First Name and Last Name - Only show for sign up */}
+            {isSignUp && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName" className={textStyles.body.regular}>
+                      First Name
+                    </Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      placeholder="John"
+                      value={formData.firstName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, firstName: e.target.value })
+                      }
+                      className="bg-secondary border-border text-foreground"
+                      required={isSignUp}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className={textStyles.body.regular}>
+                      Last Name
+                    </Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      placeholder="Doe"
+                      value={formData.lastName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, lastName: e.target.value })
+                      }
+                      className="bg-secondary border-border text-foreground"
+                      required={isSignUp}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className={textStyles.body.regular}>
@@ -184,7 +226,12 @@ export default function AdminLoginPage() {
               variant="premium"
               size="lg"
               className="w-full mt-6"
-              disabled={loading || !formData.email || !formData.password}
+              disabled={
+                loading || 
+                !formData.email || 
+                !formData.password || 
+                (isSignUp && (!formData.firstName || !formData.lastName))
+              }
             >
               {loading
                 ? isSignUp
@@ -205,7 +252,16 @@ export default function AdminLoginPage() {
         </p>
         <button
           type="button"
-          onClick={() => setIsSignUp(!isSignUp)}
+          onClick={() => {
+            setIsSignUp(!isSignUp);
+            // Clear form when switching modes
+            setFormData({
+              firstName: "",
+              lastName: "",
+              email: "",
+              password: "",
+            });
+          }}
           className={`mt-2 ${textStyles.body.regular} text-primary hover:underline`}
         >
           {isSignUp ? "Sign In" : "Create Account"}

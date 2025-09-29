@@ -106,7 +106,9 @@ export default function OpportunitiesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className={`${textStyles.headline.section} text-left`}>OPPORTUNITIES</h1>
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+            OPPORTUNITIES
+          </h1>
           <p className={textStyles.body.regular}>
             Manage all DJ opportunities and gigs
           </p>

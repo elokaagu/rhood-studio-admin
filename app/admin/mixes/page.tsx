@@ -104,7 +104,7 @@ export default function MixesPage() {
 
   const getGenreBadge = (genre: string) => {
     return (
-      <Badge 
+      <Badge
         variant="outline"
         className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
       >
@@ -148,13 +148,17 @@ export default function MixesPage() {
 
       audio.onerror = () => {
         console.error("Error playing audio");
-        alert("Unable to play audio. This is a demo with placeholder audio files.");
+        alert(
+          "Unable to play audio. This is a demo with placeholder audio files."
+        );
       };
 
       // Play the audio
       audio.play().catch((error) => {
         console.error("Error playing audio:", error);
-        alert("Unable to play audio. This is a demo with placeholder audio files.");
+        alert(
+          "Unable to play audio. This is a demo with placeholder audio files."
+        );
       });
     }
   };
@@ -162,7 +166,9 @@ export default function MixesPage() {
   const handleDownload = (mixTitle: string) => {
     // In a real app, this would download the actual mix file
     console.log(`Downloading mix: ${mixTitle}`);
-    alert(`Download functionality would download the actual mix file for: ${mixTitle}`);
+    alert(
+      `Download functionality would download the actual mix file for: ${mixTitle}`
+    );
   };
 
   return (
@@ -281,8 +287,8 @@ export default function MixesPage() {
                     </Button>
                   )}
 
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => handleDownload(mix.title)}
                   >

@@ -6,6 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { textStyles } from "@/lib/typography";
 import {
   Search,
@@ -16,11 +27,18 @@ import {
   Mail,
   Star,
   UserPlus,
+  X,
 } from "lucide-react";
 
 export default function MembersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteFormData, setInviteFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
 
   const members = [
     {
@@ -143,10 +161,24 @@ export default function MembersPage() {
   });
 
   const handleInviteMember = () => {
-    // In a real app, this would open a modal or navigate to an invite form
-    console.log("Opening invite member form...");
-    // For now, we'll just show an alert
-    alert("Invite Member functionality would open a form to invite new members to the R/HOOD community.");
+    setIsInviteModalOpen(true);
+  };
+
+  const handleInviteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Inviting member:", inviteFormData);
+    
+    // In a real app, this would send the invite to the backend
+    alert(`Invite sent to ${inviteFormData.name} (${inviteFormData.email})!`);
+    
+    // Reset form and close modal
+    setInviteFormData({ name: "", email: "", message: "" });
+    setIsInviteModalOpen(false);
+  };
+
+  const handleInviteCancel = () => {
+    setInviteFormData({ name: "", email: "", message: "" });
+    setIsInviteModalOpen(false);
   };
 
   const handleMessageMember = (memberName: string, memberEmail: string) => {
@@ -168,13 +200,97 @@ export default function MembersPage() {
             Manage R/HOOD community members
           </p>
         </div>
-        <Button 
-          className="bg-brand-green text-brand-black hover:bg-brand-green/90"
-          onClick={handleInviteMember}
-        >
-          <UserPlus className="h-4 w-4 mr-2" />
-          Invite Member
-        </Button>
+        <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+              onClick={handleInviteMember}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite Member
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className={textStyles.subheading.large}>
+                Invite New Member
+              </DialogTitle>
+              <DialogDescription className={textStyles.body.regular}>
+                Send an invitation to join the R/HOOD community
+              </DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handleInviteSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className={textStyles.body.regular}>
+                  Full Name
+                </Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Enter full name"
+                  value={inviteFormData.name}
+                  onChange={(e) =>
+                    setInviteFormData({ ...inviteFormData, name: e.target.value })
+                  }
+                  className="bg-secondary border-border text-foreground"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className={textStyles.body.regular}>
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter email address"
+                  value={inviteFormData.email}
+                  onChange={(e) =>
+                    setInviteFormData({ ...inviteFormData, email: e.target.value })
+                  }
+                  className="bg-secondary border-border text-foreground"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="message" className={textStyles.body.regular}>
+                  Personal Message (Optional)
+                </Label>
+                <Textarea
+                  id="message"
+                  placeholder="Add a personal message to the invitation..."
+                  value={inviteFormData.message}
+                  onChange={(e) =>
+                    setInviteFormData({ ...inviteFormData, message: e.target.value })
+                  }
+                  className="bg-secondary border-border text-foreground min-h-[100px]"
+                />
+              </div>
+
+              <DialogFooter className="flex space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleInviteCancel}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+                  disabled={!inviteFormData.name || !inviteFormData.email}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Send Invite
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Search and Filter Bar */}

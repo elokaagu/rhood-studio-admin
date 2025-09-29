@@ -134,8 +134,8 @@ export default function OpportunitiesPage() {
                   }
                 </p>
               </div>
-              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-green-600" />
+              <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-brand-green" />
               </div>
             </div>
           </CardContent>
@@ -151,8 +151,8 @@ export default function OpportunitiesPage() {
                   {opportunities.length}
                 </p>
               </div>
-              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-blue-600" />
+              <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-brand-green" />
               </div>
             </div>
           </CardContent>
@@ -171,8 +171,8 @@ export default function OpportunitiesPage() {
                   }
                 </p>
               </div>
-              <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-red-600" />
+              <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-brand-green" />
               </div>
             </div>
           </CardContent>

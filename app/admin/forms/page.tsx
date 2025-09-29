@@ -14,6 +14,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Plus,
   Edit,
   Trash2,
@@ -30,6 +38,8 @@ export default function FormsPage() {
   const { toast } = useToast();
   const [forms, setForms] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [formToDelete, setFormToDelete] = useState<{ id: number; title: string } | null>(null);
 
   // Fetch forms from database
   const fetchForms = async () => {
@@ -106,38 +116,47 @@ export default function FormsPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = async (formId: number, formTitle: string) => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete "${formTitle}"? This action cannot be undone.`
-      )
-    ) {
-      try {
-        // Delete from Supabase database
-        const { error } = await supabase
-          .from("application_forms")
-          .delete()
-          .eq("id", formId.toString());
+    setFormToDelete({ id: formId, title: formTitle });
+    setDeleteModalOpen(true);
+  };
 
-        if (error) {
-          throw error;
-        }
+  const confirmDelete = async () => {
+    if (!formToDelete) return;
 
-        // Remove from local state
-        setForms((prevForms) => prevForms.filter((form) => form.id !== formId));
+    try {
+      // Delete from Supabase database
+      const { error } = await supabase
+        .from("application_forms")
+        .delete()
+        .eq("id", formToDelete.id.toString());
 
-        toast({
-          title: "Brief Deleted",
-          description: `"${formTitle}" has been deleted successfully.`,
-        });
-      } catch (error) {
-        console.error("Error deleting brief:", error);
-        toast({
-          title: "Delete Failed",
-          description: "Failed to delete brief. Please try again.",
-          variant: "destructive",
-        });
+      if (error) {
+        throw error;
       }
+
+      // Remove from local state
+      setForms((prevForms) => prevForms.filter((form) => form.id !== formToDelete.id));
+
+      toast({
+        title: "Brief Deleted",
+        description: `"${formToDelete.title}" has been deleted successfully.`,
+      });
+    } catch (error) {
+      console.error("Error deleting brief:", error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete brief. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteModalOpen(false);
+      setFormToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteModalOpen(false);
+    setFormToDelete(null);
   };
 
   const getStatusBadge = (isActive: boolean) => {
@@ -393,6 +412,37 @@ export default function FormsPage() {
           })
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
+              Delete Brief
+            </DialogTitle>
+            <DialogDescription className={textStyles.body.regular}>
+              Are you sure you want to delete &quot;{formToDelete?.title}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={cancelDelete}
+              className="text-foreground border-border hover:bg-secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

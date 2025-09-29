@@ -2,6 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { textStyles } from "@/lib/typography";
 import {
   Plus,
   Calendar,
@@ -11,6 +12,8 @@ import {
   Edit,
   Trash2,
   Eye,
+  Clock,
+  CheckCircle,
 } from "lucide-react";
 
 export default function OpportunitiesPage() {
@@ -19,9 +22,9 @@ export default function OpportunitiesPage() {
       id: 1,
       title: "Underground Warehouse Rave",
       location: "East London",
-      date: "2024-02-15",
-      pay: "£200-400",
-      applicants: 23,
+      date: "2024-08-15",
+      pay: "£300",
+      applicants: 12,
       status: "active",
       genre: "Techno",
       description:
@@ -31,9 +34,9 @@ export default function OpportunitiesPage() {
       id: 2,
       title: "Rooftop Summer Sessions",
       location: "Shoreditch",
-      date: "2024-02-20",
-      pay: "£150-300",
-      applicants: 18,
+      date: "2024-08-20",
+      pay: "£450",
+      applicants: 8,
       status: "active",
       genre: "House",
       description: "Sunset house music sessions with panoramic city views.",
@@ -41,26 +44,46 @@ export default function OpportunitiesPage() {
     {
       id: 3,
       title: "Club Residency Audition",
-      location: "Soho",
-      date: "2024-02-25",
-      pay: "£300-500",
-      applicants: 31,
-      status: "closed",
-      genre: "Electronic",
+      location: "Camden",
+      date: "2024-08-25",
+      pay: "£200 + Residency",
+      applicants: 15,
+      status: "completed",
+      genre: "Drum & Bass",
+      selected: "Alex Thompson",
       description: "Weekly residency opportunity at premier London club.",
     },
   ];
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800";
+        return (
+          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+            <Clock className="h-3 w-3 mr-1" />
+            Active
+          </Badge>
+        );
+      case "completed":
+        return (
+          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Completed
+          </Badge>
+        );
       case "closed":
-        return "bg-red-100 text-red-800";
-      case "draft":
-        return "bg-yellow-100 text-yellow-800";
+        return (
+          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+            <Clock className="h-3 w-3 mr-1" />
+            Closed
+          </Badge>
+        );
       default:
-        return "bg-gray-100 text-gray-800";
+        return (
+          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+            {status}
+          </Badge>
+        );
     }
   };
 
@@ -69,12 +92,12 @@ export default function OpportunitiesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Opportunities</h1>
-          <p className="text-muted-foreground">
-            Manage DJ opportunities and gigs
+          <h1 className={textStyles.headline.section}>OPPORTUNITIES</h1>
+          <p className={textStyles.body.regular}>
+            Manage all DJ opportunities and gigs
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
+        <Button className="bg-brand-green hover:bg-brand-green/90 text-brand-black">
           <Plus className="h-4 w-4 mr-2" />
           Create Opportunity
         </Button>
@@ -129,64 +152,57 @@ export default function OpportunitiesPage() {
       <div className="space-y-4">
         {opportunities.map((opportunity) => (
           <Card key={opportunity.id} className="bg-card border-border">
-            <CardHeader>
+            <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-foreground">
+                  <h3 className={`${textStyles.subheading.large} mb-2`}>
                     {opportunity.title}
-                  </CardTitle>
-                  <div className="flex items-center text-sm text-muted-foreground mt-1">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    {opportunity.location}
+                  </h3>
+                  
+                  <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-4">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {opportunity.date}
+                    </div>
+                    <div className="flex items-center">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      {opportunity.location}
+                    </div>
+                    <div className="flex items-center">
+                      <DollarSign className="h-4 w-4 mr-1" />
+                      {opportunity.pay}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">
+                    <div className="flex items-center">
+                      <Users className="h-4 w-4 mr-1" />
+                      {opportunity.applicants} applicants
+                    </div>
+                    {opportunity.selected && (
+                      <div className="flex items-center">
+                        <span className="text-brand-green">Selected: </span>
+                        <span className="text-foreground">{opportunity.selected}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Badge
-                    className={`text-xs ${getStatusColor(opportunity.status)}`}
-                  >
-                    {opportunity.status}
-                  </Badge>
-                  <Badge variant="outline">{opportunity.genre}</Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {opportunity.description}
-              </p>
 
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center text-muted-foreground">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  {opportunity.date}
+                <div className="flex flex-col items-end space-y-2">
+                  <div className="flex items-center space-x-2">
+                    {getStatusBadge(opportunity.status)}
+                    <Badge
+                      variant="outline"
+                      className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                    >
+                      {opportunity.genre}
+                    </Badge>
+                  </div>
+                  <Button variant="outline" size="sm" className="text-foreground">
+                    <Eye className="h-4 w-4 mr-1" />
+                    View Details
+                  </Button>
                 </div>
-                <div className="flex items-center text-muted-foreground">
-                  <DollarSign className="h-4 w-4 mr-1" />
-                  {opportunity.pay}
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <Users className="h-4 w-4 mr-1" />
-                  {opportunity.applicants} applicants
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end space-x-2">
-                <Button variant="outline" size="sm">
-                  <Eye className="h-4 w-4 mr-1" />
-                  View
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Delete
-                </Button>
               </div>
             </CardContent>
           </Card>

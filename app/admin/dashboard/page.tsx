@@ -311,8 +311,8 @@ export default function DashboardPage() {
                         </p>
                       </div>
                       <Badge
-                        variant="secondary"
-                        className="bg-green-100 text-green-800 text-xs"
+                        variant="outline"
+                        className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
                       >
                         {event.genre}
                       </Badge>

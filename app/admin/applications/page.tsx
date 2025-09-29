@@ -16,6 +16,7 @@ import {
   Clock,
   Eye,
   User,
+  Users,
 } from "lucide-react";
 
 function ApplicationsContent() {
@@ -165,76 +166,49 @@ function ApplicationsContent() {
       <div className="space-y-4">
         {filteredApplications.map((application) => (
           <Card key={application.id} className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="flex items-start space-x-4 mb-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage
-                        src={application.applicant.avatar}
-                        alt={application.applicant.name}
-                      />
-                      <AvatarFallback>
-                        <User className="h-6 w-6" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className={textStyles.subheading.large}>
-                        {application.applicant.name}
-                      </h3>
-                      <p className={textStyles.body.regular}>
-                        {application.applicant.djName}
-                      </p>
-                      <div className="flex items-center text-sm text-muted-foreground mt-1">
-                        <MapPin className="h-4 w-4 mr-1" />
-                        {application.applicant.location}
-                      </div>
+                  <h3 className={textStyles.subheading.large}>
+                    {application.opportunity}
+                  </h3>
+                  
+                  <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {application.appliedDate}
+                    </div>
+                    <div className="flex items-center">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      {application.applicant.location}
+                    </div>
+                    <div className="flex items-center">
+                      <Users className="h-4 w-4 mr-1" />
+                      {application.experience}
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className={textStyles.subheading.small}>
-                        Opportunity
-                      </h4>
-                      <p className={textStyles.body.regular}>
-                        {application.opportunity}
-                      </p>
+                  <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-2">
+                    <div className="flex items-center">
+                      <span className="text-foreground font-medium">{application.applicant.name}</span>
+                      <span className="ml-2">({application.applicant.djName})</span>
                     </div>
-
-                    <div>
-                      <h4 className={textStyles.subheading.small}>Genres</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {application.applicant.genres.map((genre) => (
-                          <Badge
-                            key={genre}
-                            variant="outline"
-                            className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
-                          >
-                            <Music className="h-3 w-3 mr-1" />
-                            {genre}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Applied: {application.appliedDate}
-                    </div>
-
-                    <div>
-                      <h4 className={textStyles.subheading.small}>
-                        Experience
-                      </h4>
-                      <p className={textStyles.body.regular}>
-                        {application.experience}
-                      </p>
+                    <div className="flex items-center space-x-2">
+                      {application.applicant.genres.map((genre) => (
+                        <Badge
+                          key={genre}
+                          variant="outline"
+                          className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                        >
+                          <Music className="h-3 w-3 mr-1" />
+                          {genre}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end space-y-3">
+                <div className="flex items-center space-x-2">
                   <Badge
                     variant="outline"
                     className="border-gray-400 text-gray-400 bg-transparent text-xs"
@@ -242,12 +216,13 @@ function ApplicationsContent() {
                     {getStatusIcon(application.status)}
                     <span className="ml-1">{application.status}</span>
                   </Badge>
-
-                  <div className="flex flex-col space-y-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
+                  
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
                       className="text-foreground"
+                      onClick={() => window.location.href = `/admin/applications/${application.id}`}
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       View Details
@@ -258,6 +233,11 @@ function ApplicationsContent() {
                           variant="outline"
                           size="sm"
                           className="text-brand-green hover:text-brand-green/80"
+                          onClick={() => {
+                            // Handle approve action
+                            console.log(`Approving application ${application.id}`);
+                            // In a real app, this would update the database
+                          }}
                         >
                           <CheckCircle className="h-4 w-4 mr-1" />
                           Approve
@@ -266,6 +246,11 @@ function ApplicationsContent() {
                           variant="outline"
                           size="sm"
                           className="text-red-600 hover:text-red-700"
+                          onClick={() => {
+                            // Handle reject action
+                            console.log(`Rejecting application ${application.id}`);
+                            // In a real app, this would update the database
+                          }}
                         >
                           <XCircle className="h-4 w-4 mr-1" />
                           Reject

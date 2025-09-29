@@ -6,15 +6,15 @@
 // TS Block Bold - For impactful headings (always uppercase)
 export const tsBlockStyles = {
   // Small impactful text
-  xs: "font-ts-block ts-xs uppercase text-left",
-  sm: "font-ts-block ts-sm uppercase text-left", 
-  base: "font-ts-block ts-base uppercase text-left",
-  lg: "font-ts-block ts-lg uppercase text-left",
-  xl: "font-ts-block ts-xl uppercase text-left",
-  "2xl": "font-ts-block ts-2xl uppercase text-left",
-  "3xl": "font-ts-block ts-3xl uppercase text-left",
-  "4xl": "font-ts-block ts-4xl uppercase text-left",
-  "5xl": "font-ts-block ts-5xl uppercase text-left",
+  xs: "font-ts-block ts-xs uppercase text-center",
+  sm: "font-ts-block ts-sm uppercase text-center", 
+  base: "font-ts-block ts-base uppercase text-center",
+  lg: "font-ts-block ts-lg uppercase text-center",
+  xl: "font-ts-block ts-xl uppercase text-center",
+  "2xl": "font-ts-block ts-2xl uppercase text-center",
+  "3xl": "font-ts-block ts-3xl uppercase text-center",
+  "4xl": "font-ts-block ts-4xl uppercase text-center",
+  "5xl": "font-ts-block ts-5xl uppercase text-center",
 } as const;
 
 // Helvetica Neue - For body text and subheadings

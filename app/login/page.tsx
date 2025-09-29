@@ -83,7 +83,7 @@ export default function AdminLoginPage() {
             className="h-16 w-auto"
           />
         </div>
-        <p className={textStyles.headline.section}>R/HOOD<br />STUDIO<br />MANAGEMENT</p>
+        <p className={`${textStyles.headline.section} text-center`}>R/HOOD<br />STUDIO<br />MANAGEMENT</p>
       </div>
 
       <Card className="bg-card border-border">

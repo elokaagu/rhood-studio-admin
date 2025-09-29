@@ -242,13 +242,40 @@ export default function MixesPage() {
     }
   };
 
-  const handleDownload = (mixTitle: string) => {
-    // In a real app, this would download the actual mix file
-    console.log(`Downloading mix: ${mixTitle}`);
-    toast({
-      title: "Download Started",
-      description: `Downloading mix: ${mixTitle}`,
-    });
+  const handleDownload = (mixTitle: string, fileUrl?: string) => {
+    if (!fileUrl) {
+      toast({
+        title: "Download Failed",
+        description: "No file URL available for this mix.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = fileUrl;
+      link.download = `${mixTitle}.mp3`; // Default to .mp3 extension
+      link.target = '_blank';
+      
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Download Started",
+        description: `Downloading mix: ${mixTitle}`,
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download the mix. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = async (mixId: number, mixTitle: string) => {
@@ -847,7 +874,7 @@ export default function MixesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDownload(mix.title)}
+                      onClick={() => handleDownload(mix.title, mix.file_url)}
                     >
                       <Download className="h-4 w-4 mr-1" />
                       Download

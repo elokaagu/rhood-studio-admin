@@ -8,6 +8,12 @@ import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Plus,
   Edit,
   Trash2,
@@ -17,6 +23,7 @@ import {
   Users,
   Calendar,
   Settings,
+  MoreVertical,
 } from "lucide-react";
 
 export default function FormsPage() {
@@ -97,6 +104,41 @@ export default function FormsPage() {
   useEffect(() => {
     fetchForms();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDelete = async (formId: number, formTitle: string) => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete "${formTitle}"? This action cannot be undone.`
+      )
+    ) {
+      try {
+        // Delete from Supabase database
+        const { error } = await supabase
+          .from("application_forms")
+          .delete()
+          .eq("id", formId.toString());
+
+        if (error) {
+          throw error;
+        }
+
+        // Remove from local state
+        setForms((prevForms) => prevForms.filter((form) => form.id !== formId));
+
+        toast({
+          title: "Brief Deleted",
+          description: `"${formTitle}" has been deleted successfully.`,
+        });
+      } catch (error) {
+        console.error("Error deleting brief:", error);
+        toast({
+          title: "Delete Failed",
+          description: "Failed to delete brief. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   const getStatusBadge = (isActive: boolean) => {
     return isActive ? (
@@ -325,10 +367,23 @@ export default function FormsPage() {
                           <Copy className="h-4 w-4 mr-1" />
                           Duplicate
                         </Button>
-                        <Button variant="destructive" size="sm">
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
-                        </Button>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-card border-border">
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(form.id, form.title)}
+                              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </div>

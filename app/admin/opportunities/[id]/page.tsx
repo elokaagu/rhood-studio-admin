@@ -9,7 +9,6 @@ import { textStyles } from "@/lib/typography";
 import {
   Calendar,
   MapPin,
-  DollarSign,
   Users,
   Edit,
   Trash2,
@@ -202,7 +201,6 @@ export default function OpportunityDetailsPage() {
                   {opportunity.location}
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
-                  <DollarSign className="h-4 w-4 mr-2" />
                   {opportunity.pay}
                 </div>
               </div>

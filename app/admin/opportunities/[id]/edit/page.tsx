@@ -19,7 +19,6 @@ import { textStyles } from "@/lib/typography";
 import {
   Calendar,
   MapPin,
-  DollarSign,
   Music,
   Save,
   X,
@@ -225,7 +224,6 @@ export default function EditOpportunityPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="pay" className={textStyles.body.regular}>
-                  <DollarSign className="h-4 w-4 mr-2" />
                   Pay Range
                 </Label>
                 <Input

@@ -18,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Calendar,
   MapPin,
-  DollarSign,
   Music,
   Save,
   X,
@@ -163,9 +162,8 @@ export default function CreateOpportunityPage() {
               <div className="space-y-2">
                 <Label
                   htmlFor="pay"
-                  className="text-foreground flex items-center"
+                  className="text-foreground"
                 >
-                  <DollarSign className="h-4 w-4 mr-2" />
                   Pay Range
                 </Label>
                 <Input

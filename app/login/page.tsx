@@ -70,88 +70,86 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <Image
-              src="/rhood-logo.png"
-              alt="R/HOOD"
-              width={48}
-              height={48}
-              className="h-12 w-auto"
-            />
-          </div>
-          <p className="text-muted-foreground">R/HOOD Studio Management</p>
+    <div className="w-full max-w-md p-4">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="flex items-center justify-center mb-4">
+          <Image
+            src="/rhood-logo.png"
+            alt="R/HOOD"
+            width={48}
+            height={48}
+            className="h-12 w-auto"
+          />
         </div>
-
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <div className="flex items-center justify-center space-x-2 mb-2">
-              <Shield className="h-5 w-5 text-primary" />
-              <CardTitle className="text-center text-foreground">
-                Admin Login
-              </CardTitle>
-            </div>
-            <div className="text-center">
-              <Badge variant="outline" className="border-primary text-primary">
-                Rhood Team Only
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@rhood.studio"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  className="bg-secondary border-border text-foreground"
-                  required
-                />
-              </div>
-
-              {/* Password */}
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-foreground">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  className="bg-secondary border-border text-foreground"
-                  required
-                />
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                variant="premium"
-                size="lg"
-                className="w-full mt-6"
-                disabled={loading || !formData.email || !formData.password}
-              >
-                {loading ? "Signing in..." : "Sign In"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <p className="text-muted-foreground">R/HOOD Studio Management</p>
       </div>
+
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <div className="flex items-center justify-center space-x-2 mb-2">
+            <Shield className="h-5 w-5 text-primary" />
+            <CardTitle className="text-center text-foreground">
+              Admin Login
+            </CardTitle>
+          </div>
+          <div className="text-center">
+            <Badge variant="outline" className="border-primary text-primary">
+              Rhood Team Only
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-foreground">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@rhood.studio"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="bg-secondary border-border text-foreground"
+                required
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-foreground">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                className="bg-secondary border-border text-foreground"
+                required
+              />
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              variant="premium"
+              size="lg"
+              className="w-full mt-6"
+              disabled={loading || !formData.email || !formData.password}
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

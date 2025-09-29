@@ -32,6 +32,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Play,
   Pause,
   Download,
@@ -46,6 +52,7 @@ import {
   XCircle,
   Upload,
   Plus,
+  MoreVertical,
 } from "lucide-react";
 
 export default function MixesPage() {
@@ -851,14 +858,22 @@ export default function MixesPage() {
                       Download
                     </Button>
 
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(mix.id, mix.title)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-card border-border">
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(mix.id, mix.title)}
+                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardContent>

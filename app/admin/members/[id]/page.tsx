@@ -65,14 +65,15 @@ export default function MemberDetailsPage() {
         // Transform the data to match the expected format
         const transformedMember = {
           id: data.id,
-          name: data.dj_name || `${data.first_name} ${data.last_name}` || "Unknown",
+          name:
+            data.dj_name || `${data.first_name} ${data.last_name}` || "Unknown",
           email: data.email || "No email",
           location: data.city || "Unknown",
           joinDate: data.created_at
             ? new Date(data.created_at).toISOString().split("T")[0]
             : "Unknown",
           genres: data.genres || [],
-          status: data.is_active ? "active" : "inactive",
+          status: "active", // Default to active since is_active field doesn't exist in schema
           gigs: 0, // This would need to be calculated from applications
           bio: data.bio || "No bio available",
           phone: data.phone || "No phone",

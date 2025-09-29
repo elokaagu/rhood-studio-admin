@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { textStyles } from "@/lib/typography";
+import { useToast } from "@/hooks/use-toast";
 import {
   Search,
   MapPin,
@@ -31,6 +32,7 @@ import {
 } from "lucide-react";
 
 export default function MembersPage() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -170,7 +172,10 @@ export default function MembersPage() {
     console.log("Inviting member:", inviteFormData);
 
     // In a real app, this would send the invite to the backend
-    alert(`Invite sent to ${inviteFormData.name} (${inviteFormData.email})!`);
+    toast({
+      title: "Invite Sent",
+      description: `Invite sent to ${inviteFormData.name} (${inviteFormData.email})!`,
+    });
 
     // Reset form and close modal
     setInviteFormData({ name: "", email: "", message: "" });

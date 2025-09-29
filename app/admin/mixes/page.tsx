@@ -180,17 +180,21 @@ export default function MixesPage() {
 
       audio.onerror = () => {
         console.error("Error playing audio");
-        alert(
-          "Unable to play audio. This is a demo with placeholder audio files."
-        );
+        toast({
+          title: "Audio Playback Error",
+          description: "Unable to play audio. This is a demo with placeholder audio files.",
+          variant: "destructive",
+        });
       };
 
       // Play the audio
       audio.play().catch((error) => {
         console.error("Error playing audio:", error);
-        alert(
-          "Unable to play audio. This is a demo with placeholder audio files."
-        );
+        toast({
+          title: "Audio Playback Error",
+          description: "Unable to play audio. This is a demo with placeholder audio files.",
+          variant: "destructive",
+        });
       });
     }
   };

@@ -147,15 +147,16 @@ export default function MembersPage() {
 
   // Filter members based on search term and active filter
   const filteredMembers = members.filter((member) => {
-    const matchesSearch = 
+    const matchesSearch =
       member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.genres.some(genre => genre.toLowerCase().includes(searchTerm.toLowerCase()));
+      member.genres.some((genre) =>
+        genre.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
-    const matchesFilter = 
-      activeFilter === "all" || 
-      member.status === activeFilter;
+    const matchesFilter =
+      activeFilter === "all" || member.status === activeFilter;
 
     return matchesSearch && matchesFilter;
   });
@@ -167,10 +168,10 @@ export default function MembersPage() {
   const handleInviteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Inviting member:", inviteFormData);
-    
+
     // In a real app, this would send the invite to the backend
     alert(`Invite sent to ${inviteFormData.name} (${inviteFormData.email})!`);
-    
+
     // Reset form and close modal
     setInviteFormData({ name: "", email: "", message: "" });
     setIsInviteModalOpen(false);
@@ -202,7 +203,7 @@ export default function MembersPage() {
         </div>
         <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
           <DialogTrigger asChild>
-            <Button 
+            <Button
               className="bg-brand-green text-brand-black hover:bg-brand-green/90"
               onClick={handleInviteMember}
             >
@@ -219,7 +220,7 @@ export default function MembersPage() {
                 Send an invitation to join the R/HOOD community
               </DialogDescription>
             </DialogHeader>
-            
+
             <form onSubmit={handleInviteSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className={textStyles.body.regular}>
@@ -231,7 +232,10 @@ export default function MembersPage() {
                   placeholder="Enter full name"
                   value={inviteFormData.name}
                   onChange={(e) =>
-                    setInviteFormData({ ...inviteFormData, name: e.target.value })
+                    setInviteFormData({
+                      ...inviteFormData,
+                      name: e.target.value,
+                    })
                   }
                   className="bg-secondary border-border text-foreground"
                   required
@@ -248,7 +252,10 @@ export default function MembersPage() {
                   placeholder="Enter email address"
                   value={inviteFormData.email}
                   onChange={(e) =>
-                    setInviteFormData({ ...inviteFormData, email: e.target.value })
+                    setInviteFormData({
+                      ...inviteFormData,
+                      email: e.target.value,
+                    })
                   }
                   className="bg-secondary border-border text-foreground"
                   required
@@ -264,7 +271,10 @@ export default function MembersPage() {
                   placeholder="Add a personal message to the invitation..."
                   value={inviteFormData.message}
                   onChange={(e) =>
-                    setInviteFormData({ ...inviteFormData, message: e.target.value })
+                    setInviteFormData({
+                      ...inviteFormData,
+                      message: e.target.value,
+                    })
                   }
                   className="bg-secondary border-border text-foreground min-h-[100px]"
                 />
@@ -308,23 +318,35 @@ export default function MembersPage() {
           <Button
             variant="outline"
             size="sm"
-            className={activeFilter === "all" ? "bg-brand-green text-brand-black hover:bg-brand-green/90" : ""}
+            className={
+              activeFilter === "all"
+                ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
+                : ""
+            }
             onClick={() => setActiveFilter("all")}
           >
             All
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
-            className={activeFilter === "active" ? "bg-brand-green text-brand-black hover:bg-brand-green/90" : ""}
+            className={
+              activeFilter === "active"
+                ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
+                : ""
+            }
             onClick={() => setActiveFilter("active")}
           >
             Active
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
-            className={activeFilter === "inactive" ? "bg-brand-green text-brand-black hover:bg-brand-green/90" : ""}
+            className={
+              activeFilter === "inactive"
+                ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
+                : ""
+            }
             onClick={() => setActiveFilter("inactive")}
           >
             Inactive
@@ -391,10 +413,12 @@ export default function MembersPage() {
                   ))}
                   {getStatusBadge(member.status)}
 
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
-                    onClick={() => handleMessageMember(member.name, member.email)}
+                    onClick={() =>
+                      handleMessageMember(member.name, member.email)
+                    }
                   >
                     <Mail className="h-4 w-4 mr-1" />
                     Message

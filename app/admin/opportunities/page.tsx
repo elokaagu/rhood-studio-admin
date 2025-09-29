@@ -200,9 +200,7 @@ export default function OpportunitiesPage() {
                       <MapPin className="h-4 w-4 mr-1" />
                       {opportunity.location}
                     </div>
-                        <div className="flex items-center">
-                          {opportunity.pay}
-                        </div>
+                    <div className="flex items-center">{opportunity.pay}</div>
                   </div>
 
                   <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">

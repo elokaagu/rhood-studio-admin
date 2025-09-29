@@ -15,14 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import {
-  Calendar,
-  MapPin,
-  Music,
-  Save,
-  X,
-  Plus,
-} from "lucide-react";
+import { Calendar, MapPin, Music, Save, X, Plus } from "lucide-react";
 
 export default function CreateOpportunityPage() {
   const router = useRouter();
@@ -160,10 +153,7 @@ export default function CreateOpportunityPage() {
               </div>
 
               <div className="space-y-2">
-                <Label
-                  htmlFor="pay"
-                  className="text-foreground"
-                >
+                <Label htmlFor="pay" className="text-foreground">
                   Pay Range
                 </Label>
                 <Input

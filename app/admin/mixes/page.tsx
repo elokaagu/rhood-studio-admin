@@ -5,6 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { textStyles } from "@/lib/typography";
 import {
   Play,
@@ -19,12 +36,25 @@ import {
   Search,
   CheckCircle,
   XCircle,
+  Upload,
+  Plus,
 } from "lucide-react";
 
 export default function MixesPage() {
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadFormData, setUploadFormData] = useState({
+    title: "",
+    artist: "",
+    genre: "",
+    description: "",
+    appliedFor: "",
+    status: "pending",
+  });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const mixes = [
     {
@@ -171,6 +201,58 @@ export default function MixesPage() {
     );
   };
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp3'];
+      if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.mp3') && !file.name.toLowerCase().endsWith('.wav')) {
+        alert('Please select a valid MP3 or WAV file.');
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      alert('Please select a file to upload.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      // In a real app, you would upload the file to your backend/storage service
+      console.log('Uploading mix:', {
+        file: selectedFile,
+        metadata: uploadFormData,
+      });
+      
+      // Simulate upload delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      alert(`Mix "${uploadFormData.title}" uploaded successfully!`);
+      
+      // Reset form and close modal
+      setUploadFormData({
+        title: "",
+        artist: "",
+        genre: "",
+        description: "",
+        appliedFor: "",
+        status: "pending",
+      });
+      setSelectedFile(null);
+      setIsUploadModalOpen(false);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload mix. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -183,6 +265,194 @@ export default function MixesPage() {
             Review and manage submitted DJ mixes
           </p>
         </div>
+        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-brand-green text-brand-black hover:bg-brand-green/90">
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Mix
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className={textStyles.headline.card}>
+                UPLOAD NEW MIX
+              </DialogTitle>
+              <DialogDescription className={textStyles.body.regular}>
+                Upload a new DJ mix with metadata
+              </DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handleUploadSubmit} className="space-y-6">
+              {/* File Upload */}
+              <div className="space-y-2">
+                <Label htmlFor="file" className={textStyles.body.regular}>
+                  Audio File (MP3 or WAV)
+                </Label>
+                <Input
+                  id="file"
+                  type="file"
+                  accept=".mp3,.wav,audio/mpeg,audio/wav"
+                  onChange={handleFileSelect}
+                  className="bg-secondary border-border text-foreground"
+                  required
+                />
+                {selectedFile && (
+                  <p className={`${textStyles.body.small} text-muted-foreground`}>
+                    Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </p>
+                )}
+              </div>
+
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title" className={textStyles.body.regular}>
+                    Mix Title
+                  </Label>
+                  <Input
+                    id="title"
+                    placeholder="e.g., Underground Techno Mix #1"
+                    value={uploadFormData.title}
+                    onChange={(e) =>
+                      setUploadFormData({ ...uploadFormData, title: e.target.value })
+                    }
+                    className="bg-secondary border-border text-foreground"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="artist" className={textStyles.body.regular}>
+                    Artist Name
+                  </Label>
+                  <Input
+                    id="artist"
+                    placeholder="e.g., Alex Thompson"
+                    value={uploadFormData.artist}
+                    onChange={(e) =>
+                      setUploadFormData({ ...uploadFormData, artist: e.target.value })
+                    }
+                    className="bg-secondary border-border text-foreground"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Genre and Status */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="genre" className={textStyles.body.regular}>
+                    Genre
+                  </Label>
+                  <Select
+                    value={uploadFormData.genre}
+                    onValueChange={(value) =>
+                      setUploadFormData({ ...uploadFormData, genre: value })
+                    }
+                  >
+                    <SelectTrigger className="bg-secondary border-border text-foreground">
+                      <SelectValue placeholder="Select genre" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border">
+                      <SelectItem value="Techno" className="text-foreground hover:bg-accent">Techno</SelectItem>
+                      <SelectItem value="House" className="text-foreground hover:bg-accent">House</SelectItem>
+                      <SelectItem value="Drum & Bass" className="text-foreground hover:bg-accent">Drum & Bass</SelectItem>
+                      <SelectItem value="Dubstep" className="text-foreground hover:bg-accent">Dubstep</SelectItem>
+                      <SelectItem value="Trap" className="text-foreground hover:bg-accent">Trap</SelectItem>
+                      <SelectItem value="Hip-Hop" className="text-foreground hover:bg-accent">Hip-Hop</SelectItem>
+                      <SelectItem value="Electronic" className="text-foreground hover:bg-accent">Electronic</SelectItem>
+                      <SelectItem value="Progressive" className="text-foreground hover:bg-accent">Progressive</SelectItem>
+                      <SelectItem value="Trance" className="text-foreground hover:bg-accent">Trance</SelectItem>
+                      <SelectItem value="Ambient" className="text-foreground hover:bg-accent">Ambient</SelectItem>
+                      <SelectItem value="Breakbeat" className="text-foreground hover:bg-accent">Breakbeat</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="status" className={textStyles.body.regular}>
+                    Status
+                  </Label>
+                  <Select
+                    value={uploadFormData.status}
+                    onValueChange={(value) =>
+                      setUploadFormData({ ...uploadFormData, status: value })
+                    }
+                  >
+                    <SelectTrigger className="bg-secondary border-border text-foreground">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border">
+                      <SelectItem value="pending" className="text-foreground hover:bg-accent">Pending</SelectItem>
+                      <SelectItem value="approved" className="text-foreground hover:bg-accent">Approved</SelectItem>
+                      <SelectItem value="rejected" className="text-foreground hover:bg-accent">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Applied For */}
+              <div className="space-y-2">
+                <Label htmlFor="appliedFor" className={textStyles.body.regular}>
+                  Applied For (Optional)
+                </Label>
+                <Input
+                  id="appliedFor"
+                  placeholder="e.g., Underground Warehouse Rave"
+                  value={uploadFormData.appliedFor}
+                  onChange={(e) =>
+                    setUploadFormData({ ...uploadFormData, appliedFor: e.target.value })
+                  }
+                  className="bg-secondary border-border text-foreground"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description" className={textStyles.body.regular}>
+                  Description (Optional)
+                </Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe the mix, track selection, or any special notes..."
+                  value={uploadFormData.description}
+                  onChange={(e) =>
+                    setUploadFormData({ ...uploadFormData, description: e.target.value })
+                  }
+                  className="bg-secondary border-border text-foreground min-h-[100px]"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end space-x-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsUploadModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+                  disabled={isUploading || !selectedFile}
+                >
+                  {isUploading ? (
+                    <>
+                      <Upload className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Mix
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Search and Filter Bar */}

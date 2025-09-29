@@ -276,26 +276,34 @@ export default function OpportunityDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
-                onClick={() => router.push(`/admin/applications?opportunity=${opportunity.id}`)}
+                onClick={() =>
+                  router.push(
+                    `/admin/applications?opportunity=${opportunity.id}`
+                  )
+                }
               >
                 <Users className="h-4 w-4 mr-2" />
                 View Applicants
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
-                onClick={() => router.push(`/admin/opportunities/${opportunity.id}/edit`)}
+                onClick={() =>
+                  router.push(`/admin/opportunities/${opportunity.id}/edit`)
+                }
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Opportunity
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
-                onClick={() => router.push(`/admin/opportunities/${opportunity.id}/schedule`)}
+                onClick={() =>
+                  router.push(`/admin/opportunities/${opportunity.id}/schedule`)
+                }
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Schedule Event

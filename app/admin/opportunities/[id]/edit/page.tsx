@@ -203,10 +203,7 @@ export default function EditOpportunityPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label
-                  htmlFor="location"
-                  className={textStyles.body.regular}
-                >
+                <Label htmlFor="location" className={textStyles.body.regular}>
                   <MapPin className="h-4 w-4 mr-2" />
                   Location
                 </Label>
@@ -321,7 +318,10 @@ export default function EditOpportunityPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="additionalInfo" className={textStyles.body.regular}>
+              <Label
+                htmlFor="additionalInfo"
+                className={textStyles.body.regular}
+              >
                 Additional Information
               </Label>
               <Textarea
@@ -385,7 +385,10 @@ export default function EditOpportunityPage() {
             <Save className="h-4 w-4 mr-2" />
             Save Draft
           </Button>
-          <Button type="submit" className="bg-brand-green hover:bg-brand-green/90 text-brand-black">
+          <Button
+            type="submit"
+            className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+          >
             <Save className="h-4 w-4 mr-2" />
             Update Opportunity
           </Button>

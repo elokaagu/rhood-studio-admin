@@ -179,7 +179,7 @@ export default function CreateFormPage() {
         .insert({
           title: formData.title,
           description: formData.description,
-          opportunity_id: formData.opportunity_id || null,
+          opportunity_id: formData.opportunity_id === "none" ? null : formData.opportunity_id || null,
           is_active: true,
         })
         .select()
@@ -239,7 +239,7 @@ export default function CreateFormPage() {
         .insert({
           title: formData.title || "Untitled Form",
           description: formData.description,
-          opportunity_id: formData.opportunity_id || null,
+          opportunity_id: formData.opportunity_id === "none" ? null : formData.opportunity_id || null,
           is_active: false, // Draft is not active
         })
         .select()
@@ -338,7 +338,7 @@ export default function CreateFormPage() {
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
                   <SelectItem
-                    value=""
+                    value="none"
                     className="text-foreground hover:bg-accent"
                   >
                     No specific opportunity

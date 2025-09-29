@@ -607,7 +607,7 @@ export default function MembersPage() {
               Delete Member
             </DialogTitle>
             <DialogDescription className={textStyles.body.regular}>
-              Are you sure you want to delete "{memberToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{memberToDelete?.name}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

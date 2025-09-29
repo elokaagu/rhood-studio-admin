@@ -174,7 +174,7 @@ export default function CreateFormPage() {
       }
 
       // Create the form
-      const { data: formData, error: formError } = await supabase
+      const { data: createdForm, error: formError } = await supabase
         .from("application_forms")
         .insert({
           title: formData.title,
@@ -192,7 +192,7 @@ export default function CreateFormPage() {
       // Create form fields
       if (fields.length > 0) {
         const fieldsToInsert = fields.map((field, index) => ({
-          form_id: formData.id,
+          form_id: createdForm.id,
           field_type: field.type,
           field_name: field.name,
           field_label: field.label,
@@ -234,7 +234,7 @@ export default function CreateFormPage() {
     setIsSubmitting(true);
 
     try {
-      const { data: formData, error: formError } = await supabase
+      const { data: createdForm, error: formError } = await supabase
         .from("application_forms")
         .insert({
           title: formData.title || "Untitled Form",

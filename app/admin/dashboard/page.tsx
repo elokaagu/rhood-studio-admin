@@ -105,7 +105,7 @@ export default function DashboardPage() {
       {/* Recent Activity */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-foreground">Recent Activity</CardTitle>
+          <CardTitle className="text-foreground font-headline text-xl">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

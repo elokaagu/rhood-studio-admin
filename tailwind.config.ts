@@ -64,9 +64,10 @@ const config: Config = {
         "glow-accent": "var(--glow-accent)",
       },
       fontFamily: {
-        display: ["Arial", "Helvetica", "sans-serif"],
+        display: ["var(--font-ts-block)", "Arial", "Helvetica", "sans-serif"],
         body: ["Arial", "Helvetica", "sans-serif"],
-        brand: ["Arial Black", "Arial", "sans-serif"],
+        brand: ["var(--font-ts-block)", "Arial Black", "Arial", "sans-serif"],
+        headline: ["var(--font-ts-block)", "Arial Black", "Arial", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",

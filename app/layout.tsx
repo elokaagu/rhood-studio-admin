@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
+
+const tsBlock = localFont({
+  src: "../public/TS Block Bold.ttf",
+  variable: "--font-ts-block",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Rhood Studio",
@@ -17,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} ${tsBlock.variable}`}>
         <Providers>{children}</Providers>
       </body>
     </html>

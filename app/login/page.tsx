@@ -74,22 +74,22 @@ export default function AdminLoginPage() {
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
-            <Image
-              src="/RHOOD_Lettering_Logo.png"
-              alt="R/HOOD"
-              width={200}
-              height={60}
-              className="h-16 w-auto"
-            />
+          <Image
+            src="/RHOOD_Lettering_Logo.png"
+            alt="R/HOOD"
+            width={200}
+            height={60}
+            className="h-16 w-auto"
+          />
         </div>
-        <p className="text-muted-foreground">R/HOOD Studio Management</p>
+        <p className="text-muted-foreground font-headline text-lg">R/HOOD Studio Management</p>
       </div>
 
       <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex items-center justify-center space-x-2 mb-2">
             <Shield className="h-5 w-5 text-primary" />
-            <CardTitle className="text-center text-foreground">
+            <CardTitle className="text-center text-foreground font-headline text-xl">
               Admin Login
             </CardTitle>
           </div>

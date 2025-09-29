@@ -180,7 +180,7 @@ export default function AdminLayout({
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="border-primary text-primary">
+              <Badge variant="outline" className="border-primary text-primary font-headline">
                 Rhood Team
               </Badge>
               <DropdownMenu>

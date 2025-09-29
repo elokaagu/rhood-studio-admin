@@ -54,7 +54,10 @@ export default function MembersPage() {
   const [members, setMembers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
 
   // Fetch members from database
   const fetchMembers = async () => {
@@ -592,13 +595,22 @@ export default function MembersPage() {
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-card border-border">
+                      <DropdownMenuContent
+                        align="end"
+                        className="bg-card border-border"
+                      >
                         <DropdownMenuItem
-                          onClick={() => handleDeleteMember(member.id, member.name)}
+                          onClick={() =>
+                            handleDeleteMember(member.id, member.name)
+                          }
                           className="text-red-600 hover:bg-red-50 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -618,11 +630,14 @@ export default function MembersPage() {
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
+            <DialogTitle
+              className={`${textStyles.subheading.large} text-brand-white`}
+            >
               Delete Member
             </DialogTitle>
             <DialogDescription className={textStyles.body.regular}>
-              Are you sure you want to delete &quot;{memberToDelete?.name}&quot;? This action cannot be undone.
+              Are you sure you want to delete &quot;{memberToDelete?.name}
+              &quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

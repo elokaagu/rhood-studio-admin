@@ -43,7 +43,10 @@ export default function MemberDetailsPage() {
   const [member, setMember] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   // Fetch member from database
   const fetchMember = async () => {
@@ -65,7 +68,9 @@ export default function MemberDetailsPage() {
           name: data.dj_name || data.name || "Unknown",
           email: data.email || "No email",
           location: data.city || "Unknown",
-          joinDate: data.created_at ? new Date(data.created_at).toISOString().split("T")[0] : "Unknown",
+          joinDate: data.created_at
+            ? new Date(data.created_at).toISOString().split("T")[0]
+            : "Unknown",
           genres: data.genres || [],
           status: data.is_active ? "active" : "inactive",
           gigs: 0, // This would need to be calculated from applications
@@ -271,9 +276,7 @@ export default function MemberDetailsPage() {
           <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
             {member.name}
           </h1>
-          <p className={textStyles.body.regular}>
-            Member profile and details
-          </p>
+          <p className={textStyles.body.regular}>Member profile and details</p>
         </div>
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -291,14 +294,21 @@ export default function MemberDetailsPage() {
                 <div className="flex items-center space-x-4">
                   <div className="h-16 w-16 bg-gray-200 rounded-full flex items-center justify-center">
                     <span className="text-lg font-bold text-gray-600">
-                      {member.name.split(" ").map((n: string) => n[0]).join("")}
+                      {member.name
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")}
                     </span>
                   </div>
                   <div>
-                    <CardTitle className={`${textStyles.subheading.large} flex items-center`}>
+                    <CardTitle
+                      className={`${textStyles.subheading.large} flex items-center`}
+                    >
                       {member.name}
                       <Star className="h-4 w-4 ml-2 text-yellow-400" />
-                      <span className="text-sm text-muted-foreground ml-1">0</span>
+                      <span className="text-sm text-muted-foreground ml-1">
+                        0
+                      </span>
                     </CardTitle>
                     <p className={textStyles.body.regular}>{member.email}</p>
                   </div>
@@ -326,9 +336,7 @@ export default function MemberDetailsPage() {
 
               <div className="space-y-2">
                 <h3 className={textStyles.subheading.small}>Bio</h3>
-                <p className={textStyles.body.regular}>
-                  {member.bio}
-                </p>
+                <p className={textStyles.body.regular}>{member.bio}</p>
               </div>
 
               <div className="space-y-2">
@@ -365,14 +373,18 @@ export default function MemberDetailsPage() {
                 <div>
                   <h4 className={textStyles.subheading.small}>Social Links</h4>
                   <div className="space-y-2">
-                    {Object.entries(member.socialLinks).map(([platform, handle]) => (
-                      <div key={platform} className="flex items-center">
-                        <span className="capitalize text-sm text-muted-foreground w-20">
-                          {platform}:
-                        </span>
-                        <span className={textStyles.body.regular}>{handle as string}</span>
-                      </div>
-                    ))}
+                    {Object.entries(member.socialLinks).map(
+                      ([platform, handle]) => (
+                        <div key={platform} className="flex items-center">
+                          <span className="capitalize text-sm text-muted-foreground w-20">
+                            {platform}:
+                          </span>
+                          <span className={textStyles.body.regular}>
+                            {handle as string}
+                          </span>
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
               )}
@@ -401,9 +413,7 @@ export default function MemberDetailsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() =>
-                  router.push(`/admin/members/${member.id}/edit`)
-                }
+                onClick={() => router.push(`/admin/members/${member.id}/edit`)}
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Profile
@@ -416,7 +426,10 @@ export default function MemberDetailsPage() {
                     More Actions
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-card border-border">
+                <DropdownMenuContent
+                  align="end"
+                  className="bg-card border-border"
+                >
                   <DropdownMenuItem
                     onClick={handleDelete}
                     className="text-red-600 hover:bg-red-50 hover:text-red-700"
@@ -440,9 +453,7 @@ export default function MemberDetailsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <Music className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className={textStyles.body.regular}>
-                    Total Gigs
-                  </span>
+                  <span className={textStyles.body.regular}>Total Gigs</span>
                 </div>
                 <span className={textStyles.subheading.small}>
                   {member.gigs}
@@ -452,13 +463,9 @@ export default function MemberDetailsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <Star className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className={textStyles.body.regular}>
-                    Rating
-                  </span>
+                  <span className={textStyles.body.regular}>Rating</span>
                 </div>
-                <span className={textStyles.subheading.small}>
-                  0.0
-                </span>
+                <span className={textStyles.subheading.small}>0.0</span>
               </div>
             </CardContent>
           </Card>
@@ -469,11 +476,14 @@ export default function MemberDetailsPage() {
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
+            <DialogTitle
+              className={`${textStyles.subheading.large} text-brand-white`}
+            >
               Delete Member
             </DialogTitle>
             <DialogDescription className={textStyles.body.regular}>
-              Are you sure you want to delete &quot;{memberToDelete?.name}&quot;? This action cannot be undone.
+              Are you sure you want to delete &quot;{memberToDelete?.name}
+              &quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

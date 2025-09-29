@@ -35,13 +35,24 @@ A music community management platform for DJs and producers, built with Next.js,
 npm install
 ```
 
-2. Set up environment variables:
-   Create a `.env.local` file in the root directory:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+2. Set up Supabase connection:
+   
+   a. Copy the environment template:
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   b. Get your Supabase credentials:
+   - Go to your Supabase project dashboard
+   - Click on "Settings" in the sidebar
+   - Click on "API"
+   - Copy the "Project URL" and "anon public" key
+   
+   c. Update `.env.local` with your credentials:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+   ```
 
 3. Run the development server:
 

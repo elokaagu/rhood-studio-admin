@@ -241,6 +241,30 @@ export default function MixesPage() {
     });
   };
 
+  const handleDelete = async (mixId: number, mixTitle: string) => {
+    if (window.confirm(`Are you sure you want to delete "${mixTitle}"? This action cannot be undone.`)) {
+      try {
+        // In a real app, this would delete from the database
+        console.log(`Deleting mix: ${mixTitle} (ID: ${mixId})`);
+        
+        // For demo purposes, remove from local state
+        setMixes(prevMixes => prevMixes.filter(mix => mix.id !== mixId));
+        
+        toast({
+          title: "Mix Deleted",
+          description: `"${mixTitle}" has been deleted successfully.`,
+        });
+      } catch (error) {
+        console.error("Error deleting mix:", error);
+        toast({
+          title: "Delete Failed",
+          description: "Failed to delete mix. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -797,6 +821,15 @@ export default function MixesPage() {
                     >
                       <Download className="h-4 w-4 mr-1" />
                       Download
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(mix.id, mix.title)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
                     </Button>
                   </div>
                 </div>

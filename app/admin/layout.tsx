@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { textStyles } from "@/lib/typography";
 
 const sidebarItems = [
   {
@@ -111,7 +112,7 @@ function AppSidebar() {
                     >
                       <item.icon className="h-4 w-4" />
                       {!isCollapsed && (
-                        <span className="ml-3">{item.title}</span>
+                        <span className={`ml-3 ${textStyles.body.regular}`}>{item.title}</span>
                       )}
                     </Link>
                   </SidebarMenuButton>
@@ -180,8 +181,8 @@ export default function AdminLayout({
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="border-primary text-primary font-headline">
-                Rhood Team
+              <Badge variant="outline" className={`border-primary ${textStyles.headline.badge}`}>
+                RHOOD TEAM
               </Badge>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

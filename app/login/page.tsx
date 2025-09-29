@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Shield } from "lucide-react";
 import Image from "next/image";
+import { textStyles } from "@/lib/typography";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -82,20 +83,20 @@ export default function AdminLoginPage() {
             className="h-16 w-auto"
           />
         </div>
-        <p className="text-muted-foreground font-headline text-lg">R/HOOD Studio Management</p>
+        <p className={textStyles.headline.section}>R/HOOD<br />STUDIO<br />MANAGEMENT</p>
       </div>
 
       <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex items-center justify-center space-x-2 mb-2">
             <Shield className="h-5 w-5 text-primary" />
-            <CardTitle className="text-center text-foreground font-headline text-xl">
-              Admin Login
+            <CardTitle className={`text-center ${textStyles.headline.card}`}>
+              ADMIN<br />LOGIN
             </CardTitle>
           </div>
           <div className="text-center">
-            <Badge variant="outline" className="border-primary text-primary">
-              Rhood Team Only
+            <Badge variant="outline" className={`border-primary ${textStyles.headline.badge}`}>
+              RHOOD TEAM ONLY
             </Badge>
           </div>
         </CardHeader>
@@ -103,7 +104,7 @@ export default function AdminLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">
+              <Label htmlFor="email" className={textStyles.body.regular}>
                 Email
               </Label>
               <Input
@@ -121,7 +122,7 @@ export default function AdminLoginPage() {
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">
+              <Label htmlFor="password" className={textStyles.body.regular}>
                 Password
               </Label>
               <Input

@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { textStyles } from "@/lib/typography";
 
 export default function DashboardPage() {
   const stats = [
@@ -86,15 +87,15 @@ export default function DashboardPage() {
         {stats.map((stat, index) => (
           <Card key={index} className="bg-card border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className={textStyles.subheading.small}>
                 {stat.title}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">
+              <div className={textStyles.subheading.large}>
                 {stat.value}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className={`${textStyles.body.small} mt-1`}>
                 {stat.change}
               </p>
             </CardContent>
@@ -105,7 +106,7 @@ export default function DashboardPage() {
       {/* Recent Activity */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-foreground font-headline text-xl">Recent Activity</CardTitle>
+          <CardTitle className={textStyles.headline.section}>RECENT<br />ACTIVITY</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -113,8 +114,8 @@ export default function DashboardPage() {
               <div key={index} className="flex items-start space-x-3">
                 <div className="text-lg">{getActivityIcon(activity.type)}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground">{activity.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className={textStyles.body.regular}>{activity.message}</p>
+                  <p className={`${textStyles.body.small} mt-1`}>
                     {activity.time}
                   </p>
                 </div>

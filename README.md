@@ -1,4 +1,4 @@
-# Rhood Studio - Admin Dashboard
+# R/HOOD Studio - Admin Dashboard
 
 A music community management platform for DJs and producers, built with Next.js, React, and Tailwind CSS.
 

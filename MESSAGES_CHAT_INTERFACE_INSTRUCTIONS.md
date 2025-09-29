@@ -216,7 +216,7 @@ const renderGroupForum = () => (
       </div>
       
       <div className="ml-3 flex-1">
-        <h2 className="font-semibold text-foreground text-sm">Rhood Group</h2>
+        <h2 className="font-semibold text-foreground text-sm">R/HOOD Group</h2>
         <div className="flex items-center text-xs text-muted-foreground">
           <span>12 members • Community Forum</span>
         </div>

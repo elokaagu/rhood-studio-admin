@@ -10,7 +10,7 @@ const tsBlock = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Rhood Studio",
+  title: "R/HOOD Studio",
   description: "Music community platform for DJs and producers",
   icons: {
     icon: "/rhood_logo.webp",

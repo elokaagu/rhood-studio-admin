@@ -97,7 +97,7 @@ const renderConnections = () => {
             {/* Group Chat Info */}
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-foreground">Rhood Group</h3>
+                <h3 className="font-semibold text-foreground">R/HOOD Group</h3>
                 <span className="text-xs text-muted-foreground">2m</span>
               </div>
               <p className="text-sm text-muted-foreground truncate">

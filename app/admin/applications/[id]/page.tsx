@@ -45,7 +45,8 @@ export default function ApplicationDetailsPage() {
       status: "pending",
       experience: "3 years",
       portfolio: "soundcloud.com/alexthompson",
-      coverLetter: "I'm excited to apply for this opportunity. I have extensive experience playing techno sets in underground venues and would love to bring my energy to this event.",
+      coverLetter:
+        "I'm excited to apply for this opportunity. I have extensive experience playing techno sets in underground venues and would love to bring my energy to this event.",
       equipment: "Pioneer DDJ-1000, MacBook Pro, Audio-Technica ATH-M50x",
     },
     {
@@ -66,7 +67,8 @@ export default function ApplicationDetailsPage() {
       status: "approved",
       experience: "5 years",
       portfolio: "soundcloud.com/mayarodriguez",
-      coverLetter: "As a Berlin-based DJ, I bring a unique perspective to house music. I'm excited about the opportunity to play at this rooftop venue.",
+      coverLetter:
+        "As a Berlin-based DJ, I bring a unique perspective to house music. I'm excited about the opportunity to play at this rooftop venue.",
       equipment: "Pioneer XDJ-RX2, MacBook Air, Sennheiser HD-25",
     },
     {
@@ -87,7 +89,8 @@ export default function ApplicationDetailsPage() {
       status: "rejected",
       experience: "2 years",
       portfolio: "soundcloud.com/jcbeats",
-      coverLetter: "I'm applying for this residency opportunity to showcase my drum & bass skills and build a long-term relationship with the venue.",
+      coverLetter:
+        "I'm applying for this residency opportunity to showcase my drum & bass skills and build a long-term relationship with the venue.",
       equipment: "Pioneer DDJ-SX3, MacBook Pro, KRK Rokit 5",
     },
   ];
@@ -332,7 +335,7 @@ export default function ApplicationDetailsPage() {
                 <span className={textStyles.body.regular}>Status</span>
                 {getStatusBadge(application.status)}
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <span className={textStyles.body.regular}>Applied Date</span>
                 <span className={textStyles.subheading.small}>
@@ -357,26 +360,34 @@ export default function ApplicationDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
-                onClick={() => router.push(`/admin/opportunities/${application.opportunityId}`)}
+                onClick={() =>
+                  router.push(
+                    `/admin/opportunities/${application.opportunityId}`
+                  )
+                }
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 View Opportunity
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
-                onClick={() => window.open(`https://${application.portfolio}`, '_blank')}
+                onClick={() =>
+                  window.open(`https://${application.portfolio}`, "_blank")
+                }
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Open Portfolio
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
-                onClick={() => window.location.href = `mailto:${application.applicant.email}`}
+                onClick={() =>
+                  (window.location.href = `mailto:${application.applicant.email}`)
+                }
               >
                 <Mail className="h-4 w-4 mr-2" />
                 Send Email

@@ -21,7 +21,7 @@ import {
 
 function ApplicationsContent() {
   const searchParams = useSearchParams();
-  const opportunityId = searchParams.get('opportunity');
+  const opportunityId = searchParams.get("opportunity");
 
   const applications = [
     {
@@ -75,8 +75,10 @@ function ApplicationsContent() {
   ];
 
   // Filter applications by opportunity if specified
-  const filteredApplications = opportunityId 
-    ? applications.filter(app => app.opportunityId === parseInt(opportunityId))
+  const filteredApplications = opportunityId
+    ? applications.filter(
+        (app) => app.opportunityId === parseInt(opportunityId)
+      )
     : applications;
 
   const getStatusColor = (status: string) => {
@@ -110,7 +112,7 @@ function ApplicationsContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className={`${textStyles.headline.section} text-left`}>
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
             APPLICATIONS
           </h1>
           <p className={textStyles.body.regular}>
@@ -172,7 +174,7 @@ function ApplicationsContent() {
                   <h3 className={textStyles.subheading.large}>
                     {application.opportunity}
                   </h3>
-                  
+
                   <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
@@ -190,8 +192,12 @@ function ApplicationsContent() {
 
                   <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-2">
                     <div className="flex items-center">
-                      <span className="text-foreground font-medium">{application.applicant.name}</span>
-                      <span className="ml-2">({application.applicant.djName})</span>
+                      <span className="text-foreground font-medium">
+                        {application.applicant.name}
+                      </span>
+                      <span className="ml-2">
+                        ({application.applicant.djName})
+                      </span>
                     </div>
                     <div className="flex items-center space-x-2">
                       {application.applicant.genres.map((genre) => (
@@ -216,13 +222,15 @@ function ApplicationsContent() {
                     {getStatusIcon(application.status)}
                     <span className="ml-1">{application.status}</span>
                   </Badge>
-                  
+
                   <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="text-foreground"
-                      onClick={() => window.location.href = `/admin/applications/${application.id}`}
+                      onClick={() =>
+                        (window.location.href = `/admin/applications/${application.id}`)
+                      }
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       View Details
@@ -235,7 +243,9 @@ function ApplicationsContent() {
                           className="text-brand-green hover:text-brand-green/80"
                           onClick={() => {
                             // Handle approve action
-                            console.log(`Approving application ${application.id}`);
+                            console.log(
+                              `Approving application ${application.id}`
+                            );
                             // In a real app, this would update the database
                           }}
                         >
@@ -248,7 +258,9 @@ function ApplicationsContent() {
                           className="text-red-600 hover:text-red-700"
                           onClick={() => {
                             // Handle reject action
-                            console.log(`Rejecting application ${application.id}`);
+                            console.log(
+                              `Rejecting application ${application.id}`
+                            );
                             // In a real app, this would update the database
                           }}
                         >

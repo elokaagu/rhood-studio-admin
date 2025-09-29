@@ -30,6 +30,7 @@ import {
   Star,
   UserPlus,
   X,
+  Trash2,
 } from "lucide-react";
 
 export default function MembersPage() {
@@ -277,6 +278,36 @@ export default function MembersPage() {
     window.location.href = `mailto:${memberEmail}`;
   };
 
+  const handleDeleteMember = async (memberId: number, memberName: string) => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete "${memberName}"? This action cannot be undone.`
+      )
+    ) {
+      try {
+        // In a real app, this would delete from the database
+        console.log(`Deleting member: ${memberName} (ID: ${memberId})`);
+
+        // For demo purposes, remove from local state
+        setMembers((prevMembers) =>
+          prevMembers.filter((member) => member.id !== memberId)
+        );
+
+        toast({
+          title: "Member Deleted",
+          description: `"${memberName}" has been deleted successfully.`,
+        });
+      } catch (error) {
+        console.error("Error deleting member:", error);
+        toast({
+          title: "Delete Failed",
+          description: "Failed to delete member. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -519,6 +550,15 @@ export default function MembersPage() {
                     >
                       <Mail className="h-4 w-4 mr-1" />
                       Message
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteMember(member.id, member.name)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
                     </Button>
                   </div>
                 </div>

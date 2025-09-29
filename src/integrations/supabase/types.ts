@@ -740,6 +740,159 @@ export type Database = {
         };
         Relationships: [];
       };
+      application_forms: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          opportunity_id: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          opportunity_id?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string | null;
+          opportunity_id?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "application_forms_opportunity_id_fkey";
+            columns: ["opportunity_id"];
+            referencedRelation: "opportunities";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      application_form_fields: {
+        Row: {
+          id: string;
+          form_id: string;
+          field_type: string;
+          field_name: string;
+          field_label: string;
+          field_placeholder: string | null;
+          field_options: Json | null;
+          is_required: boolean;
+          field_order: number;
+          validation_rules: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          form_id: string;
+          field_type: string;
+          field_name: string;
+          field_label: string;
+          field_placeholder?: string | null;
+          field_options?: Json | null;
+          is_required?: boolean;
+          field_order: number;
+          validation_rules?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          form_id?: string;
+          field_type?: string;
+          field_name?: string;
+          field_label?: string;
+          field_placeholder?: string | null;
+          field_options?: Json | null;
+          is_required?: boolean;
+          field_order?: number;
+          validation_rules?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "application_form_fields_form_id_fkey";
+            columns: ["form_id"];
+            referencedRelation: "application_forms";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      application_form_responses: {
+        Row: {
+          id: string;
+          form_id: string;
+          user_id: string;
+          opportunity_id: string | null;
+          response_data: Json;
+          status: string;
+          submitted_at: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          review_notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          form_id: string;
+          user_id: string;
+          opportunity_id?: string | null;
+          response_data: Json;
+          status?: string;
+          submitted_at?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          review_notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          form_id?: string;
+          user_id?: string;
+          opportunity_id?: string | null;
+          response_data?: Json;
+          status?: string;
+          submitted_at?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          review_notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "application_form_responses_form_id_fkey";
+            columns: ["form_id"];
+            referencedRelation: "application_forms";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "application_form_responses_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "application_form_responses_opportunity_id_fkey";
+            columns: ["opportunity_id"];
+            referencedRelation: "opportunities";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       ai_feedback_analysis: {

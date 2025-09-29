@@ -381,8 +381,8 @@ export default function CreateFormPage() {
               <div className="text-center py-8">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className={textStyles.body.regular}>
-                  No fields added yet. Click &quot;Add Field&quot; to start building your
-                  form.
+                  No fields added yet. Click &quot;Add Field&quot; to start
+                  building your form.
                 </p>
               </div>
             ) : (

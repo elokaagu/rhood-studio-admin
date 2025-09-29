@@ -1,12 +1,14 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Calendar,
   MapPin,
@@ -22,57 +24,124 @@ import {
 function ApplicationsContent() {
   const searchParams = useSearchParams();
   const opportunityId = searchParams.get("opportunity");
+  const { toast } = useToast();
+  const [applications, setApplications] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const applications = [
-    {
-      id: 1,
-      applicant: {
-        name: "Alex Thompson",
-        djName: "DJ AlexT",
-        avatar: "/person1.jpg",
-        location: "London, UK",
-        genres: ["Techno", "House"],
+  // Fetch applications from database
+  const fetchApplications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("applications")
+        .select(`
+          *,
+          opportunities!inner(title),
+          user_profiles!inner(dj_name, city, genres)
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        // Check if it's a table doesn't exist error
+        if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
+          console.warn("Applications table doesn't exist yet. Using demo data.");
+          toast({
+            title: "Database Setup Required",
+            description: "Applications table not found. Please create it in Supabase dashboard. Using demo data for now.",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        // Transform the data to match the expected format
+        const transformedApplications = data?.map((app: any) => ({
+          id: app.id,
+          applicant: {
+            name: app.user_profiles?.dj_name || "Unknown",
+            djName: app.user_profiles?.dj_name || "Unknown",
+            avatar: "/person1.jpg", // Default avatar
+            location: app.user_profiles?.city || "Unknown",
+            genres: app.user_profiles?.genres || [],
+          },
+          opportunity: app.opportunities?.title || "Unknown Opportunity",
+          opportunityId: app.opportunity_id,
+          appliedDate: app.created_at ? new Date(app.created_at).toISOString().split('T')[0] : "Unknown",
+          status: app.status || "pending",
+          experience: "Unknown", // This field might need to be added to the database
+          portfolio: "Unknown", // This field might need to be added to the database
+        })) || [];
+        
+        setApplications(transformedApplications);
+        return; // Exit early if successful
+      }
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      toast({
+        title: "Database Error",
+        description: "Failed to load applications from database. Using demo data.",
+        variant: "destructive",
+      });
+    }
+    
+    // Fallback to demo data
+    setApplications([
+      {
+        id: 1,
+        applicant: {
+          name: "Alex Thompson",
+          djName: "DJ AlexT",
+          avatar: "/person1.jpg",
+          location: "London, UK",
+          genres: ["Techno", "House"],
+        },
+        opportunity: "Underground Warehouse Rave",
+        opportunityId: 1,
+        appliedDate: "2024-01-15",
+        status: "pending",
+        experience: "3 years",
+        portfolio: "soundcloud.com/alexthompson",
       },
-      opportunity: "Underground Warehouse Rave",
-      opportunityId: 1,
-      appliedDate: "2024-01-15",
-      status: "pending",
-      experience: "3 years",
-      portfolio: "soundcloud.com/alexthompson",
-    },
-    {
-      id: 2,
-      applicant: {
-        name: "Maya Rodriguez",
-        djName: "Maya R",
-        avatar: "/person2.jpg",
-        location: "Berlin, Germany",
-        genres: ["Electronic", "Progressive"],
+      {
+        id: 2,
+        applicant: {
+          name: "Maya Rodriguez",
+          djName: "Maya R",
+          avatar: "/person2.jpg",
+          location: "Berlin, Germany",
+          genres: ["Electronic", "Progressive"],
+        },
+        opportunity: "Rooftop Summer Sessions",
+        opportunityId: 2,
+        appliedDate: "2024-01-18",
+        status: "approved",
+        experience: "5 years",
+        portfolio: "soundcloud.com/mayarodriguez",
       },
-      opportunity: "Rooftop Summer Sessions",
-      opportunityId: 2,
-      appliedDate: "2024-01-18",
-      status: "approved",
-      experience: "5 years",
-      portfolio: "soundcloud.com/mayarodriguez",
-    },
-    {
-      id: 3,
-      applicant: {
-        name: "James Chen",
-        djName: "JC Beats",
-        avatar: "/person1.jpg",
-        location: "Amsterdam, Netherlands",
-        genres: ["Drum & Bass", "Dubstep"],
+      {
+        id: 3,
+        applicant: {
+          name: "James Chen",
+          djName: "JC Beats",
+          avatar: "/person1.jpg",
+          location: "Amsterdam, Netherlands",
+          genres: ["Drum & Bass", "Dubstep"],
+        },
+        opportunity: "Club Residency Audition",
+        opportunityId: 3,
+        appliedDate: "2024-01-20",
+        status: "rejected",
+        experience: "2 years",
+        portfolio: "soundcloud.com/jcbeats",
       },
-      opportunity: "Club Residency Audition",
-      opportunityId: 3,
-      appliedDate: "2024-01-20",
-      status: "rejected",
-      experience: "2 years",
-      portfolio: "soundcloud.com/jcbeats",
-    },
-  ];
+    ]);
+    
+    setIsLoading(false);
+  };
+
+  // Load applications on component mount
+  useEffect(() => {
+    fetchApplications();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter applications by opportunity if specified
   const filteredApplications = opportunityId
@@ -104,6 +173,62 @@ function ApplicationsContent() {
         return <Clock className="h-4 w-4 text-yellow-600" />;
       default:
         return <Clock className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  const handleApprove = async (applicationId: string) => {
+    try {
+      const { error } = await supabase
+        .from("applications")
+        .update({ status: "approved" })
+        .eq("id", applicationId);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Application Approved",
+        description: "The application has been approved successfully.",
+      });
+
+      // Refresh the applications list
+      fetchApplications();
+    } catch (error) {
+      console.error("Error approving application:", error);
+      toast({
+        title: "Error",
+        description: "Failed to approve application. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReject = async (applicationId: string) => {
+    try {
+      const { error } = await supabase
+        .from("applications")
+        .update({ status: "rejected" })
+        .eq("id", applicationId);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Application Rejected",
+        description: "The application has been rejected.",
+      });
+
+      // Refresh the applications list
+      fetchApplications();
+    } catch (error) {
+      console.error("Error rejecting application:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reject application. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -166,7 +291,18 @@ function ApplicationsContent() {
 
       {/* Applications List */}
       <div className="space-y-4">
-        {filteredApplications.map((application) => (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p className={textStyles.body.regular}>Loading applications...</p>
+          </div>
+        ) : filteredApplications.length === 0 ? (
+          <div className="text-center py-8">
+            <p className={textStyles.body.regular}>
+              No applications found.
+            </p>
+          </div>
+        ) : (
+          filteredApplications.map((application) => (
           <Card key={application.id} className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -200,7 +336,7 @@ function ApplicationsContent() {
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      {application.applicant.genres.map((genre) => (
+                      {application.applicant.genres.map((genre: string) => (
                         <Badge
                           key={genre}
                           variant="outline"
@@ -241,13 +377,7 @@ function ApplicationsContent() {
                           variant="outline"
                           size="sm"
                           className="text-brand-green hover:text-brand-green/80"
-                          onClick={() => {
-                            // Handle approve action
-                            console.log(
-                              `Approving application ${application.id}`
-                            );
-                            // In a real app, this would update the database
-                          }}
+                          onClick={() => handleApprove(application.id)}
                         >
                           <CheckCircle className="h-4 w-4 mr-1" />
                           Approve
@@ -256,13 +386,7 @@ function ApplicationsContent() {
                           variant="outline"
                           size="sm"
                           className="text-red-600 hover:text-red-700"
-                          onClick={() => {
-                            // Handle reject action
-                            console.log(
-                              `Rejecting application ${application.id}`
-                            );
-                            // In a real app, this would update the database
-                          }}
+                          onClick={() => handleReject(application.id)}
                         >
                           <XCircle className="h-4 w-4 mr-1" />
                           Reject
@@ -274,7 +398,8 @@ function ApplicationsContent() {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

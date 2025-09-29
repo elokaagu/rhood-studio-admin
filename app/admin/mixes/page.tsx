@@ -71,11 +71,15 @@ export default function MixesPage() {
 
       if (error) {
         // Check if it's a table doesn't exist error
-        if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
+        if (
+          error.message?.includes("relation") &&
+          error.message?.includes("does not exist")
+        ) {
           console.warn("Mixes table doesn't exist yet. Using demo data.");
           toast({
             title: "Database Setup Required",
-            description: "Mixes table not found. Please create it in Supabase dashboard. Using demo data for now.",
+            description:
+              "Mixes table not found. Please create it in Supabase dashboard. Using demo data for now.",
             variant: "destructive",
           });
         } else {
@@ -93,7 +97,7 @@ export default function MixesPage() {
         variant: "destructive",
       });
     }
-    
+
     // Fallback to demo data
     setMixes([
       {
@@ -149,7 +153,7 @@ export default function MixesPage() {
         audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
       },
     ]);
-    
+
     setIsLoading(false);
   };
 
@@ -302,10 +306,14 @@ export default function MixesPage() {
         .limit(1);
 
       if (tableCheckError) {
-        if (tableCheckError.message?.includes("relation") && tableCheckError.message?.includes("does not exist")) {
+        if (
+          tableCheckError.message?.includes("relation") &&
+          tableCheckError.message?.includes("does not exist")
+        ) {
           toast({
             title: "Database Setup Required",
-            description: "Mixes table doesn't exist. Please create it in Supabase dashboard first.",
+            description:
+              "Mixes table doesn't exist. Please create it in Supabase dashboard first.",
             variant: "destructive",
           });
           return;

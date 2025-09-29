@@ -14,6 +14,7 @@ The error you're seeing is because the `mixes` table doesn't exist in your Supab
 6. Click **Run** to execute the SQL
 
 This will create:
+
 - The `mixes` table with all required fields
 - Proper indexes for performance
 - Row Level Security policies
@@ -23,6 +24,7 @@ This will create:
 ### Step 2: Verify the Setup
 
 After running the SQL, you should see:
+
 - The `mixes` table in the **Table Editor**
 - The `mixes` storage bucket in **Storage**
 - No more console errors when loading the mixes page
@@ -39,12 +41,14 @@ After running the SQL, you should see:
 The setup script creates:
 
 ### Database Table
+
 - **mixes**: Stores mix metadata (title, artist, genre, file info, etc.)
 - **Indexes**: For better query performance
 - **RLS Policies**: Allows admin access to all operations
 - **Triggers**: Automatically updates `updated_at` timestamp
 
 ### Storage Bucket
+
 - **mixes**: For storing audio files
 - **Policies**: Allows authenticated users to upload/manage files
 - **Public Access**: Allows public read access for audio playback
@@ -61,6 +65,7 @@ If you still see errors:
 ## Next Steps
 
 Once the table is created, the application will:
+
 - Load mixes from the database instead of demo data
 - Allow you to upload new mixes
 - Store files in Supabase Storage

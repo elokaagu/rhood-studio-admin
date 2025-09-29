@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Calendar,
   MapPin,
@@ -24,9 +26,74 @@ export default function ApplicationDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const applicationId = params.id;
+  const { toast } = useToast();
+  const [application, setApplication] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data - in a real app, this would be fetched from an API
-  const applications = [
+  // Fetch application from database
+  const fetchApplication = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("applications")
+        .select(`
+          *,
+          opportunities!inner(title, description, location, event_date, payment, genre),
+          user_profiles!inner(dj_name, city, genres, email, bio)
+        `)
+        .eq("id", applicationId as string)
+        .single();
+
+      if (error) {
+        // Check if it's a table doesn't exist error
+        if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
+          console.warn("Applications table doesn't exist yet. Using demo data.");
+          toast({
+            title: "Database Setup Required",
+            description: "Applications table not found. Please create it in Supabase dashboard. Using demo data for now.",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+      } else if (data) {
+        // Transform the data to match the expected format
+        const transformedApplication = {
+          id: data.id,
+          applicant: {
+            name: data.user_profiles?.dj_name || "Unknown",
+            djName: data.user_profiles?.dj_name || "Unknown",
+            avatar: "/person1.jpg", // Default avatar
+            location: data.user_profiles?.city || "Unknown",
+            genres: data.user_profiles?.genres || [],
+            email: data.user_profiles?.email || "Unknown",
+            phone: "Unknown", // Phone field doesn't exist in user_profiles
+            bio: data.user_profiles?.bio || "No bio available",
+          },
+          opportunity: data.opportunities?.title || "Unknown Opportunity",
+          opportunityId: data.opportunity_id,
+          appliedDate: data.created_at ? new Date(data.created_at).toISOString().split('T')[0] : "Unknown",
+          status: data.status || "pending",
+          experience: "Unknown", // This field might need to be added to the database
+          portfolio: "Unknown", // This field might need to be added to the database
+          coverLetter: data.message || "No cover letter provided",
+          equipment: "Unknown", // This field might need to be added to the database
+        };
+        
+        setApplication(transformedApplication);
+        setIsLoading(false);
+        return; // Exit early if successful
+      }
+    } catch (error) {
+      console.error("Error fetching application:", error);
+      toast({
+        title: "Database Error",
+        description: "Failed to load application from database. Using demo data.",
+        variant: "destructive",
+      });
+    }
+    
+    // Fallback to demo data
+    const applications = [
     {
       id: 1,
       applicant: {
@@ -93,11 +160,20 @@ export default function ApplicationDetailsPage() {
         "I'm applying for this residency opportunity to showcase my drum & bass skills and build a long-term relationship with the venue.",
       equipment: "Pioneer DDJ-SX3, MacBook Pro, KRK Rokit 5",
     },
-  ];
+    ];
 
-  const application = applications.find(
-    (app) => app.id === parseInt(applicationId as string)
-  );
+    const foundApplication = applications.find(
+      (app) => app.id === parseInt(applicationId as string)
+    );
+    
+    setApplication(foundApplication || applications[0]);
+    setIsLoading(false);
+  };
+
+  // Load application on component mount
+  useEffect(() => {
+    fetchApplication();
+  }, [applicationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -142,6 +218,16 @@ export default function ApplicationDetailsPage() {
         );
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <p className={textStyles.body.regular}>Loading application...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!application) {
     return (
@@ -261,7 +347,7 @@ export default function ApplicationDetailsPage() {
               <div>
                 <h4 className={textStyles.subheading.small}>Genres</h4>
                 <div className="flex flex-wrap gap-2">
-                  {application.applicant.genres.map((genre) => (
+                  {application.applicant.genres.map((genre: string) => (
                     <Badge
                       key={genre}
                       variant="outline"

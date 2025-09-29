@@ -270,17 +270,21 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-3">
-                  <div className="text-lg">{getActivityIcon(activity.type)}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className={textStyles.body.regular}>{activity.message}</p>
-                    <p className={`${textStyles.body.small} mt-1`}>
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
+                <Card key={index} className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="text-lg">{getActivityIcon(activity.type)}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className={textStyles.body.regular}>{activity.message}</p>
+                        <p className={`${textStyles.body.small} mt-1`}>
+                          {activity.time}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </CardContent>
@@ -296,24 +300,26 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {upcomingEvents.map((event, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className={textStyles.body.regular}>{event.title}</p>
-                      <p className={`${textStyles.body.small} mt-1`}>
-                        {event.date} - {event.time}
-                      </p>
+                <Card key={index} className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className={textStyles.body.regular}>{event.title}</p>
+                        <p className={`${textStyles.body.small} mt-1`}>
+                          {event.date} - {event.time}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className="bg-green-100 text-green-800 text-xs"
+                      >
+                        {event.genre}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant="secondary"
-                      className="bg-green-100 text-green-800 text-xs"
-                    >
-                      {event.genre}
-                    </Badge>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </CardContent>

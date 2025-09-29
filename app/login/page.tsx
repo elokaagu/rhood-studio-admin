@@ -108,9 +108,7 @@ export default function AdminLoginPage() {
             className="h-16 w-auto"
           />
         </div>
-        <p className={textStyles.headline.section}>
-          STUDIO MANAGEMENT
-        </p>
+        <p className={textStyles.headline.section}>STUDIO MANAGEMENT</p>
       </div>
 
       <Card className="bg-card border-border">

@@ -12,6 +12,11 @@ const tsBlock = localFont({
 export const metadata: Metadata = {
   title: "Rhood Studio",
   description: "Music community platform for DJs and producers",
+  icons: {
+    icon: "/rhood_logo.webp",
+    shortcut: "/rhood_logo.webp",
+    apple: "/rhood_logo.webp",
+  },
 };
 
 export default function RootLayout({

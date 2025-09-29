@@ -63,6 +63,24 @@ export default function CreateOpportunityPage() {
     setIsSubmitting(true);
 
     try {
+      // Check if opportunities table exists first
+      const { error: tableCheckError } = await supabase
+        .from("opportunities")
+        .select("id")
+        .limit(1);
+
+      if (tableCheckError) {
+        if (tableCheckError.message?.includes("relation") && tableCheckError.message?.includes("does not exist")) {
+          toast({
+            title: "Database Setup Required",
+            description: "Opportunities table doesn't exist. Please create it in Supabase dashboard first.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw tableCheckError;
+      }
+
       // Combine date and time into event_date
       const eventDate =
         formData.date && formData.time
@@ -114,6 +132,24 @@ export default function CreateOpportunityPage() {
     setIsSubmitting(true);
 
     try {
+      // Check if opportunities table exists first
+      const { error: tableCheckError } = await supabase
+        .from("opportunities")
+        .select("id")
+        .limit(1);
+
+      if (tableCheckError) {
+        if (tableCheckError.message?.includes("relation") && tableCheckError.message?.includes("does not exist")) {
+          toast({
+            title: "Database Setup Required",
+            description: "Opportunities table doesn't exist. Please create it in Supabase dashboard first.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw tableCheckError;
+      }
+
       const eventDate =
         formData.date && formData.time
           ? new Date(`${formData.date}T${formData.time}`).toISOString()

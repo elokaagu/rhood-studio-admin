@@ -59,7 +59,9 @@ export default function MembersPage() {
           error.message?.includes("relation") &&
           error.message?.includes("does not exist")
         ) {
-          console.warn("User profiles table doesn't exist yet. Using demo data.");
+          console.warn(
+            "User profiles table doesn't exist yet. Using demo data."
+          );
           toast({
             title: "Database Setup Required",
             description:
@@ -100,8 +102,7 @@ export default function MembersPage() {
       console.error("Error fetching members:", error);
       toast({
         title: "Database Error",
-        description:
-          "Failed to load members from database. Using demo data.",
+        description: "Failed to load members from database. Using demo data.",
         variant: "destructive",
       });
     }
@@ -242,7 +243,7 @@ export default function MembersPage() {
 
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       // In a real app, this would send the invite to the backend
       // For now, we'll just show a success message
@@ -453,76 +454,76 @@ export default function MembersPage() {
           </div>
         ) : (
           filteredMembers.map((member) => (
-          <Card key={member.id} className="bg-card border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4 flex-1">
-                  {/* Avatar with Initials */}
-                  <Avatar className="h-12 w-12 bg-brand-green">
-                    <AvatarFallback className="text-brand-black font-bold">
-                      {getInitials(member.name)}
-                    </AvatarFallback>
-                  </Avatar>
+            <Card key={member.id} className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1">
+                    {/* Avatar with Initials */}
+                    <Avatar className="h-12 w-12 bg-brand-green">
+                      <AvatarFallback className="text-brand-black font-bold">
+                        {getInitials(member.name)}
+                      </AvatarFallback>
+                    </Avatar>
 
-                  {/* Member Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <h3 className={textStyles.subheading.large}>
-                        {member.name}
-                      </h3>
-                      <div className="flex items-center">
-                        <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                        <span className="text-sm text-muted-foreground">
-                          {member.rating}
-                        </span>
+                    {/* Member Info */}
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <h3 className={textStyles.subheading.large}>
+                          {member.name}
+                        </h3>
+                        <div className="flex items-center">
+                          <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                          <span className="text-sm text-muted-foreground">
+                            {member.rating}
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    <p
-                      className={`${textStyles.body.regular} text-muted-foreground`}
-                    >
-                      {member.email}
-                    </p>
+                      <p
+                        className={`${textStyles.body.regular} text-muted-foreground`}
+                      >
+                        {member.email}
+                      </p>
 
-                    {/* Metadata Row */}
-                    <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-1" />
-                        {member.location}
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        Joined {member.joinedDate}
-                      </div>
-                      <div className="flex items-center">
-                        <Music className="h-4 w-4 mr-1" />
-                        {member.gigs} gigs
+                      {/* Metadata Row */}
+                      <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
+                        <div className="flex items-center">
+                          <MapPin className="h-4 w-4 mr-1" />
+                          {member.location}
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          Joined {member.joinedDate}
+                        </div>
+                        <div className="flex items-center">
+                          <Music className="h-4 w-4 mr-1" />
+                          {member.gigs} gigs
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Right Side - Tags and Actions */}
-                <div className="flex items-center space-x-2">
-                  {member.genres.map((genre: string) => (
-                    <div key={genre}>{getGenreBadge(genre)}</div>
-                  ))}
-                  {getStatusBadge(member.status)}
+                  {/* Right Side - Tags and Actions */}
+                  <div className="flex items-center space-x-2">
+                    {member.genres.map((genre: string) => (
+                      <div key={genre}>{getGenreBadge(genre)}</div>
+                    ))}
+                    {getStatusBadge(member.status)}
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      handleMessageMember(member.name, member.email)
-                    }
-                  >
-                    <Mail className="h-4 w-4 mr-1" />
-                    Message
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        handleMessageMember(member.name, member.email)
+                      }
+                    >
+                      <Mail className="h-4 w-4 mr-1" />
+                      Message
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>

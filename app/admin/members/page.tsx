@@ -38,6 +38,7 @@ import {
   X,
   Trash2,
   MoreVertical,
+  Eye,
 } from "lucide-react";
 
 export default function MembersPage() {
@@ -565,6 +566,18 @@ export default function MembersPage() {
                       <div key={genre}>{getGenreBadge(genre)}</div>
                     ))}
                     {getStatusBadge(member.status)}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-foreground"
+                      onClick={() =>
+                        (window.location.href = `/admin/members/${member.id}`)
+                      }
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View Details
+                    </Button>
 
                     <Button
                       variant="outline"

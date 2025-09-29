@@ -149,7 +149,10 @@ export default function AdminLoginPage() {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName" className={textStyles.body.regular}>
+                    <Label
+                      htmlFor="firstName"
+                      className={textStyles.body.regular}
+                    >
                       First Name
                     </Label>
                     <Input
@@ -165,7 +168,10 @@ export default function AdminLoginPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName" className={textStyles.body.regular}>
+                    <Label
+                      htmlFor="lastName"
+                      className={textStyles.body.regular}
+                    >
                       Last Name
                     </Label>
                     <Input
@@ -227,9 +233,9 @@ export default function AdminLoginPage() {
               size="lg"
               className="w-full mt-6"
               disabled={
-                loading || 
-                !formData.email || 
-                !formData.password || 
+                loading ||
+                !formData.email ||
+                !formData.password ||
                 (isSignUp && (!formData.firstName || !formData.lastName))
               }
             >

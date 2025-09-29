@@ -9,6 +9,20 @@ import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Calendar,
   MapPin,
   Users,
@@ -17,6 +31,7 @@ import {
   ArrowLeft,
   Clock,
   CheckCircle,
+  MoreVertical,
 } from "lucide-react";
 
 export default function OpportunityDetailsPage() {
@@ -26,6 +41,8 @@ export default function OpportunityDetailsPage() {
   const { toast } = useToast();
   const [opportunity, setOpportunity] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [opportunityToDelete, setOpportunityToDelete] = useState<{ id: string; title: string } | null>(null);
 
   // Fetch opportunity from database
   const fetchOpportunity = async () => {
@@ -141,6 +158,52 @@ export default function OpportunityDetailsPage() {
   useEffect(() => {
     fetchOpportunity();
   }, [opportunityId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDelete = () => {
+    if (opportunity) {
+      setOpportunityToDelete({ id: opportunityId as string, title: opportunity.title });
+      setDeleteModalOpen(true);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!opportunityToDelete) return;
+
+    try {
+      // Delete from Supabase database
+      const { error } = await supabase
+        .from("opportunities")
+        .delete()
+        .eq("id", opportunityToDelete.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Opportunity Deleted",
+        description: `"${opportunityToDelete.title}" has been deleted successfully.`,
+      });
+
+      // Redirect to opportunities list
+      router.push("/admin/opportunities");
+    } catch (error) {
+      console.error("Error deleting opportunity:", error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete opportunity. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteModalOpen(false);
+      setOpportunityToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteModalOpen(false);
+    setOpportunityToDelete(null);
+  };
 
   if (isLoading) {
     return (
@@ -389,10 +452,59 @@ export default function OpportunityDetailsPage() {
                 <Calendar className="h-4 w-4 mr-2" />
                 Schedule Event
               </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start">
+                    <MoreVertical className="h-4 w-4 mr-2" />
+                    More Actions
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-card border-border">
+                  <DropdownMenuItem
+                    onClick={handleDelete}
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Opportunity
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
+              Delete Opportunity
+            </DialogTitle>
+            <DialogDescription className={textStyles.body.regular}>
+              Are you sure you want to delete &quot;{opportunityToDelete?.title}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={cancelDelete}
+              className="text-foreground border-border hover:bg-secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

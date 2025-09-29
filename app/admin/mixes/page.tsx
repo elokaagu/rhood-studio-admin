@@ -2,88 +2,116 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { textStyles } from "@/lib/typography";
 import {
   Play,
-  Pause,
   Download,
   Eye,
   Trash2,
   Music,
   Clock,
-  User,
   Calendar,
-  ThumbsUp,
-  MessageCircle,
+  Star,
+  Search,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 export default function MixesPage() {
   const mixes = [
     {
       id: 1,
-      title: "Underground Techno Session",
-      dj: {
-        name: "Alex Thompson",
-        djName: "DJ AlexT",
-        avatar: "/person1.jpg",
-      },
-      duration: "2:34:15",
-      genre: "Techno",
-      uploadDate: "2024-01-15",
-      status: "approved",
+      title: "Underground Techno Mix #1",
+      artist: "Alex Thompson",
+      duration: "58:23",
+      uploadDate: "2024-08-10",
       plays: 1247,
-      likes: 89,
-      comments: 23,
-      description:
-        "Deep underground techno mix recorded live at warehouse rave",
+      rating: 4.8,
+      appliedFor: "Underground Warehouse Rave",
+      genre: "Techno",
+      status: "approved",
     },
     {
       id: 2,
-      title: "Sunset House Vibes",
-      dj: {
-        name: "Maya Rodriguez",
-        djName: "Maya R",
-        avatar: "/person2.jpg",
-      },
-      duration: "1:45:30",
-      genre: "House",
-      uploadDate: "2024-01-18",
-      status: "pending",
+      title: "Summer House Vibes",
+      artist: "Maya Rodriguez",
+      duration: "45:12",
+      uploadDate: "2024-08-12",
       plays: 892,
-      likes: 67,
-      comments: 15,
-      description: "Chill house music perfect for sunset sessions",
+      rating: 4.9,
+      appliedFor: "Rooftop Summer Sessions",
+      genre: "House",
+      status: "pending",
     },
     {
       id: 3,
-      title: "Electronic Journey",
-      dj: {
-        name: "James Chen",
-        djName: "JC Beats",
-        avatar: "/person1.jpg",
-      },
-      duration: "3:12:45",
-      genre: "Electronic",
-      uploadDate: "2024-01-20",
+      title: "Drum & Bass Energy",
+      artist: "Kai Johnson",
+      duration: "52:45",
+      uploadDate: "2024-08-14",
+      plays: 634,
+      rating: 4.7,
+      appliedFor: "Club Residency Audition",
+      genre: "Drum & Bass",
+      status: "approved",
+    },
+    {
+      id: 4,
+      title: "Deep House Journey",
+      artist: "Sofia Martinez",
+      duration: "61:18",
+      uploadDate: "2024-08-16",
+      plays: 1105,
+      rating: 4.6,
+      appliedFor: "Rooftop Summer Sessions",
+      genre: "Deep House",
       status: "rejected",
-      plays: 456,
-      likes: 34,
-      comments: 8,
-      description: "Progressive electronic mix with ambient elements",
     },
   ];
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
-        return "bg-green-100 text-green-800";
+        return (
+          <Badge className="bg-green-500 text-white text-xs">
+            Approved
+          </Badge>
+        );
       case "rejected":
-        return "bg-red-100 text-red-800";
+        return (
+          <Badge className="bg-red-500 text-white text-xs">
+            Rejected
+          </Badge>
+        );
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
+        return (
+          <Badge className="bg-orange-500 text-white text-xs">
+            Pending
+          </Badge>
+        );
       default:
-        return "bg-gray-100 text-gray-800";
+        return (
+          <Badge className="bg-gray-500 text-white text-xs">
+            {status}
+          </Badge>
+        );
     }
+  };
+
+  const getGenreBadge = (genre: string) => {
+    const isYellowGenre = ["House", "Deep House"].includes(genre);
+    return (
+      <Badge 
+        className={`text-xs ${
+          isYellowGenre 
+            ? "bg-yellow-500 text-black" 
+            : "bg-brand-green text-white"
+        }`}
+      >
+        {genre}
+      </Badge>
+    );
   };
 
   return (
@@ -91,167 +119,115 @@ export default function MixesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Mixes</h1>
-          <p className="text-muted-foreground">Review and manage DJ mixes</p>
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+            MIXES
+          </h1>
+          <p className={textStyles.body.regular}>
+            Review and manage submitted DJ mixes
+          </p>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Mixes</p>
-                <p className="text-2xl font-bold text-foreground">3</p>
-              </div>
-              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <Music className="h-4 w-4 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Review</p>
-                <p className="text-2xl font-bold text-foreground">1</p>
-              </div>
-              <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                <Clock className="h-4 w-4 text-yellow-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Approved</p>
-                <p className="text-2xl font-bold text-foreground">1</p>
-              </div>
-              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                <Music className="h-4 w-4 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Plays</p>
-                <p className="text-2xl font-bold text-foreground">2,595</p>
-              </div>
-              <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <Play className="h-4 w-4 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Search and Filter Bar */}
+      <div className="flex items-center space-x-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search mixes, artists, or genres..."
+            className="pl-10 bg-secondary border-border text-foreground"
+          />
+        </div>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+          >
+            All
+          </Button>
+          <Button variant="outline" size="sm">
+            Pending
+          </Button>
+          <Button variant="outline" size="sm">
+            Approved
+          </Button>
+          <Button variant="outline" size="sm">
+            Rejected
+          </Button>
+        </div>
       </div>
 
       {/* Mixes List */}
       <div className="space-y-4">
         {mixes.map((mix) => (
           <Card key={mix.id} className="bg-card border-border">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-3">
-                  <div className="h-16 w-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
-                    <Music className="h-8 w-8 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-foreground">
-                      {mix.title}
-                    </CardTitle>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={mix.dj.avatar} alt={mix.dj.name} />
-                        <AvatarFallback>
-                          <User className="h-3 w-3" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm text-muted-foreground">
-                        {mix.dj.djName}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge className={`text-xs ${getStatusColor(mix.status)}`}>
-                    {mix.status}
-                  </Badge>
-                  <Badge variant="outline">{mix.genre}</Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">{mix.description}</p>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="flex items-center text-muted-foreground">
-                  <Clock className="h-4 w-4 mr-2" />
-                  {mix.duration}
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <Play className="h-4 w-4 mr-2" />
-                  {mix.plays} plays
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <ThumbsUp className="h-4 w-4 mr-2" />
-                  {mix.likes} likes
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  {mix.comments} comments
-                </div>
-              </div>
-
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  Uploaded: {mix.uploadDate}
+                <div className="flex items-center space-x-4 flex-1">
+                  {/* Play Button */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-12 w-12 rounded-full bg-secondary border-border hover:bg-accent"
+                  >
+                    <Play className="h-4 w-4 text-foreground" />
+                  </Button>
+
+                  {/* Mix Info */}
+                  <div className="flex-1">
+                    <h3 className={textStyles.subheading.large}>
+                      {mix.title}
+                    </h3>
+                    <p className={`${textStyles.body.regular} text-muted-foreground`}>
+                      by {mix.artist}
+                    </p>
+                    
+                    {/* Metadata Row */}
+                    <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {mix.duration}
+                      </div>
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        {mix.uploadDate}
+                      </div>
+                      <div className="flex items-center">
+                        <Eye className="h-4 w-4 mr-1" />
+                        {mix.plays} plays
+                      </div>
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 mr-1" />
+                        {mix.rating}
+                      </div>
+                    </div>
+
+                    {/* Applied For */}
+                    <p className={`${textStyles.body.small} mt-2`}>
+                      Applied for: {mix.appliedFor}
+                    </p>
+                  </div>
                 </div>
+
+                {/* Right Side - Tags and Actions */}
                 <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Play className="h-4 w-4 mr-1" />
-                    Play
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 mr-1" />
-                    Review
-                  </Button>
+                  {getGenreBadge(mix.genre)}
+                  {getStatusBadge(mix.status)}
+                  
+                  {mix.status === "pending" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Review
+                    </Button>
+                  )}
+                  
                   <Button variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-1" />
                     Download
-                  </Button>
-                  {mix.status === "pending" && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-green-600 hover:text-green-700"
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        Reject
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Delete
                   </Button>
                 </div>
               </div>

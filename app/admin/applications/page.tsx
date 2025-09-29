@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,10 @@ import {
   User,
 } from "lucide-react";
 
-export default function ApplicationsPage() {
+function ApplicationsContent() {
+  const searchParams = useSearchParams();
+  const opportunityId = searchParams.get('opportunity');
+
   const applications = [
     {
       id: 1,
@@ -29,6 +33,7 @@ export default function ApplicationsPage() {
         genres: ["Techno", "House"],
       },
       opportunity: "Underground Warehouse Rave",
+      opportunityId: 1,
       appliedDate: "2024-01-15",
       status: "pending",
       experience: "3 years",
@@ -44,6 +49,7 @@ export default function ApplicationsPage() {
         genres: ["Electronic", "Progressive"],
       },
       opportunity: "Rooftop Summer Sessions",
+      opportunityId: 2,
       appliedDate: "2024-01-18",
       status: "approved",
       experience: "5 years",
@@ -59,12 +65,18 @@ export default function ApplicationsPage() {
         genres: ["Drum & Bass", "Dubstep"],
       },
       opportunity: "Club Residency Audition",
+      opportunityId: 3,
       appliedDate: "2024-01-20",
       status: "rejected",
       experience: "2 years",
       portfolio: "soundcloud.com/jcbeats",
     },
   ];
+
+  // Filter applications by opportunity if specified
+  const filteredApplications = opportunityId 
+    ? applications.filter(app => app.opportunityId === parseInt(opportunityId))
+    : applications;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -97,7 +109,9 @@ export default function ApplicationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className={`${textStyles.headline.section} text-left`}>APPLICATIONS</h1>
+          <h1 className={`${textStyles.headline.section} text-left`}>
+            APPLICATIONS
+          </h1>
           <p className={textStyles.body.regular}>
             Review and manage DJ applications
           </p>
@@ -149,7 +163,7 @@ export default function ApplicationsPage() {
 
       {/* Applications List */}
       <div className="space-y-4">
-        {applications.map((application) => (
+        {filteredApplications.map((application) => (
           <Card key={application.id} className="bg-card border-border">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
@@ -180,7 +194,9 @@ export default function ApplicationsPage() {
 
                   <div className="space-y-3">
                     <div>
-                      <h4 className={textStyles.subheading.small}>Opportunity</h4>
+                      <h4 className={textStyles.subheading.small}>
+                        Opportunity
+                      </h4>
                       <p className={textStyles.body.regular}>
                         {application.opportunity}
                       </p>
@@ -208,7 +224,9 @@ export default function ApplicationsPage() {
                     </div>
 
                     <div>
-                      <h4 className={textStyles.subheading.small}>Experience</h4>
+                      <h4 className={textStyles.subheading.small}>
+                        Experience
+                      </h4>
                       <p className={textStyles.body.regular}>
                         {application.experience}
                       </p>
@@ -226,7 +244,11 @@ export default function ApplicationsPage() {
                   </Badge>
 
                   <div className="flex flex-col space-y-2">
-                    <Button variant="outline" size="sm" className="text-foreground">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-foreground"
+                    >
                       <Eye className="h-4 w-4 mr-1" />
                       View Details
                     </Button>
@@ -258,5 +280,13 @@ export default function ApplicationsPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function ApplicationsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ApplicationsContent />
+    </Suspense>
   );
 }

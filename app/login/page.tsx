@@ -74,13 +74,13 @@ export default function AdminLoginPage() {
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
-          <Image
-            src="/rhood-logo.png"
-            alt="R/HOOD"
-            width={48}
-            height={48}
-            className="h-12 w-auto"
-          />
+            <Image
+              src="/rhood_logo.webp"
+              alt="R/HOOD"
+              width={48}
+              height={48}
+              className="h-12 w-auto"
+            />
         </div>
         <p className="text-muted-foreground">R/HOOD Studio Management</p>
       </div>

@@ -78,7 +78,7 @@ function AppSidebar() {
       <SidebarHeader className="border-b border-border h-14">
         <div className="flex items-center px-4 h-full">
           <Image
-            src="/rhood-logo.png"
+            src="/rhood_logo.webp"
             alt="R/HOOD Logo"
             className="w-8 h-8"
             width={32}

@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,9 @@ import {
 } from "lucide-react";
 
 export default function MembersPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
+
   const members = [
     {
       id: 1,
@@ -105,7 +110,7 @@ export default function MembersPage() {
 
   const getGenreBadge = (genre: string) => {
     return (
-      <Badge 
+      <Badge
         variant="outline"
         className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
       >
@@ -116,10 +121,39 @@ export default function MembersPage() {
 
   const getInitials = (name: string) => {
     return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
       .toUpperCase();
+  };
+
+  // Filter members based on search term and active filter
+  const filteredMembers = members.filter((member) => {
+    const matchesSearch = 
+      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.genres.some(genre => genre.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesFilter = 
+      activeFilter === "all" || 
+      member.status === activeFilter;
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const handleInviteMember = () => {
+    // In a real app, this would open a modal or navigate to an invite form
+    console.log("Opening invite member form...");
+    // For now, we'll just show an alert
+    alert("Invite Member functionality would open a form to invite new members to the R/HOOD community.");
+  };
+
+  const handleMessageMember = (memberName: string, memberEmail: string) => {
+    // In a real app, this would open a messaging interface
+    console.log(`Opening message interface for ${memberName} (${memberEmail})`);
+    // For now, we'll open the default email client
+    window.location.href = `mailto:${memberEmail}`;
   };
 
   return (
@@ -134,7 +168,10 @@ export default function MembersPage() {
             Manage R/HOOD community members
           </p>
         </div>
-        <Button className="bg-brand-green text-brand-black hover:bg-brand-green/90">
+        <Button 
+          className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+          onClick={handleInviteMember}
+        >
           <UserPlus className="h-4 w-4 mr-2" />
           Invite Member
         </Button>
@@ -147,20 +184,33 @@ export default function MembersPage() {
           <Input
             placeholder="Search members, locations, or genres..."
             className="pl-10 bg-secondary border-border text-foreground"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
-            className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+            className={activeFilter === "all" ? "bg-brand-green text-brand-black hover:bg-brand-green/90" : ""}
+            onClick={() => setActiveFilter("all")}
           >
             All
           </Button>
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className={activeFilter === "active" ? "bg-brand-green text-brand-black hover:bg-brand-green/90" : ""}
+            onClick={() => setActiveFilter("active")}
+          >
             Active
           </Button>
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className={activeFilter === "inactive" ? "bg-brand-green text-brand-black hover:bg-brand-green/90" : ""}
+            onClick={() => setActiveFilter("inactive")}
+          >
             Inactive
           </Button>
         </div>
@@ -168,7 +218,7 @@ export default function MembersPage() {
 
       {/* Members List */}
       <div className="space-y-4">
-        {members.map((member) => (
+        {filteredMembers.map((member) => (
           <Card key={member.id} className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -193,11 +243,13 @@ export default function MembersPage() {
                         </span>
                       </div>
                     </div>
-                    
-                    <p className={`${textStyles.body.regular} text-muted-foreground`}>
+
+                    <p
+                      className={`${textStyles.body.regular} text-muted-foreground`}
+                    >
                       {member.email}
                     </p>
-                    
+
                     {/* Metadata Row */}
                     <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
                       <div className="flex items-center">
@@ -219,13 +271,15 @@ export default function MembersPage() {
                 {/* Right Side - Tags and Actions */}
                 <div className="flex items-center space-x-2">
                   {member.genres.map((genre) => (
-                    <div key={genre}>
-                      {getGenreBadge(genre)}
-                    </div>
+                    <div key={genre}>{getGenreBadge(genre)}</div>
                   ))}
                   {getStatusBadge(member.status)}
-                  
-                  <Button variant="outline" size="sm">
+
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleMessageMember(member.name, member.email)}
+                  >
                     <Mail className="h-4 w-4 mr-1" />
                     Message
                   </Button>

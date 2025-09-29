@@ -379,6 +379,7 @@ export default function OpportunitiesPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

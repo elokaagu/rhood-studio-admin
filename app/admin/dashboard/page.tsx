@@ -274,14 +274,13 @@ export default function DashboardPage() {
               {recentActivity.map((activity, index) => (
                 <Card key={index} className="bg-card border-border">
                   <CardContent className="p-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="text-lg">{getActivityIcon(activity.type)}</div>
-                      <div className="flex-1 min-w-0">
-                        <p className={textStyles.body.regular}>{activity.message}</p>
-                        <p className={`${textStyles.body.small} mt-1`}>
-                          {activity.time}
-                        </p>
-                      </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={textStyles.body.regular}>
+                        {activity.message}
+                      </p>
+                      <p className={`${textStyles.body.small} mt-1`}>
+                        {activity.time}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>

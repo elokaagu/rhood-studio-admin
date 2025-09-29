@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { textStyles } from "@/lib/typography";
+import { useToast } from "@/hooks/use-toast";
 import {
   Play,
   Pause,
@@ -41,6 +42,7 @@ import {
 } from "lucide-react";
 
 export default function MixesPage() {
+  const { toast } = useToast();
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -196,9 +198,10 @@ export default function MixesPage() {
   const handleDownload = (mixTitle: string) => {
     // In a real app, this would download the actual mix file
     console.log(`Downloading mix: ${mixTitle}`);
-    alert(
-      `Download functionality would download the actual mix file for: ${mixTitle}`
-    );
+    toast({
+      title: "Download Started",
+      description: `Downloading mix: ${mixTitle}`,
+    });
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,17 +210,29 @@ export default function MixesPage() {
       // Validate file type
       const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp3'];
       if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.mp3') && !file.name.toLowerCase().endsWith('.wav')) {
-        alert('Please select a valid MP3 or WAV file.');
+        toast({
+          title: "Invalid File Type",
+          description: "Please select a valid MP3 or WAV file.",
+          variant: "destructive",
+        });
         return;
       }
       setSelectedFile(file);
+      toast({
+        title: "File Selected",
+        description: `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
+      });
     }
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
-      alert('Please select a file to upload.');
+      toast({
+        title: "No File Selected",
+        description: "Please select a file to upload.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -232,7 +247,10 @@ export default function MixesPage() {
       // Simulate upload delay
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      alert(`Mix "${uploadFormData.title}" uploaded successfully!`);
+      toast({
+        title: "Upload Successful",
+        description: `Mix "${uploadFormData.title}" has been uploaded successfully!`,
+      });
       
       // Reset form and close modal
       setUploadFormData({
@@ -247,7 +265,11 @@ export default function MixesPage() {
       setIsUploadModalOpen(false);
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload mix. Please try again.');
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload mix. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
     }

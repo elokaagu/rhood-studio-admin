@@ -58,6 +58,11 @@ const sidebarItems = [
     icon: FileText,
   },
   {
+    title: "Forms",
+    url: "/admin/forms",
+    icon: FileText,
+  },
+  {
     title: "Mixes",
     url: "/admin/mixes",
     icon: Music,
@@ -112,7 +117,9 @@ function AppSidebar() {
                     >
                       <item.icon className="h-4 w-4" />
                       {!isCollapsed && (
-                        <span className={`ml-3 ${textStyles.body.regular}`}>{item.title}</span>
+                        <span className={`ml-3 ${textStyles.body.regular}`}>
+                          {item.title}
+                        </span>
                       )}
                     </Link>
                   </SidebarMenuButton>
@@ -181,7 +188,10 @@ export default function AdminLayout({
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <Badge variant="outline" className={`border-primary ${textStyles.headline.badge}`}>
+              <Badge
+                variant="outline"
+                className={`border-primary ${textStyles.headline.badge}`}
+              >
                 RHOOD TEAM
               </Badge>
               <DropdownMenu>

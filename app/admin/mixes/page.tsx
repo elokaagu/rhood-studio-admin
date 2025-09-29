@@ -74,40 +74,28 @@ export default function MixesPage() {
     switch (status) {
       case "approved":
         return (
-          <Badge className="bg-green-500 text-white text-xs">
-            Approved
-          </Badge>
+          <Badge className="bg-green-500 text-white text-xs">Approved</Badge>
         );
       case "rejected":
         return (
-          <Badge className="bg-red-500 text-white text-xs">
-            Rejected
-          </Badge>
+          <Badge className="bg-red-500 text-white text-xs">Rejected</Badge>
         );
       case "pending":
         return (
-          <Badge className="bg-orange-500 text-white text-xs">
-            Pending
-          </Badge>
+          <Badge className="bg-orange-500 text-white text-xs">Pending</Badge>
         );
       default:
         return (
-          <Badge className="bg-gray-500 text-white text-xs">
-            {status}
-          </Badge>
+          <Badge className="bg-gray-500 text-white text-xs">{status}</Badge>
         );
     }
   };
 
   const getGenreBadge = (genre: string) => {
-    const isYellowGenre = ["House", "Deep House"].includes(genre);
     return (
       <Badge 
-        className={`text-xs ${
-          isYellowGenre 
-            ? "bg-yellow-500 text-black" 
-            : "bg-brand-green text-white"
-        }`}
+        variant="outline"
+        className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
       >
         {genre}
       </Badge>
@@ -138,8 +126,8 @@ export default function MixesPage() {
           />
         </div>
         <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             className="bg-brand-green text-brand-black hover:bg-brand-green/90"
           >
@@ -175,13 +163,13 @@ export default function MixesPage() {
 
                   {/* Mix Info */}
                   <div className="flex-1">
-                    <h3 className={textStyles.subheading.large}>
-                      {mix.title}
-                    </h3>
-                    <p className={`${textStyles.body.regular} text-muted-foreground`}>
+                    <h3 className={textStyles.subheading.large}>{mix.title}</h3>
+                    <p
+                      className={`${textStyles.body.regular} text-muted-foreground`}
+                    >
                       by {mix.artist}
                     </p>
-                    
+
                     {/* Metadata Row */}
                     <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
                       <div className="flex items-center">
@@ -213,7 +201,7 @@ export default function MixesPage() {
                 <div className="flex items-center space-x-2">
                   {getGenreBadge(mix.genre)}
                   {getStatusBadge(mix.status)}
-                  
+
                   {mix.status === "pending" && (
                     <Button
                       variant="outline"
@@ -224,7 +212,7 @@ export default function MixesPage() {
                       Review
                     </Button>
                   )}
-                  
+
                   <Button variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-1" />
                     Download

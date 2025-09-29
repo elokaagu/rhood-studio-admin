@@ -287,10 +287,17 @@ export default function MembersPage() {
     if (!memberToDelete) return;
 
     try {
-      // In a real app, this would delete from the database
-      console.log(`Deleting member: ${memberToDelete.name} (ID: ${memberToDelete.id})`);
+      // Delete from Supabase database
+      const { error } = await supabase
+        .from("user_profiles")
+        .delete()
+        .eq("id", memberToDelete.id);
 
-      // For demo purposes, remove from local state
+      if (error) {
+        throw error;
+      }
+
+      // Remove from local state
       setMembers((prevMembers) =>
         prevMembers.filter((member) => member.id !== memberToDelete.id)
       );

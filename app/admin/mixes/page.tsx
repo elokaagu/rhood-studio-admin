@@ -258,10 +258,17 @@ export default function MixesPage() {
     if (!mixToDelete) return;
 
     try {
-      // In a real app, this would delete from the database
-      console.log(`Deleting mix: ${mixToDelete.title} (ID: ${mixToDelete.id})`);
+      // Delete from Supabase database
+      const { error } = await supabase
+        .from("mixes")
+        .delete()
+        .eq("id", mixToDelete.id);
 
-      // For demo purposes, remove from local state
+      if (error) {
+        throw error;
+      }
+
+      // Remove from local state
       setMixes((prevMixes) => prevMixes.filter((mix) => mix.id !== mixToDelete.id));
 
       toast({

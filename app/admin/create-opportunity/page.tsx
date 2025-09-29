@@ -64,28 +64,29 @@ export default function CreateOpportunityPage() {
 
     try {
       // Combine date and time into event_date
-      const eventDate = formData.date && formData.time 
-        ? new Date(`${formData.date}T${formData.time}`).toISOString()
-        : formData.date 
-        ? new Date(formData.date).toISOString()
-        : null;
+      const eventDate =
+        formData.date && formData.time
+          ? new Date(`${formData.date}T${formData.time}`).toISOString()
+          : formData.date
+          ? new Date(formData.date).toISOString()
+          : null;
 
       // Parse payment amount
-      const paymentAmount = formData.pay ? parseFloat(formData.pay.replace(/[£,]/g, '')) : null;
+      const paymentAmount = formData.pay
+        ? parseFloat(formData.pay.replace(/[£,]/g, ""))
+        : null;
 
-      const { error } = await supabase
-        .from("opportunities")
-        .insert({
-          title: formData.title,
-          description: formData.description,
-          location: formData.location,
-          event_date: eventDate,
-          payment: paymentAmount,
-          genre: selectedGenres[0] || formData.genre, // Use first selected genre or form genre
-          skill_level: formData.requirements,
-          organizer_name: "R/HOOD Studio", // Default organizer
-          is_active: true,
-        });
+      const { error } = await supabase.from("opportunities").insert({
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        event_date: eventDate,
+        payment: paymentAmount,
+        genre: selectedGenres[0] || formData.genre, // Use first selected genre or form genre
+        skill_level: formData.requirements,
+        organizer_name: "R/HOOD Studio", // Default organizer
+        is_active: true,
+      });
 
       if (error) {
         throw error;
@@ -113,27 +114,28 @@ export default function CreateOpportunityPage() {
     setIsSubmitting(true);
 
     try {
-      const eventDate = formData.date && formData.time 
-        ? new Date(`${formData.date}T${formData.time}`).toISOString()
-        : formData.date 
-        ? new Date(formData.date).toISOString()
+      const eventDate =
+        formData.date && formData.time
+          ? new Date(`${formData.date}T${formData.time}`).toISOString()
+          : formData.date
+          ? new Date(formData.date).toISOString()
+          : null;
+
+      const paymentAmount = formData.pay
+        ? parseFloat(formData.pay.replace(/[£,]/g, ""))
         : null;
 
-      const paymentAmount = formData.pay ? parseFloat(formData.pay.replace(/[£,]/g, '')) : null;
-
-      const { error } = await supabase
-        .from("opportunities")
-        .insert({
-          title: formData.title,
-          description: formData.description,
-          location: formData.location,
-          event_date: eventDate,
-          payment: paymentAmount,
-          genre: selectedGenres[0] || formData.genre,
-          skill_level: formData.requirements,
-          organizer_name: "R/HOOD Studio",
-          is_active: false, // Draft is not active
-        });
+      const { error } = await supabase.from("opportunities").insert({
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        event_date: eventDate,
+        payment: paymentAmount,
+        genre: selectedGenres[0] || formData.genre,
+        skill_level: formData.requirements,
+        organizer_name: "R/HOOD Studio",
+        is_active: false, // Draft is not active
+      });
 
       if (error) {
         throw error;
@@ -402,17 +404,17 @@ export default function CreateOpportunityPage() {
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-4">
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={handleSaveDraft}
             disabled={isSubmitting}
           >
             <Save className="h-4 w-4 mr-2" />
             {isSubmitting ? "Saving..." : "Save Draft"}
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="bg-primary hover:bg-primary/90"
             disabled={isSubmitting}
           >

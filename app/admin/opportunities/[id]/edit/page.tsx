@@ -53,8 +53,10 @@ export default function EditOpportunityPage() {
       if (data) {
         // Parse the event_date to separate date and time
         const eventDate = data.event_date ? new Date(data.event_date) : null;
-        const dateStr = eventDate ? eventDate.toISOString().split('T')[0] : '';
-        const timeStr = eventDate ? eventDate.toTimeString().split(' ')[0].substring(0, 5) : '';
+        const dateStr = eventDate ? eventDate.toISOString().split("T")[0] : "";
+        const timeStr = eventDate
+          ? eventDate.toTimeString().split(" ")[0].substring(0, 5)
+          : "";
 
         setFormData({
           title: data.title || "",
@@ -180,14 +182,17 @@ export default function EditOpportunityPage() {
 
     try {
       // Combine date and time into event_date
-      const eventDate = formData.date && formData.time 
-        ? new Date(`${formData.date}T${formData.time}`).toISOString()
-        : formData.date 
-        ? new Date(formData.date).toISOString()
-        : null;
+      const eventDate =
+        formData.date && formData.time
+          ? new Date(`${formData.date}T${formData.time}`).toISOString()
+          : formData.date
+          ? new Date(formData.date).toISOString()
+          : null;
 
       // Parse payment amount
-      const paymentAmount = formData.pay ? parseFloat(formData.pay.replace(/[£,]/g, '')) : null;
+      const paymentAmount = formData.pay
+        ? parseFloat(formData.pay.replace(/[£,]/g, ""))
+        : null;
 
       const { error } = await supabase
         .from("opportunities")
@@ -229,13 +234,16 @@ export default function EditOpportunityPage() {
     setIsSubmitting(true);
 
     try {
-      const eventDate = formData.date && formData.time 
-        ? new Date(`${formData.date}T${formData.time}`).toISOString()
-        : formData.date 
-        ? new Date(formData.date).toISOString()
-        : null;
+      const eventDate =
+        formData.date && formData.time
+          ? new Date(`${formData.date}T${formData.time}`).toISOString()
+          : formData.date
+          ? new Date(formData.date).toISOString()
+          : null;
 
-      const paymentAmount = formData.pay ? parseFloat(formData.pay.replace(/[£,]/g, '')) : null;
+      const paymentAmount = formData.pay
+        ? parseFloat(formData.pay.replace(/[£,]/g, ""))
+        : null;
 
       const { error } = await supabase
         .from("opportunities")
@@ -525,9 +533,9 @@ export default function EditOpportunityPage() {
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-4">
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={handleSaveDraft}
             disabled={isSubmitting}
           >

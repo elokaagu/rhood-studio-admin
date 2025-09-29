@@ -230,69 +230,77 @@ export default function OpportunitiesPage() {
           </div>
         ) : (
           opportunities.map((opportunity) => (
-          <Card key={opportunity.id} className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className={`${textStyles.subheading.large} mb-2`}>
-                    {opportunity.title}
-                  </h3>
+            <Card key={opportunity.id} className="bg-card border-border">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className={`${textStyles.subheading.large} mb-2`}>
+                      {opportunity.title}
+                    </h3>
 
-                  <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-4">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {opportunity.event_date ? new Date(opportunity.event_date).toLocaleDateString() : opportunity.date}
-                    </div>
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      {opportunity.location}
-                    </div>
-                    <div className="flex items-center">
-                      {opportunity.payment ? `£${opportunity.payment}` : opportunity.pay}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">
-                    <div className="flex items-center">
-                      <Users className="h-4 w-4 mr-1" />
-                      {opportunity.applicants || 0} applicants
-                    </div>
-                    {opportunity.selected && (
+                    <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center">
-                        <span className="text-brand-green">Selected: </span>
-                        <span className="text-foreground">
-                          {opportunity.selected}
-                        </span>
+                        <Calendar className="h-4 w-4 mr-1" />
+                        {opportunity.event_date
+                          ? new Date(
+                              opportunity.event_date
+                            ).toLocaleDateString()
+                          : opportunity.date}
                       </div>
-                    )}
-                  </div>
-                </div>
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        {opportunity.location}
+                      </div>
+                      <div className="flex items-center">
+                        {opportunity.payment
+                          ? `£${opportunity.payment}`
+                          : opportunity.pay}
+                      </div>
+                    </div>
 
-                <div className="flex flex-col items-end space-y-2">
-                  <div className="flex items-center space-x-2">
-                    {getStatusBadge(opportunity.is_active ? "active" : opportunity.status)}
-                    <Badge
-                      variant="outline"
-                      className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
-                    >
-                      {opportunity.genre}
-                    </Badge>
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">
+                      <div className="flex items-center">
+                        <Users className="h-4 w-4 mr-1" />
+                        {opportunity.applicants || 0} applicants
+                      </div>
+                      {opportunity.selected && (
+                        <div className="flex items-center">
+                          <span className="text-brand-green">Selected: </span>
+                          <span className="text-foreground">
+                            {opportunity.selected}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-foreground"
-                    onClick={() =>
-                      (window.location.href = `/admin/opportunities/${opportunity.id}`)
-                    }
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View Details
-                  </Button>
+
+                  <div className="flex flex-col items-end space-y-2">
+                    <div className="flex items-center space-x-2">
+                      {getStatusBadge(
+                        opportunity.is_active ? "active" : opportunity.status
+                      )}
+                      <Badge
+                        variant="outline"
+                        className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                      >
+                        {opportunity.genre}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-foreground"
+                      onClick={() =>
+                        (window.location.href = `/admin/opportunities/${opportunity.id}`)
+                      }
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View Details
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>

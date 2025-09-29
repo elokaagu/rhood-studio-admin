@@ -70,75 +70,87 @@ export default function MixesPage() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        throw error;
+        // Check if it's a table doesn't exist error
+        if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
+          console.warn("Mixes table doesn't exist yet. Using demo data.");
+          toast({
+            title: "Database Setup Required",
+            description: "Mixes table not found. Please create it in Supabase dashboard. Using demo data for now.",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        setMixes(data || []);
+        return; // Exit early if successful
       }
-
-      setMixes(data || []);
     } catch (error) {
       console.error("Error fetching mixes:", error);
       toast({
-        title: "Error",
-        description: "Failed to load mixes. Using demo data.",
+        title: "Database Error",
+        description: "Failed to load mixes from database. Using demo data.",
         variant: "destructive",
       });
-      // Fallback to demo data
-      setMixes([
-        {
-          id: 1,
-          title: "Underground Techno Mix #1",
-          artist: "Alex Thompson",
-          duration: "58:23",
-          uploadDate: "2024-08-10",
-          plays: 1247,
-          rating: 4.8,
-          appliedFor: "Underground Warehouse Rave",
-          genre: "Techno",
-          status: "approved",
-          audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-        },
-        {
-          id: 2,
-          title: "Summer House Vibes",
-          artist: "Maya Rodriguez",
-          duration: "45:12",
-          uploadDate: "2024-08-12",
-          plays: 892,
-          rating: 4.9,
-          appliedFor: "Rooftop Summer Sessions",
-          genre: "House",
-          status: "pending",
-          audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-        },
-        {
-          id: 3,
-          title: "Drum & Bass Energy",
-          artist: "Kai Johnson",
-          duration: "52:45",
-          uploadDate: "2024-08-14",
-          plays: 634,
-          rating: 4.7,
-          appliedFor: "Club Residency Audition",
-          genre: "Drum & Bass",
-          status: "approved",
-          audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-        },
-        {
-          id: 4,
-          title: "Deep House Journey",
-          artist: "Sofia Martinez",
-          duration: "61:18",
-          uploadDate: "2024-08-16",
-          plays: 1105,
-          rating: 4.6,
-          appliedFor: "Rooftop Summer Sessions",
-          genre: "Deep House",
-          status: "rejected",
-          audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
     }
+    
+    // Fallback to demo data
+    setMixes([
+      {
+        id: 1,
+        title: "Underground Techno Mix #1",
+        artist: "Alex Thompson",
+        duration: "58:23",
+        uploadDate: "2024-08-10",
+        plays: 1247,
+        rating: 4.8,
+        appliedFor: "Underground Warehouse Rave",
+        genre: "Techno",
+        status: "approved",
+        audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+      },
+      {
+        id: 2,
+        title: "Summer House Vibes",
+        artist: "Maya Rodriguez",
+        duration: "45:12",
+        uploadDate: "2024-08-12",
+        plays: 892,
+        rating: 4.9,
+        appliedFor: "Rooftop Summer Sessions",
+        genre: "House",
+        status: "pending",
+        audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+      },
+      {
+        id: 3,
+        title: "Drum & Bass Energy",
+        artist: "Kai Johnson",
+        duration: "52:45",
+        uploadDate: "2024-08-14",
+        plays: 634,
+        rating: 4.7,
+        appliedFor: "Club Residency Audition",
+        genre: "Drum & Bass",
+        status: "approved",
+        audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+      },
+      {
+        id: 4,
+        title: "Deep House Journey",
+        artist: "Sofia Martinez",
+        duration: "61:18",
+        uploadDate: "2024-08-16",
+        plays: 1105,
+        rating: 4.6,
+        appliedFor: "Rooftop Summer Sessions",
+        genre: "Deep House",
+        status: "rejected",
+        audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+      },
+    ]);
+    
+    setIsLoading(false);
   };
 
   // Load mixes on component mount
@@ -283,6 +295,24 @@ export default function MixesPage() {
 
     setIsUploading(true);
     try {
+      // Check if mixes table exists first
+      const { error: tableCheckError } = await supabase
+        .from("mixes")
+        .select("id")
+        .limit(1);
+
+      if (tableCheckError) {
+        if (tableCheckError.message?.includes("relation") && tableCheckError.message?.includes("does not exist")) {
+          toast({
+            title: "Database Setup Required",
+            description: "Mixes table doesn't exist. Please create it in Supabase dashboard first.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw tableCheckError;
+      }
+
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random()

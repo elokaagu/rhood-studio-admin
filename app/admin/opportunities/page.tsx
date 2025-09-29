@@ -59,28 +59,40 @@ export default function OpportunitiesPage() {
     switch (status) {
       case "active":
         return (
-          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+          <Badge
+            variant="outline"
+            className="border-gray-400 text-gray-400 bg-transparent text-xs"
+          >
             <Clock className="h-3 w-3 mr-1" />
             Active
           </Badge>
         );
       case "completed":
         return (
-          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+          <Badge
+            variant="outline"
+            className="border-gray-400 text-gray-400 bg-transparent text-xs"
+          >
             <CheckCircle className="h-3 w-3 mr-1" />
             Completed
           </Badge>
         );
       case "closed":
         return (
-          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+          <Badge
+            variant="outline"
+            className="border-gray-400 text-gray-400 bg-transparent text-xs"
+          >
             <Clock className="h-3 w-3 mr-1" />
             Closed
           </Badge>
         );
       default:
         return (
-          <Badge variant="outline" className="border-gray-400 text-gray-400 bg-transparent text-xs">
+          <Badge
+            variant="outline"
+            className="border-gray-400 text-gray-400 bg-transparent text-xs"
+          >
             {status}
           </Badge>
         );
@@ -110,7 +122,9 @@ export default function OpportunitiesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active</p>
-                <p className="text-2xl font-bold text-foreground">2</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {opportunities.filter(opp => opp.status === 'active').length}
+                </p>
               </div>
               <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
                 <Calendar className="h-4 w-4 text-green-600" />
@@ -123,12 +137,14 @@ export default function OpportunitiesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">
-                  Total Applications
+                  Total Opportunities
                 </p>
-                <p className="text-2xl font-bold text-foreground">72</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {opportunities.length}
+                </p>
               </div>
               <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="h-4 w-4 text-blue-600" />
+                <Calendar className="h-4 w-4 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -138,7 +154,9 @@ export default function OpportunitiesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Closed</p>
-                <p className="text-2xl font-bold text-foreground">1</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {opportunities.filter(opp => opp.status === 'completed' || opp.status === 'closed').length}
+                </p>
               </div>
               <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
                 <Calendar className="h-4 w-4 text-red-600" />
@@ -158,7 +176,7 @@ export default function OpportunitiesPage() {
                   <h3 className={`${textStyles.subheading.large} mb-2`}>
                     {opportunity.title}
                   </h3>
-                  
+
                   <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-4">
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
@@ -182,7 +200,9 @@ export default function OpportunitiesPage() {
                     {opportunity.selected && (
                       <div className="flex items-center">
                         <span className="text-brand-green">Selected: </span>
-                        <span className="text-foreground">{opportunity.selected}</span>
+                        <span className="text-foreground">
+                          {opportunity.selected}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -198,7 +218,11 @@ export default function OpportunitiesPage() {
                       {opportunity.genre}
                     </Badge>
                   </div>
-                  <Button variant="outline" size="sm" className="text-foreground">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-foreground"
+                  >
                     <Eye className="h-4 w-4 mr-1" />
                     View Details
                   </Button>

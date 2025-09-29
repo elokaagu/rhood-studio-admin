@@ -20,6 +20,7 @@ export default function AdminLoginPage() {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -40,23 +41,46 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
+      if (isSignUp) {
+        // Sign up new user
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+        });
 
-      if (error) {
-        toast({
-          title: "Login Failed",
-          description: error.message,
-          variant: "destructive",
+        if (error) {
+          toast({
+            title: "Sign Up Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else if (data.user) {
+          toast({
+            title: "Account Created!",
+            description: "Please check your email to confirm your account.",
+          });
+          setIsSignUp(false); // Switch back to login mode
+        }
+      } else {
+        // Sign in existing user
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
         });
-      } else if (data.user) {
-        toast({
-          title: "Welcome back!",
-          description: "You have been successfully logged in.",
-        });
-        router.push("/admin/dashboard");
+
+        if (error) {
+          toast({
+            title: "Login Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else if (data.user) {
+          toast({
+            title: "Welcome back!",
+            description: "You have been successfully logged in.",
+          });
+          router.push("/admin/dashboard");
+        }
       }
     } catch (error) {
       toast({
@@ -102,9 +126,9 @@ export default function AdminLoginPage() {
               className="h-6 w-6"
             />
             <CardTitle className={`text-center ${textStyles.headline.card}`}>
-              ADMIN
+              {isSignUp ? "CREATE" : "ADMIN"}
               <br />
-              LOGIN
+              {isSignUp ? "ACCOUNT" : "LOGIN"}
             </CardTitle>
           </div>
           <div className="text-center">
@@ -162,11 +186,28 @@ export default function AdminLoginPage() {
               className="w-full mt-6"
               disabled={loading || !formData.email || !formData.password}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading 
+                ? (isSignUp ? "Creating account..." : "Signing in...") 
+                : (isSignUp ? "Create Account" : "Sign In")
+              }
             </Button>
           </form>
         </CardContent>
       </Card>
+
+      {/* Toggle between Sign In and Sign Up */}
+      <div className="text-center mt-6">
+        <p className={textStyles.body.small}>
+          {isSignUp ? "Already have an account?" : "Don't have an account?"}
+        </p>
+        <button
+          type="button"
+          onClick={() => setIsSignUp(!isSignUp)}
+          className={`mt-2 ${textStyles.body.regular} text-primary hover:underline`}
+        >
+          {isSignUp ? "Sign In" : "Create Account"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -186,10 +186,13 @@ export default function AdminLoginPage() {
               className="w-full mt-6"
               disabled={loading || !formData.email || !formData.password}
             >
-              {loading 
-                ? (isSignUp ? "Creating account..." : "Signing in...") 
-                : (isSignUp ? "Create Account" : "Sign In")
-              }
+              {loading
+                ? isSignUp
+                  ? "Creating account..."
+                  : "Signing in..."
+                : isSignUp
+                ? "Create Account"
+                : "Sign In"}
             </Button>
           </form>
         </CardContent>

@@ -1,54 +1,184 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { textStyles } from "@/lib/typography";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function DashboardPage() {
-  const stats = [
+  const [stats, setStats] = useState([
     {
       title: "Active Opportunities",
-      value: "12",
-      change: "+3 this week",
+      value: "0",
+      change: "Loading...",
     },
     {
       title: "Pending Applications",
-      value: "47",
-      change: "+12 today",
+      value: "0",
+      change: "Loading...",
     },
     {
       title: "Total Members",
-      value: "1,234",
-      change: "+89 this month",
+      value: "0",
+      change: "Loading...",
     },
     {
-      title: "Submitted Mixes",
-      value: "156",
-      change: "+24 this week",
+      title: "AI Matching Sessions",
+      value: "0",
+      change: "Loading...",
     },
-  ];
+  ]);
 
-  const recentActivity = [
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch opportunities count
+        const { count: opportunitiesCount } = await supabase
+          .from("opportunities")
+          .select("*", { count: "exact", head: true })
+          .eq("is_active", true);
+
+        // Fetch applications count
+        const { count: applicationsCount } = await supabase
+          .from("applications")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending");
+
+        // Fetch user profiles count
+        const { count: membersCount } = await supabase
+          .from("user_profiles")
+          .select("*", { count: "exact", head: true });
+
+        // Fetch AI matching sessions count
+        const { count: aiSessionsCount } = await supabase
+          .from("ai_matching_sessions")
+          .select("*", { count: "exact", head: true });
+
+        setStats([
+          {
+            title: "Active Opportunities",
+            value: opportunitiesCount?.toString() || "0",
+            change: "Live data",
+          },
+          {
+            title: "Pending Applications",
+            value: applicationsCount?.toString() || "0",
+            change: "Live data",
+          },
+          {
+            title: "Total Members",
+            value: membersCount?.toString() || "0",
+            change: "Live data",
+          },
+          {
+            title: "AI Matching Sessions",
+            value: aiSessionsCount?.toString() || "0",
+            change: "Live data",
+          },
+        ]);
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const [recentActivity, setRecentActivity] = useState([
     {
-      type: "application",
-      message: "Alex Thompson applied to Underground Warehouse Rave",
-      time: "2 hours ago",
+      type: "loading",
+      message: "Loading recent activity...",
+      time: "",
     },
-    {
-      type: "opportunity",
-      message: "New opportunity posted: Rooftop Summer Sessions",
-      time: "4 hours ago",
-    },
-    {
-      type: "selection",
-      message: "Maya Rodriguez selected for Club Residency Audition",
-      time: "1 day ago",
-    },
-    {
-      type: "member",
-      message: "15 new members joined this week",
-      time: "2 days ago",
-    },
-  ];
+  ]);
+
+  useEffect(() => {
+    const fetchRecentActivity = async () => {
+      try {
+        // Fetch recent applications
+        const { data: recentApplications } = await supabase
+          .from("applications")
+          .select(`
+            id,
+            created_at,
+            status,
+            opportunities!inner(title),
+            user_profiles!inner(dj_name)
+          `)
+          .order("created_at", { ascending: false })
+          .limit(3);
+
+        // Fetch recent opportunities
+        const { data: recentOpportunities } = await supabase
+          .from("opportunities")
+          .select("id, title, created_at")
+          .order("created_at", { ascending: false })
+          .limit(2);
+
+        // Fetch recent user registrations
+        const { data: recentUsers } = await supabase
+          .from("user_profiles")
+          .select("id, dj_name, created_at")
+          .order("created_at", { ascending: false })
+          .limit(2);
+
+        const activities: Array<{
+          type: string;
+          message: string;
+          time: string;
+        }> = [];
+
+        // Add recent applications
+        if (recentApplications) {
+          recentApplications.forEach((app: any) => {
+            activities.push({
+              type: "application",
+              message: `${app.user_profiles.dj_name} applied to ${app.opportunities.title}`,
+              time: new Date(app.created_at).toLocaleDateString(),
+            });
+          });
+        }
+
+        // Add recent opportunities
+        if (recentOpportunities) {
+          recentOpportunities.forEach((opp: any) => {
+            activities.push({
+              type: "opportunity",
+              message: `New opportunity posted: ${opp.title}`,
+              time: new Date(opp.created_at).toLocaleDateString(),
+            });
+          });
+        }
+
+        // Add recent users
+        if (recentUsers) {
+          recentUsers.forEach((user: any) => {
+            activities.push({
+              type: "member",
+              message: `${user.dj_name} joined the platform`,
+              time: new Date(user.created_at).toLocaleDateString(),
+            });
+          });
+        }
+
+        // Sort by date and take top 4
+        activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+        setRecentActivity(activities.slice(0, 4));
+      } catch (error) {
+        console.error("Error fetching recent activity:", error);
+        setRecentActivity([
+          {
+            type: "error",
+            message: "Failed to load recent activity",
+            time: "",
+          },
+        ]);
+      }
+    };
+
+    fetchRecentActivity();
+  }, []);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -56,10 +186,12 @@ export default function DashboardPage() {
         return "📝";
       case "opportunity":
         return "🎯";
-      case "selection":
-        return "✅";
       case "member":
         return "👥";
+      case "loading":
+        return "⏳";
+      case "error":
+        return "❌";
       default:
         return "📌";
     }
@@ -71,10 +203,12 @@ export default function DashboardPage() {
         return "bg-blue-100 text-blue-800";
       case "opportunity":
         return "bg-green-100 text-green-800";
-      case "selection":
-        return "bg-purple-100 text-purple-800";
       case "member":
         return "bg-orange-100 text-orange-800";
+      case "loading":
+        return "bg-gray-100 text-gray-800";
+      case "error":
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }

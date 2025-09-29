@@ -263,7 +263,7 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className={textStyles.headline.section}>
+            <CardTitle className={`${textStyles.headline.section} text-left`}>
               RECENT
               <br />
               ACTIVITY
@@ -289,7 +289,7 @@ export default function DashboardPage() {
         {/* Upcoming Events */}
         <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className={textStyles.headline.section}>
+            <CardTitle className={`${textStyles.headline.section} text-left`}>
               UPCOMING
               <br />
               EVENTS

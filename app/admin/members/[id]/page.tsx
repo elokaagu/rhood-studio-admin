@@ -76,7 +76,7 @@ export default function MemberDetailsPage() {
           status: "active", // Default to active since is_active field doesn't exist in schema
           gigs: 0, // This would need to be calculated from applications
           bio: data.bio || "No bio available",
-          phone: data.phone || "No phone",
+          phone: "No phone", // Phone field doesn't exist in database schema
           socialLinks: {
             instagram: data.instagram || "",
             soundcloud: data.soundcloud || "",

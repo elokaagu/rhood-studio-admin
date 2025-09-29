@@ -70,32 +70,14 @@ export default function MixesPage() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        // Check if it's a table doesn't exist error
-        if (
-          error.message?.includes("relation") &&
-          error.message?.includes("does not exist")
-        ) {
-          console.warn("Mixes table doesn't exist yet. Using demo data.");
-          toast({
-            title: "Database Setup Required",
-            description:
-              "Mixes table not found. Please create it in Supabase dashboard. Using demo data for now.",
-            variant: "destructive",
-          });
-        } else {
-          throw error;
-        }
+        throw error;
       } else {
         setMixes(data || []);
+        setIsLoading(false);
         return; // Exit early if successful
       }
     } catch (error) {
       console.error("Error fetching mixes:", error);
-      toast({
-        title: "Database Error",
-        description: "Failed to load mixes from database. Using demo data.",
-        variant: "destructive",
-      });
     }
 
     // Fallback to demo data
@@ -390,6 +372,13 @@ export default function MixesPage() {
       setIsUploading(false);
     }
   };
+
+  console.log(
+    "MixesPage render - isLoading:",
+    isLoading,
+    "mixes count:",
+    mixes.length
+  );
 
   return (
     <div className="space-y-6">

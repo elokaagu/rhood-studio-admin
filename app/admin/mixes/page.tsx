@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Play,
   Pause,
@@ -57,8 +58,31 @@ export default function MixesPage() {
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [mixes, setMixes] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const mixes = [
+  // Fetch mixes from database
+  const fetchMixes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('mixes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setMixes(data || []);
+    } catch (error) {
+      console.error('Error fetching mixes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load mixes. Using demo data.",
+        variant: "destructive",
+      });
+      // Fallback to demo data
+      setMixes([
     {
       id: 1,
       title: "Underground Techno Mix #1",
@@ -111,7 +135,16 @@ export default function MixesPage() {
       status: "rejected",
       audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
     },
-  ];
+  ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load mixes on component mount
+  React.useEffect(() => {
+    fetchMixes();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -182,7 +215,8 @@ export default function MixesPage() {
         console.error("Error playing audio");
         toast({
           title: "Audio Playback Error",
-          description: "Unable to play audio. This is a demo with placeholder audio files.",
+          description:
+            "Unable to play audio. This is a demo with placeholder audio files.",
           variant: "destructive",
         });
       };
@@ -192,7 +226,8 @@ export default function MixesPage() {
         console.error("Error playing audio:", error);
         toast({
           title: "Audio Playback Error",
-          description: "Unable to play audio. This is a demo with placeholder audio files.",
+          description:
+            "Unable to play audio. This is a demo with placeholder audio files.",
           variant: "destructive",
         });
       });
@@ -212,8 +247,12 @@ export default function MixesPage() {
     const file = event.target.files?.[0];
     if (file) {
       // Validate file type
-      const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp3'];
-      if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.mp3') && !file.name.toLowerCase().endsWith('.wav')) {
+      const allowedTypes = ["audio/mpeg", "audio/wav", "audio/mp3"];
+      if (
+        !allowedTypes.includes(file.type) &&
+        !file.name.toLowerCase().endsWith(".mp3") &&
+        !file.name.toLowerCase().endsWith(".wav")
+      ) {
         toast({
           title: "Invalid File Type",
           description: "Please select a valid MP3 or WAV file.",
@@ -224,7 +263,9 @@ export default function MixesPage() {
       setSelectedFile(file);
       toast({
         title: "File Selected",
-        description: `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
+        description: `${file.name} (${(file.size / 1024 / 1024).toFixed(
+          2
+        )} MB)`,
       });
     }
   };
@@ -242,20 +283,50 @@ export default function MixesPage() {
 
     setIsUploading(true);
     try {
-      // In a real app, you would upload the file to your backend/storage service
-      console.log('Uploading mix:', {
-        file: selectedFile,
-        metadata: uploadFormData,
-      });
-      
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Upload file to Supabase Storage
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `mixes/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('mixes')
+        .upload(filePath, selectedFile);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get the public URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from('mixes')
+        .getPublicUrl(filePath);
+
+      // Save mix metadata to database
+      const { error: dbError } = await supabase
+        .from('mixes')
+        .insert({
+          title: uploadFormData.title,
+          artist: uploadFormData.artist,
+          genre: uploadFormData.genre,
+          description: uploadFormData.description || null,
+          applied_for: uploadFormData.appliedFor || null,
+          status: uploadFormData.status,
+          file_url: publicUrl,
+          file_name: selectedFile.name,
+          file_size: selectedFile.size,
+          // Note: duration would need to be extracted from audio file metadata
+          // For now, we'll leave it null and it can be updated later
+        });
+
+      if (dbError) {
+        throw dbError;
+      }
+
       toast({
         title: "Upload Successful",
         description: `Mix "${uploadFormData.title}" has been uploaded successfully!`,
       });
-      
+
       // Reset form and close modal
       setUploadFormData({
         title: "",
@@ -267,8 +338,11 @@ export default function MixesPage() {
       });
       setSelectedFile(null);
       setIsUploadModalOpen(false);
+      
+      // Refresh the mixes list
+      fetchMixes();
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error("Upload error:", error);
       toast({
         title: "Upload Failed",
         description: "Failed to upload mix. Please try again.",
@@ -307,7 +381,7 @@ export default function MixesPage() {
                 Upload a new DJ mix with metadata
               </DialogDescription>
             </DialogHeader>
-            
+
             <form onSubmit={handleUploadSubmit} className="space-y-6">
               {/* File Upload */}
               <div className="space-y-2">
@@ -323,8 +397,11 @@ export default function MixesPage() {
                   required
                 />
                 {selectedFile && (
-                  <p className={`${textStyles.body.small} text-muted-foreground`}>
-                    Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                  <p
+                    className={`${textStyles.body.small} text-muted-foreground`}
+                  >
+                    Selected: {selectedFile.name} (
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
                   </p>
                 )}
               </div>
@@ -340,7 +417,10 @@ export default function MixesPage() {
                     placeholder="e.g., Underground Techno Mix #1"
                     value={uploadFormData.title}
                     onChange={(e) =>
-                      setUploadFormData({ ...uploadFormData, title: e.target.value })
+                      setUploadFormData({
+                        ...uploadFormData,
+                        title: e.target.value,
+                      })
                     }
                     className="bg-secondary border-border text-foreground"
                     required
@@ -356,7 +436,10 @@ export default function MixesPage() {
                     placeholder="e.g., Alex Thompson"
                     value={uploadFormData.artist}
                     onChange={(e) =>
-                      setUploadFormData({ ...uploadFormData, artist: e.target.value })
+                      setUploadFormData({
+                        ...uploadFormData,
+                        artist: e.target.value,
+                      })
                     }
                     className="bg-secondary border-border text-foreground"
                     required
@@ -380,17 +463,72 @@ export default function MixesPage() {
                       <SelectValue placeholder="Select genre" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border">
-                      <SelectItem value="Techno" className="text-foreground hover:bg-accent">Techno</SelectItem>
-                      <SelectItem value="House" className="text-foreground hover:bg-accent">House</SelectItem>
-                      <SelectItem value="Drum & Bass" className="text-foreground hover:bg-accent">Drum & Bass</SelectItem>
-                      <SelectItem value="Dubstep" className="text-foreground hover:bg-accent">Dubstep</SelectItem>
-                      <SelectItem value="Trap" className="text-foreground hover:bg-accent">Trap</SelectItem>
-                      <SelectItem value="Hip-Hop" className="text-foreground hover:bg-accent">Hip-Hop</SelectItem>
-                      <SelectItem value="Electronic" className="text-foreground hover:bg-accent">Electronic</SelectItem>
-                      <SelectItem value="Progressive" className="text-foreground hover:bg-accent">Progressive</SelectItem>
-                      <SelectItem value="Trance" className="text-foreground hover:bg-accent">Trance</SelectItem>
-                      <SelectItem value="Ambient" className="text-foreground hover:bg-accent">Ambient</SelectItem>
-                      <SelectItem value="Breakbeat" className="text-foreground hover:bg-accent">Breakbeat</SelectItem>
+                      <SelectItem
+                        value="Techno"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Techno
+                      </SelectItem>
+                      <SelectItem
+                        value="House"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        House
+                      </SelectItem>
+                      <SelectItem
+                        value="Drum & Bass"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Drum & Bass
+                      </SelectItem>
+                      <SelectItem
+                        value="Dubstep"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Dubstep
+                      </SelectItem>
+                      <SelectItem
+                        value="Trap"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Trap
+                      </SelectItem>
+                      <SelectItem
+                        value="Hip-Hop"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Hip-Hop
+                      </SelectItem>
+                      <SelectItem
+                        value="Electronic"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Electronic
+                      </SelectItem>
+                      <SelectItem
+                        value="Progressive"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Progressive
+                      </SelectItem>
+                      <SelectItem
+                        value="Trance"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Trance
+                      </SelectItem>
+                      <SelectItem
+                        value="Ambient"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Ambient
+                      </SelectItem>
+                      <SelectItem
+                        value="Breakbeat"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Breakbeat
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -409,9 +547,24 @@ export default function MixesPage() {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border">
-                      <SelectItem value="pending" className="text-foreground hover:bg-accent">Pending</SelectItem>
-                      <SelectItem value="approved" className="text-foreground hover:bg-accent">Approved</SelectItem>
-                      <SelectItem value="rejected" className="text-foreground hover:bg-accent">Rejected</SelectItem>
+                      <SelectItem
+                        value="pending"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Pending
+                      </SelectItem>
+                      <SelectItem
+                        value="approved"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Approved
+                      </SelectItem>
+                      <SelectItem
+                        value="rejected"
+                        className="text-foreground hover:bg-accent"
+                      >
+                        Rejected
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -427,7 +580,10 @@ export default function MixesPage() {
                   placeholder="e.g., Underground Warehouse Rave"
                   value={uploadFormData.appliedFor}
                   onChange={(e) =>
-                    setUploadFormData({ ...uploadFormData, appliedFor: e.target.value })
+                    setUploadFormData({
+                      ...uploadFormData,
+                      appliedFor: e.target.value,
+                    })
                   }
                   className="bg-secondary border-border text-foreground"
                 />
@@ -435,7 +591,10 @@ export default function MixesPage() {
 
               {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="description" className={textStyles.body.regular}>
+                <Label
+                  htmlFor="description"
+                  className={textStyles.body.regular}
+                >
                   Description (Optional)
                 </Label>
                 <Textarea
@@ -443,7 +602,10 @@ export default function MixesPage() {
                   placeholder="Describe the mix, track selection, or any special notes..."
                   value={uploadFormData.description}
                   onChange={(e) =>
-                    setUploadFormData({ ...uploadFormData, description: e.target.value })
+                    setUploadFormData({
+                      ...uploadFormData,
+                      description: e.target.value,
+                    })
                   }
                   className="bg-secondary border-border text-foreground min-h-[100px]"
                 />
@@ -512,7 +674,16 @@ export default function MixesPage() {
 
       {/* Mixes List */}
       <div className="space-y-4">
-        {mixes.map((mix) => (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p className={textStyles.body.regular}>Loading mixes...</p>
+          </div>
+        ) : mixes.length === 0 ? (
+          <div className="text-center py-8">
+            <p className={textStyles.body.regular}>No mixes found. Upload your first mix!</p>
+          </div>
+        ) : (
+          mixes.map((mix) => (
           <Card key={mix.id} className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -522,7 +693,7 @@ export default function MixesPage() {
                     variant="outline"
                     size="icon"
                     className="h-12 w-12 rounded-full bg-secondary border-border hover:bg-accent"
-                    onClick={() => handlePlayPause(mix.id, mix.audioUrl)}
+                    onClick={() => handlePlayPause(mix.id, mix.file_url || mix.audioUrl)}
                   >
                     {currentlyPlaying === mix.id && isPlaying ? (
                       <Pause className="h-4 w-4 text-foreground" />
@@ -544,25 +715,25 @@ export default function MixesPage() {
                     <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
                       <div className="flex items-center">
                         <Clock className="h-4 w-4 mr-1" />
-                        {mix.duration}
+                        {mix.duration || "Unknown"}
                       </div>
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1" />
-                        {mix.uploadDate}
+                        {mix.created_at ? new Date(mix.created_at).toLocaleDateString() : mix.uploadDate}
                       </div>
                       <div className="flex items-center">
                         <Eye className="h-4 w-4 mr-1" />
-                        {mix.plays} plays
+                        {mix.plays || 0} plays
                       </div>
                       <div className="flex items-center">
                         <Star className="h-4 w-4 mr-1" />
-                        {mix.rating}
+                        {mix.rating || 0.0}
                       </div>
                     </div>
 
                     {/* Applied For */}
                     <p className={`${textStyles.body.small} mt-2`}>
-                      Applied for: {mix.appliedFor}
+                      Applied for: {mix.applied_for || mix.appliedFor || "N/A"}
                     </p>
                   </div>
                 </div>
@@ -595,7 +766,8 @@ export default function MixesPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

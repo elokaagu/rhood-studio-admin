@@ -627,6 +627,71 @@ export type Database = {
           },
         ]
       }
+      mixes: {
+        Row: {
+          id: string
+          title: string
+          artist: string
+          genre: string
+          description: string | null
+          applied_for: string | null
+          status: string
+          file_url: string
+          file_name: string
+          file_size: number
+          duration: string | null
+          plays: number | null
+          rating: number | null
+          uploaded_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          artist: string
+          genre: string
+          description?: string | null
+          applied_for?: string | null
+          status?: string
+          file_url: string
+          file_name: string
+          file_size: number
+          duration?: string | null
+          plays?: number | null
+          rating?: number | null
+          uploaded_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          artist?: string
+          genre?: string
+          description?: string | null
+          applied_for?: string | null
+          status?: string
+          file_url?: string
+          file_name?: string
+          file_size?: number
+          duration?: string | null
+          plays?: number | null
+          rating?: number | null
+          uploaded_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mixes_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
           bio: string | null

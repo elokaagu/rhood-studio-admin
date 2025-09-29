@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -109,7 +111,10 @@ export default function OpportunitiesPage() {
             Manage all DJ opportunities and gigs
           </p>
         </div>
-        <Button className="bg-brand-green hover:bg-brand-green/90 text-brand-black">
+        <Button 
+          className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+          onClick={() => window.location.href = '/admin/create-opportunity'}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Create Opportunity
         </Button>
@@ -123,7 +128,10 @@ export default function OpportunitiesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Active</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {opportunities.filter(opp => opp.status === 'active').length}
+                  {
+                    opportunities.filter((opp) => opp.status === "active")
+                      .length
+                  }
                 </p>
               </div>
               <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -155,7 +163,12 @@ export default function OpportunitiesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Closed</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {opportunities.filter(opp => opp.status === 'completed' || opp.status === 'closed').length}
+                  {
+                    opportunities.filter(
+                      (opp) =>
+                        opp.status === "completed" || opp.status === "closed"
+                    ).length
+                  }
                 </p>
               </div>
               <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
@@ -222,6 +235,7 @@ export default function OpportunitiesPage() {
                     variant="outline"
                     size="sm"
                     className="text-foreground"
+                    onClick={() => window.location.href = `/admin/opportunities/${opportunity.id}`}
                   >
                     <Eye className="h-4 w-4 mr-1" />
                     View Details

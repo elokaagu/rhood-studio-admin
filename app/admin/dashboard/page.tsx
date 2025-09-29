@@ -93,6 +93,27 @@ export default function DashboardPage() {
     },
   ]);
 
+  const [upcomingEvents, setUpcomingEvents] = useState([
+    {
+      title: "Underground Warehouse Rave",
+      date: "Tomorrow",
+      time: "8:00 PM",
+      genre: "Techno",
+    },
+    {
+      title: "Rooftop Summer Sessions",
+      date: "Aug 20",
+      time: "6:00 PM",
+      genre: "House",
+    },
+    {
+      title: "Club Residency Audition",
+      date: "Aug 25",
+      time: "9:00 PM",
+      genre: "Drum & Bass",
+    },
+  ]);
+
   useEffect(() => {
     const fetchRecentActivity = async () => {
       try {
@@ -237,37 +258,67 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Recent Activity */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className={textStyles.headline.section}>
-            RECENT
-            <br />
-            ACTIVITY
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-start space-x-3">
-                <div className="text-lg">{getActivityIcon(activity.type)}</div>
-                <div className="flex-1 min-w-0">
-                  <p className={textStyles.body.regular}>{activity.message}</p>
-                  <p className={`${textStyles.body.small} mt-1`}>
-                    {activity.time}
-                  </p>
+      {/* Recent Activity and Upcoming Events */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Activity */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className={textStyles.headline.section}>
+              RECENT
+              <br />
+              ACTIVITY
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-start space-x-3">
+                  <div className="text-lg">{getActivityIcon(activity.type)}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className={textStyles.body.regular}>{activity.message}</p>
+                    <p className={`${textStyles.body.small} mt-1`}>
+                      {activity.time}
+                    </p>
+                  </div>
                 </div>
-                <Badge
-                  variant="secondary"
-                  className={`text-xs ${getActivityColor(activity.type)}`}
-                >
-                  {activity.type}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Events */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className={textStyles.headline.section}>
+              UPCOMING
+              <br />
+              EVENTS
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {upcomingEvents.map((event, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className={textStyles.body.regular}>{event.title}</p>
+                      <p className={`${textStyles.body.small} mt-1`}>
+                        {event.date} - {event.time}
+                      </p>
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-100 text-green-800 text-xs"
+                    >
+                      {event.genre}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

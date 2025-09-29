@@ -65,7 +65,7 @@ export default function MemberDetailsPage() {
         // Transform the data to match the expected format
         const transformedMember = {
           id: data.id,
-          name: data.dj_name || data.name || "Unknown",
+          name: data.dj_name || `${data.first_name} ${data.last_name}` || "Unknown",
           email: data.email || "No email",
           location: data.city || "Unknown",
           joinDate: data.created_at
@@ -76,7 +76,10 @@ export default function MemberDetailsPage() {
           gigs: 0, // This would need to be calculated from applications
           bio: data.bio || "No bio available",
           phone: data.phone || "No phone",
-          socialLinks: data.social_links || {},
+          socialLinks: {
+            instagram: data.instagram || "",
+            soundcloud: data.soundcloud || "",
+          },
         };
 
         setMember(transformedMember);

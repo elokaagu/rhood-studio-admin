@@ -69,7 +69,10 @@ export default function MixesPage() {
   const [mixes, setMixes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [mixToDelete, setMixToDelete] = useState<{ id: number; title: string } | null>(null);
+  const [mixToDelete, setMixToDelete] = useState<{
+    id: number;
+    title: string;
+  } | null>(null);
 
   // Fetch mixes from database
   const fetchMixes = async () => {
@@ -254,11 +257,11 @@ export default function MixesPage() {
 
     try {
       // Create a temporary anchor element to trigger download
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = fileUrl;
       link.download = `${mixTitle}.mp3`; // Default to .mp3 extension
-      link.target = '_blank';
-      
+      link.target = "_blank";
+
       // Append to body, click, and remove
       document.body.appendChild(link);
       link.click();
@@ -298,7 +301,9 @@ export default function MixesPage() {
       }
 
       // Remove from local state
-      setMixes((prevMixes) => prevMixes.filter((mix) => mix.id !== mixToDelete.id));
+      setMixes((prevMixes) =>
+        prevMixes.filter((mix) => mix.id !== mixToDelete.id)
+      );
 
       toast({
         title: "Mix Deleted",
@@ -882,11 +887,18 @@ export default function MixesPage() {
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-card border-border">
+                      <DropdownMenuContent
+                        align="end"
+                        className="bg-card border-border"
+                      >
                         <DropdownMenuItem
                           onClick={() => handleDelete(mix.id, mix.title)}
                           className="text-red-600 hover:bg-red-50 hover:text-red-700"
@@ -908,11 +920,14 @@ export default function MixesPage() {
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
+            <DialogTitle
+              className={`${textStyles.subheading.large} text-brand-white`}
+            >
               Delete Mix
             </DialogTitle>
             <DialogDescription className={textStyles.body.regular}>
-              Are you sure you want to delete &quot;{mixToDelete?.title}&quot;? This action cannot be undone.
+              Are you sure you want to delete &quot;{mixToDelete?.title}&quot;?
+              This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

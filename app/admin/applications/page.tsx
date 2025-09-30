@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { createApplicationStatusNotification } from "@/lib/notifications";
 import {
   Calendar,
   MapPin,
@@ -169,6 +170,24 @@ function ApplicationsContent() {
 
   const handleApprove = async (applicationId: string) => {
     try {
+      // First, get the application details to create notification
+      const { data: applicationData, error: fetchError } = await supabase
+        .from("applications")
+        .select(
+          `
+          *,
+          opportunities(title),
+          user_profiles(dj_name)
+        `
+        )
+        .eq("id", applicationId)
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      // Update application status
       const { error } = await supabase
         .from("applications")
         .update({ status: "approved" })
@@ -178,9 +197,20 @@ function ApplicationsContent() {
         throw error;
       }
 
+      // Create notification for the user
+      if (applicationData?.user_id && applicationData?.opportunities?.title) {
+        await createApplicationStatusNotification(
+          applicationData.user_id,
+          applicationId,
+          "approved",
+          applicationData.opportunities.title
+        );
+      }
+
       toast({
         title: "Application Approved",
-        description: "The application has been approved successfully.",
+        description:
+          "The application has been approved and the user has been notified.",
       });
 
       // Refresh the applications list
@@ -197,6 +227,24 @@ function ApplicationsContent() {
 
   const handleReject = async (applicationId: string) => {
     try {
+      // First, get the application details to create notification
+      const { data: applicationData, error: fetchError } = await supabase
+        .from("applications")
+        .select(
+          `
+          *,
+          opportunities(title),
+          user_profiles(dj_name)
+        `
+        )
+        .eq("id", applicationId)
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      // Update application status
       const { error } = await supabase
         .from("applications")
         .update({ status: "rejected" })
@@ -206,9 +254,20 @@ function ApplicationsContent() {
         throw error;
       }
 
+      // Create notification for the user
+      if (applicationData?.user_id && applicationData?.opportunities?.title) {
+        await createApplicationStatusNotification(
+          applicationData.user_id,
+          applicationId,
+          "rejected",
+          applicationData.opportunities.title
+        );
+      }
+
       toast({
         title: "Application Rejected",
-        description: "The application has been rejected.",
+        description:
+          "The application has been rejected and the user has been notified.",
       });
 
       // Refresh the applications list

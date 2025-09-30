@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { createApplicationStatusNotification } from "@/lib/notifications";
 import {
   Calendar,
   MapPin,
@@ -29,6 +30,88 @@ export default function ApplicationDetailsPage() {
   const { toast } = useToast();
   const [application, setApplication] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Handle application approval
+  const handleApprove = async () => {
+    try {
+      // Update application status
+      const { error } = await supabase
+        .from("applications")
+        .update({ status: "approved" })
+        .eq("id", applicationId as string);
+
+      if (error) {
+        throw error;
+      }
+
+      // Create notification for the user
+      if (application?.user_id && application?.opportunity) {
+        await createApplicationStatusNotification(
+          application.user_id,
+          applicationId as string,
+          "approved",
+          application.opportunity
+        );
+      }
+
+      toast({
+        title: "Application Approved",
+        description:
+          "The application has been approved and the user has been notified.",
+      });
+
+      // Refresh the application data
+      fetchApplication();
+    } catch (error) {
+      console.error("Error approving application:", error);
+      toast({
+        title: "Error",
+        description: "Failed to approve application. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle application rejection
+  const handleReject = async () => {
+    try {
+      // Update application status
+      const { error } = await supabase
+        .from("applications")
+        .update({ status: "rejected" })
+        .eq("id", applicationId as string);
+
+      if (error) {
+        throw error;
+      }
+
+      // Create notification for the user
+      if (application?.user_id && application?.opportunity) {
+        await createApplicationStatusNotification(
+          application.user_id,
+          applicationId as string,
+          "rejected",
+          application.opportunity
+        );
+      }
+
+      toast({
+        title: "Application Rejected",
+        description:
+          "The application has been rejected and the user has been notified.",
+      });
+
+      // Refresh the application data
+      fetchApplication();
+    } catch (error) {
+      console.error("Error rejecting application:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reject application. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Fetch application from database
   const fetchApplication = async () => {
@@ -286,9 +369,7 @@ export default function ApplicationDetailsPage() {
               <Button
                 variant="outline"
                 className="text-brand-green hover:text-brand-green/80"
-                onClick={() => {
-                  console.log(`Approving application ${application.id}`);
-                }}
+                onClick={handleApprove}
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Approve
@@ -296,9 +377,7 @@ export default function ApplicationDetailsPage() {
               <Button
                 variant="outline"
                 className="text-red-600 hover:text-red-700"
-                onClick={() => {
-                  console.log(`Rejecting application ${application.id}`);
-                }}
+                onClick={handleReject}
               >
                 <XCircle className="h-4 w-4 mr-2" />
                 Reject

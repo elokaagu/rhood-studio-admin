@@ -48,7 +48,7 @@ export default function EditCommunityPage({
   // Fetch community details
   const fetchCommunity = useCallback(async () => {
     if (!communityId) return;
-    
+
     try {
       const { data, error } = await supabase
         .from("communities")
@@ -98,6 +98,15 @@ export default function EditCommunityPage({
       return;
     }
 
+    if (!communityId) {
+      toast({
+        title: "Error",
+        description: "Community ID not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -126,7 +135,11 @@ export default function EditCommunityPage({
         description: "Community updated successfully!",
       });
 
-      router.push(`/admin/communities/${communityId}`);
+      if (communityId) {
+        router.push(`/admin/communities/${communityId}`);
+      } else {
+        router.push("/admin/communities");
+      }
     } catch (error) {
       console.error("Error:", error);
       toast({
@@ -324,7 +337,9 @@ export default function EditCommunityPage({
                   variant="outline"
                   className="w-full"
                   onClick={() =>
-                    router.push(`/admin/communities/${communityId}`)
+                    communityId
+                      ? router.push(`/admin/communities/${communityId}`)
+                      : router.push("/admin/communities")
                   }
                 >
                   Cancel

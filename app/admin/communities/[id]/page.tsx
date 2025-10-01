@@ -81,7 +81,7 @@ export default function CommunityDetailsPage({
   // Fetch community details
   const fetchCommunity = useCallback(async () => {
     if (!communityId) return;
-    
+
     try {
       const { data, error } = await supabase
         .from("communities")
@@ -128,7 +128,7 @@ export default function CommunityDetailsPage({
   // Fetch messages
   const fetchMessages = useCallback(async () => {
     if (!communityId) return;
-    
+
     try {
       const { data, error } = await supabase
         .from("messages")
@@ -166,7 +166,7 @@ export default function CommunityDetailsPage({
   // Fetch members
   const fetchMembers = useCallback(async () => {
     if (!communityId) return;
-    
+
     try {
       const { data, error } = await supabase
         .from("community_members")

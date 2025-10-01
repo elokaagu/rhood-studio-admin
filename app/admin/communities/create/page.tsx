@@ -266,7 +266,7 @@ export default function CreateCommunityPage() {
               </CardHeader>
               <CardContent>
                 <ImageUpload
-                  value={formData.imageUrl}
+                  value={formData.imageUrl || undefined}
                   onChange={(url) =>
                     setFormData({ ...formData, imageUrl: url })
                   }

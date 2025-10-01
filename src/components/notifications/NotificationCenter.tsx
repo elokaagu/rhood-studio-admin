@@ -29,9 +29,9 @@ interface Notification {
   title: string;
   message: string;
   type: string;
-  is_read: boolean;
-  created_at: string;
-  related_id?: string;
+  is_read: boolean | null;
+  created_at: string | null;
+  related_id?: string | null;
 }
 
 interface NotificationCenterProps {
@@ -82,7 +82,9 @@ export function NotificationCenter({
   // Mark all notifications as read
   const handleMarkAllAsRead = async () => {
     try {
-      const unreadNotifications = notifications.filter((n) => !n.is_read);
+      const unreadNotifications = notifications.filter(
+        (n) => n.is_read !== true
+      );
       await Promise.all(
         unreadNotifications.map((n) => markNotificationAsRead(n.id))
       );
@@ -128,7 +130,9 @@ export function NotificationCenter({
   };
 
   // Format date
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Unknown";
+
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor(
@@ -193,11 +197,11 @@ export function NotificationCenter({
           {notifications.length === 0 ? (
             <div className="p-6 text-center">
               <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className={textStyles.body.regular}>No notifications yet</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  You&apos;ll receive notifications about your applications and
-                  opportunities
-                </p>
+              <p className={textStyles.body.regular}>No notifications yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                You&apos;ll receive notifications about your applications and
+                opportunities
+              </p>
             </div>
           ) : (
             <div className="space-y-0">
@@ -205,7 +209,7 @@ export function NotificationCenter({
                 <div key={notification.id}>
                   <div
                     className={`p-4 hover:bg-muted/50 transition-colors cursor-pointer ${
-                      !notification.is_read ? "bg-blue-50/50" : ""
+                      notification.is_read !== true ? "bg-blue-50/50" : ""
                     }`}
                     onClick={() => handleMarkAsRead(notification.id)}
                   >
@@ -216,11 +220,11 @@ export function NotificationCenter({
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <h4
-                            className={`text-sm font-medium ${
-                              !notification.is_read ? "font-semibold" : ""
-                            }`}
-                          >
+                           <h4
+                             className={`text-sm font-medium ${
+                               notification.is_read !== true ? "font-semibold" : ""
+                             }`}
+                           >
                             {notification.title}
                           </h4>
                           <div className="flex items-center space-x-2">
@@ -234,17 +238,17 @@ export function NotificationCenter({
                                 .replace("application_", "")
                                 .replace("_", " ")}
                             </Badge>
-                            {!notification.is_read && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            )}
+                             {notification.is_read !== true && (
+                               <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                             )}
                           </div>
                         </div>
 
-                        <p
-                          className={`text-sm text-muted-foreground mb-2 ${
-                            !notification.is_read ? "text-foreground" : ""
-                          }`}
-                        >
+                         <p
+                           className={`text-sm text-muted-foreground mb-2 ${
+                             notification.is_read !== true ? "text-foreground" : ""
+                           }`}
+                         >
                           {notification.message}
                         </p>
 

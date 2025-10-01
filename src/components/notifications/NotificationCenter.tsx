@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +48,7 @@ export function NotificationCenter({
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch notifications
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const data = await getUserNotifications(userId);
       setNotifications(data || []);
@@ -60,7 +60,7 @@ export function NotificationCenter({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
 
   // Mark notification as read
   const handleMarkAsRead = async (notificationId: string) => {
@@ -146,7 +146,7 @@ export function NotificationCenter({
     if (userId) {
       fetchNotifications();
     }
-  }, [userId]);
+  }, [userId, fetchNotifications]);
 
   if (isLoading) {
     return (
@@ -193,11 +193,11 @@ export function NotificationCenter({
           {notifications.length === 0 ? (
             <div className="p-6 text-center">
               <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className={textStyles.body.regular}>No notifications yet</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                You'll receive notifications about your applications and
-                opportunities
-              </p>
+                <p className={textStyles.body.regular}>No notifications yet</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  You&apos;ll receive notifications about your applications and
+                  opportunities
+                </p>
             </div>
           ) : (
             <div className="space-y-0">

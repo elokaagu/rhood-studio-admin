@@ -59,6 +59,22 @@ export default function CreateCommunityPage() {
         return;
       }
 
+      // Check if user exists in user_profiles table
+      const { data: userProfile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !userProfile) {
+        toast({
+          title: "Error",
+          description: "User profile not found. Please complete your profile first.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Create community
       const { data, error } = await supabase
         .from("communities")
@@ -148,6 +164,22 @@ export default function CreateCommunityPage() {
         toast({
           title: "Error",
           description: "You must be logged in to create a community",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if user exists in user_profiles table
+      const { data: userProfile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !userProfile) {
+        toast({
+          title: "Error",
+          description: "User profile not found. Please complete your profile first.",
           variant: "destructive",
         });
         return;

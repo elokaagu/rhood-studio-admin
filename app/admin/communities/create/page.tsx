@@ -222,7 +222,7 @@ export default function CreateCommunityPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className={textStyles.body.medium}>
+                  <Label htmlFor="name" className={textStyles.body.regular}>
                     Community Name *
                   </Label>
                   <Input
@@ -240,7 +240,7 @@ export default function CreateCommunityPage() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="description"
-                    className={textStyles.body.medium}
+                    className={textStyles.body.regular}
                   >
                     Description
                   </Label>
@@ -283,7 +283,7 @@ export default function CreateCommunityPage() {
           <div className="space-y-6">
             <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className={textStyles.subheading.medium}>
+                <CardTitle className={textStyles.subheading.regular}>
                   Actions
                 </CardTitle>
               </CardHeader>
@@ -320,7 +320,7 @@ export default function CreateCommunityPage() {
 
             <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className={textStyles.subheading.medium}>
+                <CardTitle className={textStyles.subheading.regular}>
                   Tips
                 </CardTitle>
               </CardHeader>

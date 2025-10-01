@@ -248,7 +248,7 @@ export default function EditCommunityPage({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className={textStyles.body.medium}>
+                  <Label htmlFor="name" className={textStyles.body.regular}>
                     Community Name *
                   </Label>
                   <Input
@@ -266,7 +266,7 @@ export default function EditCommunityPage({
                 <div className="space-y-2">
                   <Label
                     htmlFor="description"
-                    className={textStyles.body.medium}
+                    className={textStyles.body.regular}
                   >
                     Description
                   </Label>
@@ -309,7 +309,7 @@ export default function EditCommunityPage({
           <div className="space-y-6">
             <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className={textStyles.subheading.medium}>
+                <CardTitle className={textStyles.subheading.regular}>
                   Actions
                 </CardTitle>
               </CardHeader>
@@ -349,7 +349,7 @@ export default function EditCommunityPage({
 
             <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className={textStyles.subheading.medium}>
+                <CardTitle className={textStyles.subheading.regular}>
                   Community Info
                 </CardTitle>
               </CardHeader>

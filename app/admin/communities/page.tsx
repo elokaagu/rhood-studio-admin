@@ -355,7 +355,7 @@ export default function CommunitiesPage() {
 
                     <div className="flex-1 min-w-0">
                       <CardTitle
-                        className={`${textStyles.subheading.medium} truncate`}
+                        className={`${textStyles.subheading.regular} truncate`}
                       >
                         {community.name}
                       </CardTitle>

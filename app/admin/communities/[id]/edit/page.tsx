@@ -19,6 +19,7 @@ interface Community {
   description: string | null;
   image_url: string | null;
   created_by: string | null;
+  created_at: string | null;
 }
 
 interface FormData {

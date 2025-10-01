@@ -18,6 +18,7 @@ import {
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Calendar,
   MapPin,
@@ -69,6 +70,7 @@ export default function EditOpportunityPage() {
           requirements: data.skill_level || "",
           additionalInfo: "",
           status: data.is_active ? "active" : "draft",
+          imageUrl: data.image_url || "",
         });
       }
     } catch (error) {
@@ -138,6 +140,7 @@ export default function EditOpportunityPage() {
         requirements: opportunity?.requirements || "",
         additionalInfo: opportunity?.additionalInfo || "",
         status: opportunity?.status || "draft",
+        imageUrl: "",
       });
     } finally {
       setIsLoading(false);
@@ -160,6 +163,7 @@ export default function EditOpportunityPage() {
     requirements: "",
     additionalInfo: "",
     status: "draft",
+    imageUrl: "",
   });
 
   const genres = [
@@ -205,6 +209,7 @@ export default function EditOpportunityPage() {
           genre: formData.genre,
           skill_level: formData.requirements,
           is_active: formData.status === "active",
+          image_url: formData.imageUrl || null,
         })
         .eq("id", opportunityId as string);
 
@@ -256,6 +261,7 @@ export default function EditOpportunityPage() {
           genre: formData.genre,
           skill_level: formData.requirements,
           is_active: false, // Draft is not active
+          image_url: formData.imageUrl || null,
         })
         .eq("id", opportunityId as string);
 
@@ -352,6 +358,17 @@ export default function EditOpportunityPage() {
                 required
               />
             </div>
+
+            <ImageUpload
+              label="Event Image"
+              value={formData.imageUrl}
+              onChange={(url) => setFormData({ ...formData, imageUrl: url || "" })}
+              required={false}
+              maxSize={5}
+              acceptedFormats={["image/jpeg", "image/png", "image/webp"]}
+              bucketName="opportunities"
+              folder="images"
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">

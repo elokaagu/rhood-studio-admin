@@ -301,11 +301,18 @@ export default function OpportunityDetailsPage() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => router.push(`/admin/opportunities/${opportunityId}/edit`)}
+          >
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button variant="outline" className="text-red-600 hover:text-red-700">
+          <Button 
+            variant="outline" 
+            className="text-red-600 hover:text-red-700"
+            onClick={handleDelete}
+          >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
           </Button>

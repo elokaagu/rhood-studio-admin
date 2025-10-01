@@ -82,6 +82,7 @@ export function ImageUpload({
         .from(bucketName)
         .getPublicUrl(filePath);
 
+      console.log('Generated public URL:', publicUrl);
       return publicUrl;
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -100,6 +101,8 @@ export function ImageUpload({
 
       // Upload image
       const imageUrl = await uploadImage(file);
+      console.log('Upload successful, image URL:', imageUrl);
+      
       onChange(imageUrl);
 
       // Clean up preview URL

@@ -346,13 +346,21 @@ export default function OpportunityDetailsPage() {
             <CardContent className="space-y-4">
               {/* Event Image */}
               {opportunity.image_url && (
-                <div className="relative w-full h-64 rounded-lg overflow-hidden mb-4">
+                <div className="relative w-full h-64 rounded-lg overflow-hidden mb-4 bg-muted">
                   <Image
                     src={opportunity.image_url}
                     alt={opportunity.title}
                     fill
                     className="object-cover"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    onError={(e) => {
+                      console.error('Image load error in detail view:', opportunity.image_url);
+                      console.error('Error event:', e);
+                    }}
+                    onLoad={() => {
+                      console.log('Image loaded successfully in detail view:', opportunity.image_url);
+                    }}
+                    unoptimized={true}
                   />
                 </div>
               )}

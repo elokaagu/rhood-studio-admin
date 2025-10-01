@@ -300,13 +300,21 @@ export default function OpportunitiesPage() {
                   {/* Image Section */}
                   {opportunity.image_url && (
                     <div className="flex-shrink-0">
-                      <div className="relative w-32 h-32 rounded-lg overflow-hidden">
+                      <div className="relative w-32 h-32 rounded-lg overflow-hidden bg-muted">
                         <Image
                           src={opportunity.image_url}
                           alt={opportunity.title}
                           fill
                           className="object-cover"
                           sizes="128px"
+                          onError={(e) => {
+                            console.error('Image load error:', opportunity.image_url);
+                            console.error('Error event:', e);
+                          }}
+                          onLoad={() => {
+                            console.log('Image loaded successfully:', opportunity.image_url);
+                          }}
+                          unoptimized={true}
                         />
                       </div>
                     </div>

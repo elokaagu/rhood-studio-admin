@@ -38,7 +38,7 @@ interface Community {
   created_at: string | null;
   created_by: string | null;
   creator_name?: string;
-  creator_avatar?: string;
+  creator_avatar?: string | null;
 }
 
 export default function CommunitiesPage() {
@@ -81,7 +81,9 @@ export default function CommunitiesPage() {
       const transformedCommunities =
         data?.map((community) => ({
           ...community,
-          creator_name: community.creator ? `${community.creator.first_name} ${community.creator.last_name}` : "Unknown",
+          creator_name: community.creator
+            ? `${community.creator.first_name} ${community.creator.last_name}`
+            : "Unknown",
           creator_avatar: community.creator?.profile_image_url || null,
         })) || [];
 

@@ -39,7 +39,7 @@ interface Community {
   created_at: string | null;
   created_by: string | null;
   creator_name?: string;
-  creator_avatar?: string;
+  creator_avatar?: string | null;
 }
 
 interface Message {
@@ -111,7 +111,9 @@ export default function CommunityDetailsPage({
 
       const transformedCommunity = {
         ...data,
-        creator_name: data.creator ? `${data.creator.first_name} ${data.creator.last_name}` : "Unknown",
+        creator_name: data.creator
+          ? `${data.creator.first_name} ${data.creator.last_name}`
+          : "Unknown",
         creator_avatar: data.creator?.profile_image_url || null,
       };
 
@@ -155,7 +157,9 @@ export default function CommunityDetailsPage({
       const transformedMessages =
         data?.map((message) => ({
           ...message,
-          sender_name: message.sender ? `${message.sender.first_name} ${message.sender.last_name}` : "Unknown",
+          sender_name: message.sender
+            ? `${message.sender.first_name} ${message.sender.last_name}`
+            : "Unknown",
           sender_avatar: message.sender?.profile_image_url || null,
         })) || [];
 
@@ -194,7 +198,9 @@ export default function CommunityDetailsPage({
       const transformedMembers =
         data?.map((member) => ({
           ...member,
-          user_name: member.user ? `${member.user.first_name} ${member.user.last_name}` : "Unknown",
+          user_name: member.user
+            ? `${member.user.first_name} ${member.user.last_name}`
+            : "Unknown",
           user_avatar: member.user?.profile_image_url || null,
         })) || [];
 

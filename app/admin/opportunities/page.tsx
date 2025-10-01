@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import Image from "next/image";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -295,7 +296,22 @@ export default function OpportunitiesPage() {
           opportunities.map((opportunity) => (
             <Card key={opportunity.id} className="bg-card border-border">
               <CardContent className="p-6">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-6">
+                  {/* Image Section */}
+                  {opportunity.image_url && (
+                    <div className="flex-shrink-0">
+                      <div className="relative w-32 h-32 rounded-lg overflow-hidden">
+                        <Image
+                          src={opportunity.image_url}
+                          alt={opportunity.title}
+                          fill
+                          className="object-cover"
+                          sizes="128px"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex-1">
                     <h3 className={`${textStyles.subheading.large} mb-2`}>
                       {opportunity.title}

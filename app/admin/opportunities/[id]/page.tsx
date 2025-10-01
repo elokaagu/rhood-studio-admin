@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import Image from "next/image";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,6 +86,7 @@ export default function OpportunityDetailsPage() {
           description: data.description,
           requirements: data.skill_level,
           additionalInfo: "", // This field might need to be added to the database
+          image_url: data.image_url,
         };
 
         setOpportunity(transformedOpportunity);
@@ -335,6 +337,19 @@ export default function OpportunityDetailsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Event Image */}
+              {opportunity.image_url && (
+                <div className="relative w-full h-64 rounded-lg overflow-hidden mb-4">
+                  <Image
+                    src={opportunity.image_url}
+                    alt={opportunity.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4 mr-2" />

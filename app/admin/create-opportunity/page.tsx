@@ -17,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { Calendar, MapPin, Music, Save, X, Plus } from "lucide-react";
 
 export default function CreateOpportunityPage() {
@@ -34,6 +35,7 @@ export default function CreateOpportunityPage() {
     requirements: "",
     additionalInfo: "",
     status: "draft",
+    imageUrl: "",
   });
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -108,6 +110,7 @@ export default function CreateOpportunityPage() {
         skill_level: formData.requirements,
         organizer_name: "R/HOOD Studio", // Default organizer
         is_active: true,
+        image_url: formData.imageUrl || null,
       });
 
       if (error) {
@@ -179,6 +182,7 @@ export default function CreateOpportunityPage() {
         skill_level: formData.requirements,
         organizer_name: "R/HOOD Studio",
         is_active: false, // Draft is not active
+        image_url: formData.imageUrl || null,
       });
 
       if (error) {
@@ -260,6 +264,17 @@ export default function CreateOpportunityPage() {
                 required
               />
             </div>
+
+            <ImageUpload
+              label="Event Image"
+              value={formData.imageUrl}
+              onChange={(url) => setFormData({ ...formData, imageUrl: url || "" })}
+              required={false}
+              maxSize={5}
+              acceptedFormats={["image/jpeg", "image/png", "image/webp"]}
+              bucketName="opportunities"
+              folder="images"
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">

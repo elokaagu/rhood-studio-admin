@@ -1,28 +1,34 @@
 # Fix Image Upload - Storage Bucket Setup
 
 ## Issue
+
 The image upload is failing with "Bucket not found" error because the Supabase storage bucket hasn't been created yet.
 
 ## Solution
+
 You need to create the storage bucket in your Supabase dashboard. Here's how:
 
 ### Method 1: Using Supabase Dashboard (Recommended)
 
 1. **Go to your Supabase Dashboard**
+
    - Visit [https://supabase.com/dashboard](https://supabase.com/dashboard)
    - Select your project
 
 2. **Navigate to Storage**
+
    - In the left sidebar, click on **"Storage"**
    - You should see an empty storage section
 
 3. **Create New Bucket**
+
    - Click **"New bucket"** button
    - **Bucket name**: `opportunities`
    - **Public bucket**: ✅ Check this box (important!)
    - Click **"Create bucket"**
 
 4. **Set Bucket Policies**
+
    - Click on your newly created `opportunities` bucket
    - Go to the **"Policies"** tab
    - Click **"New Policy"**
@@ -30,6 +36,7 @@ You need to create the storage bucket in your Supabase dashboard. Here's how:
    **Create these 4 policies:**
 
    **Policy 1 - Public Read Access:**
+
    ```
    Name: Public read access
    Policy: SELECT
@@ -38,6 +45,7 @@ You need to create the storage bucket in your Supabase dashboard. Here's how:
    ```
 
    **Policy 2 - Authenticated Upload:**
+
    ```
    Name: Authenticated upload
    Policy: INSERT
@@ -46,6 +54,7 @@ You need to create the storage bucket in your Supabase dashboard. Here's how:
    ```
 
    **Policy 3 - Authenticated Update:**
+
    ```
    Name: Authenticated update
    Policy: UPDATE
@@ -54,6 +63,7 @@ You need to create the storage bucket in your Supabase dashboard. Here's how:
    ```
 
    **Policy 4 - Authenticated Delete:**
+
    ```
    Name: Authenticated delete
    Policy: DELETE
@@ -64,6 +74,7 @@ You need to create the storage bucket in your Supabase dashboard. Here's how:
 ### Method 2: Using SQL Editor (Alternative)
 
 1. **Go to SQL Editor**
+
    - In your Supabase dashboard, click **"SQL Editor"** in the left sidebar
    - Click **"New query"**
 
@@ -91,10 +102,12 @@ supabase db reset
 After creating the bucket:
 
 1. **Check Storage Section**
+
    - Go back to Storage in your Supabase dashboard
    - You should see the `opportunities` bucket listed
 
 2. **Test Upload**
+
    - Try uploading an image in your application
    - Check the browser console - the "Bucket not found" error should be gone
 
@@ -120,6 +133,7 @@ After creating the bucket:
 ## Expected Result
 
 After setup, your image upload should work without errors and you should see:
+
 - ✅ No "Bucket not found" errors in console
 - ✅ Successful image uploads
 - ✅ Images displaying in opportunity cards and detail pages
@@ -128,6 +142,7 @@ After setup, your image upload should work without errors and you should see:
 ## Next Steps
 
 Once the bucket is created and working:
+
 1. Test creating a new opportunity with an image
 2. Test editing an existing opportunity and changing its image
 3. Verify images display correctly in the opportunities list and detail pages

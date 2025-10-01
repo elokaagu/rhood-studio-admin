@@ -334,7 +334,8 @@ export default function CreateCommunityPage() {
                     • Upload an image to make your community more recognizable
                   </p>
                   <p>
-                    • You&apos;ll be automatically added as the first admin member
+                    • You&apos;ll be automatically added as the first admin
+                    member
                   </p>
                 </div>
               </CardContent>

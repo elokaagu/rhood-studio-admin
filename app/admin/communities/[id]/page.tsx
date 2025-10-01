@@ -64,7 +64,7 @@ interface Member {
 export default function CommunityDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const [community, setCommunity] = useState<Community | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -76,10 +76,12 @@ export default function CommunityDetailsPage({
   const { toast } = useToast();
   const router = useRouter();
 
-  const communityId = params.id;
+  const [communityId, setCommunityId] = useState<string | null>(null);
 
   // Fetch community details
   const fetchCommunity = useCallback(async () => {
+    if (!communityId) return;
+    
     try {
       const { data, error } = await supabase
         .from("communities")
@@ -125,6 +127,8 @@ export default function CommunityDetailsPage({
 
   // Fetch messages
   const fetchMessages = useCallback(async () => {
+    if (!communityId) return;
+    
     try {
       const { data, error } = await supabase
         .from("messages")
@@ -161,6 +165,8 @@ export default function CommunityDetailsPage({
 
   // Fetch members
   const fetchMembers = useCallback(async () => {
+    if (!communityId) return;
+    
     try {
       const { data, error } = await supabase
         .from("community_members")
@@ -320,6 +326,15 @@ export default function CommunityDetailsPage({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Initialize params
+  useEffect(() => {
+    const initializeParams = async () => {
+      const resolvedParams = await params;
+      setCommunityId(resolvedParams.id);
+    };
+    initializeParams();
+  }, [params]);
+
   useEffect(() => {
     if (communityId) {
       const loadData = async () => {
@@ -370,10 +385,10 @@ export default function CommunityDetailsPage({
             <h3 className="text-lg font-semibold text-foreground mb-2">
               Community not found
             </h3>
-              <p className="text-muted-foreground mb-4">
-                The community you&apos;re looking for doesn&apos;t exist or has been
-                deleted.
-              </p>
+            <p className="text-muted-foreground mb-4">
+              The community you&apos;re looking for doesn&apos;t exist or has
+              been deleted.
+            </p>
             <Button onClick={() => router.push("/admin/communities")}>
               Back to Communities
             </Button>

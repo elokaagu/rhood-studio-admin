@@ -90,8 +90,9 @@ export default function CommunityDetailsPage({
           *,
           creator:user_profiles!communities_created_by_fkey(
             id,
-            full_name,
-            avatar_url
+            first_name,
+            last_name,
+            profile_image_url
           )
         `
         )
@@ -110,8 +111,8 @@ export default function CommunityDetailsPage({
 
       const transformedCommunity = {
         ...data,
-        creator_name: data.creator?.full_name || "Unknown",
-        creator_avatar: data.creator?.avatar_url || null,
+        creator_name: data.creator ? `${data.creator.first_name} ${data.creator.last_name}` : "Unknown",
+        creator_avatar: data.creator?.profile_image_url || null,
       };
 
       setCommunity(transformedCommunity);
@@ -137,8 +138,9 @@ export default function CommunityDetailsPage({
           *,
           sender:user_profiles!messages_sender_id_fkey(
             id,
-            full_name,
-            avatar_url
+            first_name,
+            last_name,
+            profile_image_url
           )
         `
         )
@@ -153,8 +155,8 @@ export default function CommunityDetailsPage({
       const transformedMessages =
         data?.map((message) => ({
           ...message,
-          sender_name: message.sender?.full_name || "Unknown",
-          sender_avatar: message.sender?.avatar_url || null,
+          sender_name: message.sender ? `${message.sender.first_name} ${message.sender.last_name}` : "Unknown",
+          sender_avatar: message.sender?.profile_image_url || null,
         })) || [];
 
       setMessages(transformedMessages);
@@ -175,8 +177,9 @@ export default function CommunityDetailsPage({
           *,
           user:user_profiles!community_members_user_id_fkey(
             id,
-            full_name,
-            avatar_url
+            first_name,
+            last_name,
+            profile_image_url
           )
         `
         )
@@ -191,8 +194,8 @@ export default function CommunityDetailsPage({
       const transformedMembers =
         data?.map((member) => ({
           ...member,
-          user_name: member.user?.full_name || "Unknown",
-          user_avatar: member.user?.avatar_url || null,
+          user_name: member.user ? `${member.user.first_name} ${member.user.last_name}` : "Unknown",
+          user_avatar: member.user?.profile_image_url || null,
         })) || [];
 
       setMembers(transformedMembers);

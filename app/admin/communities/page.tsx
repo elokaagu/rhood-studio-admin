@@ -57,11 +57,12 @@ export default function CommunitiesPage() {
         .select(
           `
           *,
-          creator:user_profiles!communities_created_by_fkey(
-            id,
-            full_name,
-            avatar_url
-          )
+            creator:user_profiles!communities_created_by_fkey(
+              id,
+              first_name,
+              last_name,
+              profile_image_url
+            )
         `
         )
         .order("created_at", { ascending: false });
@@ -80,8 +81,8 @@ export default function CommunitiesPage() {
       const transformedCommunities =
         data?.map((community) => ({
           ...community,
-          creator_name: community.creator?.full_name || "Unknown",
-          creator_avatar: community.creator?.avatar_url || null,
+          creator_name: community.creator ? `${community.creator.first_name} ${community.creator.last_name}` : "Unknown",
+          creator_avatar: community.creator?.profile_image_url || null,
         })) || [];
 
       setCommunities(transformedCommunities);

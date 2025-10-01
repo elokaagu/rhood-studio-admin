@@ -48,7 +48,7 @@ interface Message {
   created_at: string | null;
   sender_id: string | null;
   sender_name?: string;
-  sender_avatar?: string;
+  sender_avatar?: string | null;
   is_pinned?: boolean;
 }
 
@@ -58,7 +58,7 @@ interface Member {
   role: string | null;
   joined_at: string | null;
   user_name?: string;
-  user_avatar?: string;
+  user_avatar?: string | null;
 }
 
 export default function CommunityDetailsPage({

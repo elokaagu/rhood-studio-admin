@@ -69,7 +69,8 @@ export default function CreateCommunityPage() {
       if (profileError || !userProfile) {
         toast({
           title: "Error",
-          description: "User profile not found. Please complete your profile first.",
+          description:
+            "User profile not found. Please complete your profile first.",
           variant: "destructive",
         });
         return;
@@ -179,7 +180,8 @@ export default function CreateCommunityPage() {
       if (profileError || !userProfile) {
         toast({
           title: "Error",
-          description: "User profile not found. Please complete your profile first.",
+          description:
+            "User profile not found. Please complete your profile first.",
           variant: "destructive",
         });
         return;

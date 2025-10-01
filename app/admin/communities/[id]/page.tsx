@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,7 +61,11 @@ interface Member {
   user_avatar?: string;
 }
 
-export default function CommunityDetailsPage({ params }: { params: { id: string } }) {
+export default function CommunityDetailsPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const [community, setCommunity] = useState<Community | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -75,18 +79,20 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
   const communityId = params.id;
 
   // Fetch community details
-  const fetchCommunity = async () => {
+  const fetchCommunity = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("communities")
-        .select(`
+        .select(
+          `
           *,
           creator:user_profiles!communities_created_by_fkey(
             id,
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .eq("id", communityId)
         .single();
 
@@ -115,21 +121,23 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
         variant: "destructive",
       });
     }
-  };
+  }, [communityId, toast]);
 
   // Fetch messages
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("messages")
-        .select(`
+        .select(
+          `
           *,
           sender:user_profiles!messages_sender_id_fkey(
             id,
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .eq("community_id", communityId)
         .order("created_at", { ascending: true });
 
@@ -138,31 +146,34 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
         return;
       }
 
-      const transformedMessages = data?.map((message) => ({
-        ...message,
-        sender_name: message.sender?.full_name || "Unknown",
-        sender_avatar: message.sender?.avatar_url || null,
-      })) || [];
+      const transformedMessages =
+        data?.map((message) => ({
+          ...message,
+          sender_name: message.sender?.full_name || "Unknown",
+          sender_avatar: message.sender?.avatar_url || null,
+        })) || [];
 
       setMessages(transformedMessages);
     } catch (error) {
       console.error("Error:", error);
     }
-  };
+  }, [communityId]);
 
   // Fetch members
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("community_members")
-        .select(`
+        .select(
+          `
           *,
           user:user_profiles!community_members_user_id_fkey(
             id,
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .eq("community_id", communityId)
         .order("joined_at", { ascending: true });
 
@@ -171,29 +182,33 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
         return;
       }
 
-      const transformedMembers = data?.map((member) => ({
-        ...member,
-        user_name: member.user?.full_name || "Unknown",
-        user_avatar: member.user?.avatar_url || null,
-      })) || [];
+      const transformedMembers =
+        data?.map((member) => ({
+          ...member,
+          user_name: member.user?.full_name || "Unknown",
+          user_avatar: member.user?.avatar_url || null,
+        })) || [];
 
       setMembers(transformedMembers);
     } catch (error) {
       console.error("Error:", error);
     }
-  };
+  }, [communityId]);
 
   // Send message
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newMessage.trim()) return;
 
     try {
       setSendingMessage(true);
 
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
       if (userError || !user) {
         toast({
           title: "Error",
@@ -203,15 +218,13 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
         return;
       }
 
-      const { error } = await supabase
-        .from("messages")
-        .insert([
-          {
-            content: newMessage.trim(),
-            sender_id: user.id,
-            community_id: communityId,
-          },
-        ]);
+      const { error } = await supabase.from("messages").insert([
+        {
+          content: newMessage.trim(),
+          sender_id: user.id,
+          community_id: communityId,
+        },
+      ]);
 
       if (error) {
         console.error("Error sending message:", error);
@@ -239,7 +252,12 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
 
   // Delete community
   const handleDeleteCommunity = async () => {
-    if (!community || !confirm(`Are you sure you want to delete "${community.name}"? This action cannot be undone.`)) {
+    if (
+      !community ||
+      !confirm(
+        `Are you sure you want to delete "${community.name}"? This action cannot be undone.`
+      )
+    ) {
       return;
     }
 
@@ -280,10 +298,14 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
     if (!dateString) return "";
     const date = new Date(dateString);
     const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    const diffInHours = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+    );
 
     if (diffInHours < 1) {
-      const diffInMins = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+      const diffInMins = Math.floor(
+        (now.getTime() - date.getTime()) / (1000 * 60)
+      );
       return `${diffInMins}m ago`;
     } else if (diffInHours < 24) {
       return `${diffInHours}h ago`;
@@ -302,16 +324,12 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
     if (communityId) {
       const loadData = async () => {
         setLoading(true);
-        await Promise.all([
-          fetchCommunity(),
-          fetchMessages(),
-          fetchMembers(),
-        ]);
+        await Promise.all([fetchCommunity(), fetchMessages(), fetchMembers()]);
         setLoading(false);
       };
       loadData();
     }
-  }, [communityId]);
+  }, [communityId, fetchCommunity, fetchMessages, fetchMembers]);
 
   if (loading) {
     return (
@@ -337,11 +355,7 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-          >
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -356,9 +370,10 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
             <h3 className="text-lg font-semibold text-foreground mb-2">
               Community not found
             </h3>
-            <p className="text-muted-foreground mb-4">
-              The community you're looking for doesn't exist or has been deleted.
-            </p>
+              <p className="text-muted-foreground mb-4">
+                The community you&apos;re looking for doesn&apos;t exist or has been
+                deleted.
+              </p>
             <Button onClick={() => router.push("/admin/communities")}>
               Back to Communities
             </Button>
@@ -373,11 +388,7 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-          >
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center space-x-3">
@@ -401,7 +412,8 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
                 {community.name}
               </h1>
               <p className={textStyles.body.regular}>
-                {members.length} members • Created {formatTime(community.created_at)}
+                {members.length} members • Created{" "}
+                {formatTime(community.created_at)}
               </p>
             </div>
           </div>
@@ -415,7 +427,9 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
-              onClick={() => router.push(`/admin/communities/${community.id}/edit`)}
+              onClick={() =>
+                router.push(`/admin/communities/${community.id}/edit`)
+              }
             >
               <Edit className="h-4 w-4 mr-2" />
               Edit Community
@@ -461,7 +475,10 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
                   </div>
                 ) : (
                   messages.map((message) => (
-                    <div key={message.id} className="flex items-start space-x-3">
+                    <div
+                      key={message.id}
+                      className="flex items-start space-x-3"
+                    >
                       <Avatar className="w-8 h-8">
                         <AvatarImage src={message.sender_avatar || undefined} />
                         <AvatarFallback className="text-xs">
@@ -573,7 +590,9 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Created:</span>
                 <span className="text-foreground">
-                  {community.created_at ? new Date(community.created_at).toLocaleDateString() : "Unknown"}
+                  {community.created_at
+                    ? new Date(community.created_at).toLocaleDateString()
+                    : "Unknown"}
                 </span>
               </div>
             </CardContent>

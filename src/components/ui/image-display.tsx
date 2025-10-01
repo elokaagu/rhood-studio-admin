@@ -69,7 +69,7 @@ export function ImageDisplay({
           <div className="text-sm text-muted-foreground">Loading...</div>
         </div>
       )}
-      <Image {...imageProps} />
+      <Image {...imageProps} alt={alt} />
     </div>
   );
 }

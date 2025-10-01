@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,19 +49,21 @@ export default function CommunitiesPage() {
   const router = useRouter();
 
   // Fetch communities with creator information
-  const fetchCommunities = async () => {
+  const fetchCommunities = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from("communities")
-        .select(`
+        .select(
+          `
           *,
           creator:user_profiles!communities_created_by_fkey(
             id,
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -75,11 +77,12 @@ export default function CommunitiesPage() {
       }
 
       // Transform the data to include creator information
-      const transformedCommunities = data?.map((community) => ({
-        ...community,
-        creator_name: community.creator?.full_name || "Unknown",
-        creator_avatar: community.creator?.avatar_url || null,
-      })) || [];
+      const transformedCommunities =
+        data?.map((community) => ({
+          ...community,
+          creator_name: community.creator?.full_name || "Unknown",
+          creator_avatar: community.creator?.avatar_url || null,
+        })) || [];
 
       setCommunities(transformedCommunities);
     } catch (error) {
@@ -92,11 +95,18 @@ export default function CommunitiesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   // Delete community
-  const handleDeleteCommunity = async (communityId: string, communityName: string) => {
-    if (!confirm(`Are you sure you want to delete "${communityName}"? This action cannot be undone.`)) {
+  const handleDeleteCommunity = async (
+    communityId: string,
+    communityName: string
+  ) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${communityName}"? This action cannot be undone.`
+      )
+    ) {
       return;
     }
 
@@ -134,14 +144,16 @@ export default function CommunitiesPage() {
   };
 
   // Filter communities based on search term
-  const filteredCommunities = communities.filter((community) =>
-    community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (community.description && community.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredCommunities = communities.filter(
+    (community) =>
+      community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (community.description &&
+        community.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   useEffect(() => {
     fetchCommunities();
-  }, []);
+  }, [fetchCommunities]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Unknown";
@@ -179,7 +191,9 @@ export default function CommunitiesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Communities</p>
+                <p className="text-sm text-muted-foreground">
+                  Total Communities
+                </p>
                 <p className="text-2xl font-bold text-foreground">
                   {communities.length}
                 </p>
@@ -197,7 +211,10 @@ export default function CommunitiesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Members</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {communities.reduce((sum, community) => sum + (community.member_count || 0), 0)}
+                  {communities.reduce(
+                    (sum, community) => sum + (community.member_count || 0),
+                    0
+                  )}
                 </p>
               </div>
               <div className="h-8 w-8 bg-blue-500/20 rounded-full flex items-center justify-center">
@@ -211,9 +228,11 @@ export default function CommunitiesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active Communities</p>
+                <p className="text-sm text-muted-foreground">
+                  Active Communities
+                </p>
                 <p className="text-2xl font-bold text-foreground">
-                  {communities.filter(c => (c.member_count || 0) > 0).length}
+                  {communities.filter((c) => (c.member_count || 0) > 0).length}
                 </p>
               </div>
               <div className="h-8 w-8 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -229,12 +248,16 @@ export default function CommunitiesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">This Month</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {communities.filter(c => {
-                    const createdDate = new Date(c.created_at || '');
-                    const now = new Date();
-                    return createdDate.getMonth() === now.getMonth() && 
-                           createdDate.getFullYear() === now.getFullYear();
-                  }).length}
+                  {
+                    communities.filter((c) => {
+                      const createdDate = new Date(c.created_at || "");
+                      const now = new Date();
+                      return (
+                        createdDate.getMonth() === now.getMonth() &&
+                        createdDate.getFullYear() === now.getFullYear()
+                      );
+                    }).length
+                  }
                 </p>
               </div>
               <div className="h-8 w-8 bg-purple-500/20 rounded-full flex items-center justify-center">
@@ -286,10 +309,9 @@ export default function CommunitiesPage() {
               {searchTerm ? "No communities found" : "No communities yet"}
             </h3>
             <p className="text-muted-foreground mb-4">
-              {searchTerm 
-                ? "Try adjusting your search terms" 
-                : "Create your first community to get started"
-              }
+              {searchTerm
+                ? "Try adjusting your search terms"
+                : "Create your first community to get started"}
             </p>
             {!searchTerm && (
               <Button
@@ -305,7 +327,10 @@ export default function CommunitiesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCommunities.map((community) => (
-            <Card key={community.id} className="bg-card border-border hover:border-primary/50 transition-colors">
+            <Card
+              key={community.id}
+              className="bg-card border-border hover:border-primary/50 transition-colors"
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -329,7 +354,9 @@ export default function CommunitiesPage() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <CardTitle className={`${textStyles.subheading.medium} truncate`}>
+                      <CardTitle
+                        className={`${textStyles.subheading.medium} truncate`}
+                      >
                         {community.name}
                       </CardTitle>
                       <div className="flex items-center space-x-2 mt-1">
@@ -349,20 +376,26 @@ export default function CommunitiesPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onClick={() => router.push(`/admin/communities/${community.id}/edit`)}
+                        onClick={() =>
+                          router.push(`/admin/communities/${community.id}/edit`)
+                        }
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => router.push(`/admin/communities/${community.id}`)}
+                        onClick={() =>
+                          router.push(`/admin/communities/${community.id}`)
+                        }
                       >
                         <MessageSquare className="h-4 w-4 mr-2" />
                         View Messages
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
-                        onClick={() => handleDeleteCommunity(community.id, community.name)}
+                        onClick={() =>
+                          handleDeleteCommunity(community.id, community.name)
+                        }
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
@@ -374,7 +407,9 @@ export default function CommunitiesPage() {
 
               <CardContent className="pt-0">
                 {community.description && (
-                  <p className={`${textStyles.body.small} text-muted-foreground mb-3 line-clamp-2`}>
+                  <p
+                    className={`${textStyles.body.small} text-muted-foreground mb-3 line-clamp-2`}
+                  >
                     {community.description}
                   </p>
                 )}
@@ -382,7 +417,9 @@ export default function CommunitiesPage() {
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <div className="flex items-center space-x-2">
                     <Avatar className="w-4 h-4">
-                      <AvatarImage src={community.creator_avatar || undefined} />
+                      <AvatarImage
+                        src={community.creator_avatar || undefined}
+                      />
                       <AvatarFallback className="text-xs">
                         {community.creator_name?.[0]?.toUpperCase()}
                       </AvatarFallback>
@@ -397,7 +434,9 @@ export default function CommunitiesPage() {
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() => router.push(`/admin/communities/${community.id}`)}
+                    onClick={() =>
+                      router.push(`/admin/communities/${community.id}`)
+                    }
                   >
                     <MessageSquare className="h-3 w-3 mr-1" />
                     View Chat
@@ -405,7 +444,9 @@ export default function CommunitiesPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => router.push(`/admin/communities/${community.id}/edit`)}
+                    onClick={() =>
+                      router.push(`/admin/communities/${community.id}/edit`)
+                    }
                   >
                     <Settings className="h-3 w-3" />
                   </Button>

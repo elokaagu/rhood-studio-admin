@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +27,11 @@ interface FormData {
   imageUrl: string | null;
 }
 
-export default function EditCommunityPage({ params }: { params: { id: string } }) {
+export default function EditCommunityPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const [community, setCommunity] = useState<Community | null>(null);
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -42,7 +46,7 @@ export default function EditCommunityPage({ params }: { params: { id: string } }
   const communityId = params.id;
 
   // Fetch community details
-  const fetchCommunity = async () => {
+  const fetchCommunity = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("communities")
@@ -78,7 +82,7 @@ export default function EditCommunityPage({ params }: { params: { id: string } }
     } finally {
       setLoading(false);
     }
-  };
+  }, [communityId, toast, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +141,7 @@ export default function EditCommunityPage({ params }: { params: { id: string } }
     if (communityId) {
       fetchCommunity();
     }
-  }, [communityId]);
+  }, [communityId, fetchCommunity]);
 
   if (loading) {
     return (
@@ -162,11 +166,7 @@ export default function EditCommunityPage({ params }: { params: { id: string } }
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-          >
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -180,9 +180,10 @@ export default function EditCommunityPage({ params }: { params: { id: string } }
             <h3 className="text-lg font-semibold text-foreground mb-2">
               Community not found
             </h3>
-            <p className="text-muted-foreground mb-4">
-              The community you're trying to edit doesn't exist or has been deleted.
-            </p>
+              <p className="text-muted-foreground mb-4">
+                The community you&apos;re trying to edit doesn&apos;t exist or has been
+                deleted.
+              </p>
             <Button onClick={() => router.push("/admin/communities")}>
               Back to Communities
             </Button>
@@ -197,11 +198,7 @@ export default function EditCommunityPage({ params }: { params: { id: string } }
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-          >
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -243,7 +240,10 @@ export default function EditCommunityPage({ params }: { params: { id: string } }
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description" className={textStyles.body.medium}>
+                  <Label
+                    htmlFor="description"
+                    className={textStyles.body.medium}
+                  >
                     Description
                   </Label>
                   <Textarea
@@ -269,7 +269,9 @@ export default function EditCommunityPage({ params }: { params: { id: string } }
               <CardContent>
                 <ImageUpload
                   value={formData.imageUrl}
-                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  onChange={(url) =>
+                    setFormData({ ...formData, imageUrl: url })
+                  }
                   bucketName="communities"
                   folder="images"
                   maxSize={5 * 1024 * 1024} // 5MB
@@ -310,7 +312,9 @@ export default function EditCommunityPage({ params }: { params: { id: string } }
                   type="button"
                   variant="outline"
                   className="w-full"
-                  onClick={() => router.push(`/admin/communities/${communityId}`)}
+                  onClick={() =>
+                    router.push(`/admin/communities/${communityId}`)
+                  }
                 >
                   Cancel
                 </Button>
@@ -328,7 +332,9 @@ export default function EditCommunityPage({ params }: { params: { id: string } }
                   <div className="flex justify-between">
                     <span>Created:</span>
                     <span className="text-foreground">
-                      {community.created_at ? new Date(community.created_at).toLocaleDateString() : "Unknown"}
+                      {community.created_at
+                        ? new Date(community.created_at).toLocaleDateString()
+                        : "Unknown"}
                     </span>
                   </div>
                   <div className="flex justify-between">

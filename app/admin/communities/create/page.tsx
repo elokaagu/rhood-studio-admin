@@ -45,8 +45,11 @@ export default function CreateCommunityPage() {
       setIsSubmitting(true);
 
       // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
       if (userError || !user) {
         toast({
           title: "Error",
@@ -136,8 +139,11 @@ export default function CreateCommunityPage() {
     try {
       setIsSubmitting(true);
 
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
       if (userError || !user) {
         toast({
           title: "Error",
@@ -147,17 +153,15 @@ export default function CreateCommunityPage() {
         return;
       }
 
-      const { error } = await supabase
-        .from("communities")
-        .insert([
-          {
-            name: formData.name.trim(),
-            description: formData.description.trim() || null,
-            image_url: formData.imageUrl,
-            created_by: user.id,
-            member_count: 0,
-          },
-        ]);
+      const { error } = await supabase.from("communities").insert([
+        {
+          name: formData.name.trim(),
+          description: formData.description.trim() || null,
+          image_url: formData.imageUrl,
+          created_by: user.id,
+          member_count: 0,
+        },
+      ]);
 
       if (error) {
         console.error("Error creating community:", error);
@@ -192,11 +196,7 @@ export default function CreateCommunityPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-          >
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -238,7 +238,10 @@ export default function CreateCommunityPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description" className={textStyles.body.medium}>
+                  <Label
+                    htmlFor="description"
+                    className={textStyles.body.medium}
+                  >
                     Description
                   </Label>
                   <Textarea
@@ -264,7 +267,9 @@ export default function CreateCommunityPage() {
               <CardContent>
                 <ImageUpload
                   value={formData.imageUrl}
-                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  onChange={(url) =>
+                    setFormData({ ...formData, imageUrl: url })
+                  }
                   bucketName="communities"
                   folder="images"
                   maxSize={5 * 1024 * 1024} // 5MB
@@ -322,9 +327,15 @@ export default function CreateCommunityPage() {
               <CardContent className="space-y-3">
                 <div className="text-sm text-muted-foreground space-y-2">
                   <p>• Choose a clear, descriptive name for your community</p>
-                  <p>• Add a description to help members understand the purpose</p>
-                  <p>• Upload an image to make your community more recognizable</p>
-                  <p>• You'll be automatically added as the first admin member</p>
+                  <p>
+                    • Add a description to help members understand the purpose
+                  </p>
+                  <p>
+                    • Upload an image to make your community more recognizable
+                  </p>
+                  <p>
+                    • You&apos;ll be automatically added as the first admin member
+                  </p>
                 </div>
               </CardContent>
             </Card>

@@ -135,6 +135,15 @@ export default function CommunityDetailsPage({
         creator_avatar: data.creator?.profile_image_url || null,
       };
 
+      console.log('Fetched community data:', {
+        id: data.id,
+        name: data.name,
+        image_url: data.image_url,
+        has_image: !!data.image_url,
+        image_type: typeof data.image_url,
+        raw_data: data
+      });
+
       setCommunity(transformedCommunity);
     } catch (error) {
       console.error("Error:", error);
@@ -463,12 +472,22 @@ export default function CommunityDetailsPage({
                   blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                   loading="lazy"
                   onError={(e) => {
-                    console.error('Community image failed to load:', community.name, community.image_url);
+                    console.error('Community image failed to load:', {
+                      communityName: community.name,
+                      imageUrl: community.image_url,
+                      error: e,
+                      errorType: e.type,
+                      target: e.target
+                    });
                     setImageError(true);
                     setImageLoading(false);
                   }}
                   onLoad={() => {
-                    console.log('Community image loaded successfully:', community.name, community.image_url);
+                    console.log('Community image loaded successfully:', {
+                      communityName: community.name,
+                      imageUrl: community.image_url,
+                      timestamp: new Date().toISOString()
+                    });
                     setImageLoading(false);
                   }}
                 />

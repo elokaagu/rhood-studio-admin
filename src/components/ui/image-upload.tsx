@@ -42,88 +42,111 @@ export function ImageUpload({
   const generateFileName = (originalName: string) => {
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
-    const extension = originalName.split('.').pop();
+    const extension = originalName.split(".").pop();
     return `${timestamp}-${randomString}.${extension}`;
   };
 
   // Upload image to Supabase Storage
-  const uploadImage = useCallback(async (file: File) => {
-    try {
-      setIsUploading(true);
+  const uploadImage = useCallback(
+    async (file: File) => {
+      try {
+        setIsUploading(true);
 
-      // Validate file size
-      if (file.size > maxSize * 1024 * 1024) {
-        throw new Error(`File size must be less than ${maxSize}MB`);
-      }
+        // Validate file size
+        if (file.size > maxSize * 1024 * 1024) {
+          throw new Error(`File size must be less than ${maxSize}MB`);
+        }
 
-      // Validate file type
-      if (!acceptedFormats.includes(file.type)) {
-        throw new Error(`File must be one of: ${acceptedFormats.join(", ")}`);
-      }
+        // Validate file type
+        if (!acceptedFormats.includes(file.type)) {
+          throw new Error(`File must be one of: ${acceptedFormats.join(", ")}`);
+        }
 
-      // Generate unique filename
-      const fileName = generateFileName(file.name);
-      const filePath = folder ? `${folder}/${fileName}` : fileName;
+        // Generate unique filename
+        const fileName = generateFileName(file.name);
+        const filePath = folder ? `${folder}/${fileName}` : fileName;
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+        // Upload to Supabase Storage
+        const { data, error } = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+          });
 
-      if (error) {
+        if (error) {
+          throw error;
+        }
+
+        // Get public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+
+        console.log("Generated public URL:", publicUrl);
+        return publicUrl;
+      } catch (error) {
+        console.error("Error uploading image:", error);
         throw error;
+      } finally {
+        setIsUploading(false);
       }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-
-      console.log('Generated public URL:', publicUrl);
-      return publicUrl;
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      throw error;
-    } finally {
-      setIsUploading(false);
-    }
-  }, [bucketName, folder, maxSize, acceptedFormats]);
+    },
+    [bucketName, folder, maxSize, acceptedFormats]
+  );
 
   // Handle file selection
-  const handleFileSelect = useCallback(async (file: File) => {
-    try {
-      // Create preview
-      const previewUrl = URL.createObjectURL(file);
-      setPreview(previewUrl);
+  const handleFileSelect = useCallback(
+    async (file: File) => {
+      try {
+        // Create preview
+        const previewUrl = URL.createObjectURL(file);
+        setPreview(previewUrl);
 
-      // Upload image
-      const imageUrl = await uploadImage(file);
-      console.log('Upload successful, image URL:', imageUrl);
-      
-      onChange(imageUrl);
+        // Upload image
+        const imageUrl = await uploadImage(file);
+        console.log("Upload successful, image URL:", imageUrl);
 
-      // Clean up preview URL
-      URL.revokeObjectURL(previewUrl);
-      setPreview(imageUrl);
+        onChange(imageUrl);
 
-      toast({
-        title: "Success",
-        description: "Image uploaded successfully!",
-      });
-    } catch (error) {
-      console.error("Error handling file:", error);
-      toast({
-        title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to upload image",
-        variant: "destructive",
-      });
-      setPreview(null);
-      onChange(null);
-    }
-  }, [uploadImage, onChange, toast]);
+        // Test if the uploaded image is accessible
+        const testImage = new Image();
+        testImage.onload = () => {
+          console.log("Image loaded successfully:", imageUrl);
+          // Clean up preview URL and set to uploaded URL
+          URL.revokeObjectURL(previewUrl);
+          setPreview(imageUrl);
+        };
+        testImage.onerror = () => {
+          console.error("Failed to load uploaded image:", imageUrl);
+          // Keep the local preview if uploaded image fails to load
+          toast({
+            title: "Warning",
+            description:
+              "Image uploaded but preview unavailable. Image will still be saved.",
+            variant: "destructive",
+          });
+        };
+        testImage.src = imageUrl;
+
+        toast({
+          title: "Success",
+          description: "Image uploaded successfully!",
+        });
+      } catch (error) {
+        console.error("Error handling file:", error);
+        toast({
+          title: "Upload Failed",
+          description:
+            error instanceof Error ? error.message : "Failed to upload image",
+          variant: "destructive",
+        });
+        setPreview(null);
+        onChange(null);
+      }
+    },
+    [uploadImage, onChange, toast]
+  );
 
   // Handle file input change
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,10 +201,10 @@ export function ImageUpload({
         </Label>
       )}
 
-      <Card 
+      <Card
         className={`border-2 border-dashed transition-colors ${
-          dragActive 
-            ? "border-primary bg-primary/5" 
+          dragActive
+            ? "border-primary bg-primary/5"
             : "border-border hover:border-primary/50"
         }`}
         onDragEnter={handleDrag}
@@ -199,6 +222,17 @@ export function ImageUpload({
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  onError={(e) => {
+                    console.error("Image failed to load:", preview);
+                    console.error("Image error event:", e);
+                  }}
+                  onLoad={() => {
+                    console.log(
+                      "Image loaded successfully in component:",
+                      preview
+                    );
+                  }}
+                  unoptimized={true}
                 />
               </div>
               <Button
@@ -218,7 +252,9 @@ export function ImageUpload({
                 {isUploading ? (
                   <>
                     <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                    <p className="text-sm text-muted-foreground">Uploading...</p>
+                    <p className="text-sm text-muted-foreground">
+                      Uploading...
+                    </p>
                   </>
                 ) : (
                   <>
@@ -237,7 +273,8 @@ export function ImageUpload({
                         </button>
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Supports: {acceptedFormats.join(", ").replace("image/", "")}
+                        Supports:{" "}
+                        {acceptedFormats.join(", ").replace("image/", "")}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Max size: {maxSize}MB

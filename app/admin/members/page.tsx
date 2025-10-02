@@ -371,7 +371,10 @@ export default function MembersPage() {
               console.error("Error deleting connections:", connectionError);
             }
           } catch (connectionTableError) {
-            console.log("Connection table might not exist or have different structure:", connectionTableError);
+            console.log(
+              "Connection table might not exist or have different structure:",
+              connectionTableError
+            );
           }
 
           // Try deleting the user profile again

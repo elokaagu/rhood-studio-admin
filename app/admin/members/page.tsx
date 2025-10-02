@@ -302,16 +302,71 @@ export default function MembersPage() {
     try {
       console.log("Deleting member:", memberToDelete.id, memberToDelete.name);
 
-      // Import and use the robust deletion function
-      const { deleteMemberRobust } = await import("@/lib/robust-member-deletion");
-      
-      const result = await deleteMemberRobust(memberToDelete.id);
+      // Direct deletion approach - handle foreign key constraints step by step
+      console.log("Starting step-by-step deletion...");
 
-      if (!result.success) {
-        throw new Error(result.error || "Unknown error during deletion");
+      // Step 1: Delete from community_members
+      const { error: communityMembersError } = await supabase
+        .from("community_members")
+        .delete()
+        .eq("user_id", memberToDelete.id);
+
+      if (communityMembersError) {
+        console.error("Error deleting community members:", communityMembersError);
       }
 
-      console.log("Deletion completed successfully:", result.deletedRecords);
+      // Step 2: Delete from messages
+      const { error: messagesError } = await supabase
+        .from("messages")
+        .delete()
+        .eq("sender_id", memberToDelete.id);
+
+      if (messagesError) {
+        console.error("Error deleting messages:", messagesError);
+      }
+
+      // Step 3: Delete from applications
+      const { error: applicationsError } = await supabase
+        .from("applications")
+        .delete()
+        .eq("user_id", memberToDelete.id);
+
+      if (applicationsError) {
+        console.error("Error deleting applications:", applicationsError);
+      }
+
+      // Step 4: Delete from connections (both directions)
+      const { error: followerError } = await supabase
+        .from("connections" as any)
+        .delete()
+        .eq("follower_id", memberToDelete.id);
+
+      if (followerError) {
+        console.error("Error deleting follower connections:", followerError);
+      }
+
+      const { error: followingError } = await supabase
+        .from("connections" as any)
+        .delete()
+        .eq("following_id", memberToDelete.id);
+
+      if (followingError) {
+        console.error("Error deleting following connections:", followingError);
+      }
+
+      // Step 5: Delete user profile
+      const { data: deletedData, error: userProfileError } = await supabase
+        .from("user_profiles")
+        .delete()
+        .eq("id", memberToDelete.id)
+        .select();
+
+      if (userProfileError) {
+        console.error("Error deleting user profile:", userProfileError);
+        throw userProfileError;
+      }
+
+      console.log("Deletion completed successfully:", deletedData);
 
       // Remove from local state immediately
       setMembers((prevMembers) =>

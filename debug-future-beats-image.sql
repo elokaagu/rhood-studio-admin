@@ -32,7 +32,7 @@ SELECT
     ELSE 'No image'
   END as result
 FROM communities 
-ORDER BY created_at DESC NULLS LAST
+ORDER BY id DESC
 LIMIT 5;
 
 -- 4. Separate query for FUTURE BEATS details (if exists)

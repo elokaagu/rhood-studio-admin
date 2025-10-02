@@ -45,7 +45,7 @@ SELECT
   'Community: ' || name as check_type,
   'ID: ' || id || ', Created by: ' || COALESCE(created_by::text, 'NULL') as result
 FROM communities
-ORDER BY created_at DESC
+ORDER BY name
 LIMIT 10;
 
 -- 6. Test if current user can delete (this will show the policy result)

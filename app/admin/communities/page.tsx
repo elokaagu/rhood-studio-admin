@@ -79,13 +79,20 @@ export default function CommunitiesPage() {
 
       // Transform the data to include creator information
       const transformedCommunities =
-        data?.map((community) => ({
-          ...community,
-          creator_name: community.creator
-            ? `${community.creator.first_name} ${community.creator.last_name}`
-            : "Unknown",
-          creator_avatar: community.creator?.profile_image_url || null,
-        })) || [];
+        data?.map((community) => {
+          console.log('Community data:', community.name, {
+            image_url: community.image_url,
+            has_image: !!community.image_url,
+            image_type: typeof community.image_url
+          });
+          return {
+            ...community,
+            creator_name: community.creator
+              ? `${community.creator.first_name} ${community.creator.last_name}`
+              : "Unknown",
+            creator_avatar: community.creator?.profile_image_url || null,
+          };
+        }) || [];
 
       setCommunities(transformedCommunities);
     } catch (error) {
@@ -347,6 +354,14 @@ export default function CommunitiesPage() {
                             fill
                             className="object-cover"
                             sizes="48px"
+                            unoptimized={true}
+                            onError={(e) => {
+                              console.error('Community avatar load error:', community.name, community.image_url);
+                              console.error('Error event:', e);
+                            }}
+                            onLoad={() => {
+                              console.log('Community avatar loaded successfully:', community.name, community.image_url);
+                            }}
                           />
                         </div>
                       ) : (

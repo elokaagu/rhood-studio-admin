@@ -153,7 +153,7 @@ export default function CommunitiesPage() {
       }
 
       // Delete the community
-      const { error } = await supabase
+      const { data: deletedData, error } = await supabase
         .from("communities")
         .delete()
         .eq("id", communityToDelete.id)
@@ -169,7 +169,8 @@ export default function CommunitiesPage() {
         return;
       }
 
-      console.log("Community deleted successfully from database");
+      console.log("Community deleted successfully from database:", deletedData);
+      console.log("Deleted community ID:", communityToDelete.id);
 
       toast({
         title: "Success",
@@ -180,10 +181,32 @@ export default function CommunitiesPage() {
       setDeleteDialogOpen(false);
       setCommunityToDelete(null);
       
-      // Small delay to ensure database consistency, then refresh
-      setTimeout(async () => {
+      // Verify deletion by checking if community still exists
+      const { data: verifyData, error: verifyError } = await supabase
+        .from("communities")
+        .select("id")
+        .eq("id", communityToDelete.id)
+        .single();
+
+      if (verifyError && verifyError.code === 'PGRST116') {
+        // Community not found - deletion successful
+        console.log("Deletion verified: Community no longer exists");
         await fetchCommunities();
-      }, 500);
+      } else if (verifyData) {
+        // Community still exists - deletion failed
+        console.error("Deletion failed: Community still exists", verifyData);
+        toast({
+          title: "Error",
+          description: "Community deletion failed. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      } else {
+        // Other error
+        console.error("Verification error:", verifyError);
+        // Still try to refresh
+        await fetchCommunities();
+      }
     } catch (error) {
       console.error("Error:", error);
       toast({

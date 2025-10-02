@@ -1,7 +1,16 @@
 -- Debug FUTURE BEATS Community Image
 -- Run this in your Supabase SQL Editor
 
--- 1. Check if FUTURE BEATS community exists
+-- First, let's check what columns exist in the communities table
+SELECT 
+  'Table Schema Check' as check_type,
+  column_name || ' (' || data_type || ')' as result
+FROM information_schema.columns 
+WHERE table_schema = 'public' 
+AND table_name = 'communities'
+ORDER BY ordinal_position;
+
+-- Then check if FUTURE BEATS community exists
 SELECT 
   'FUTURE BEATS Community Check' as check_type,
   CASE 
@@ -15,7 +24,7 @@ SELECT
 
 UNION ALL
 
--- 2. Check all communities with images
+-- Check all communities with images
 SELECT 
   'Communities with Images' as check_type,
   COUNT(*)::text || ' communities have images' as result
@@ -24,7 +33,7 @@ WHERE image_url IS NOT NULL
 
 UNION ALL
 
--- 3. Show first few communities with their image status
+-- Show all communities (without ordering since we don't know the column names)
 SELECT 
   'Community: ' || name as check_type,
   CASE 
@@ -32,13 +41,4 @@ SELECT
     ELSE 'No image'
   END as result
 FROM communities 
-ORDER BY id DESC
 LIMIT 5;
-
--- 4. Separate query for FUTURE BEATS details (if exists)
-SELECT 
-  'FUTURE BEATS Details' as check_type,
-  'Name: ' || name || ', ID: ' || id || ', Has Image: ' || CASE WHEN image_url IS NOT NULL THEN 'YES (' || LEFT(image_url, 30) || '...)' ELSE 'NO' END as result
-FROM communities 
-WHERE name ILIKE '%future beats%' OR name ILIKE '%future%'
-LIMIT 1;

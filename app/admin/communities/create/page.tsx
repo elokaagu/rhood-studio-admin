@@ -249,157 +249,177 @@ export default function CreateCommunityPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
-              CREATE COMMUNITY
-            </h1>
-            <p className={textStyles.body.regular}>
-              Create a new group chat community
-            </p>
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="space-y-8 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => router.back()}
+              className="text-brand-white hover:bg-brand-green/10 hover:text-brand-green transition-all duration-300"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="font-ts-block ts-3xl uppercase text-left text-brand-white tracking-wide">
+                CREATE COMMUNITY
+              </h1>
+              <p className="font-helvetica-regular helvetica-lg text-muted-foreground mt-2">
+                Build your underground music community
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Form */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className={textStyles.subheading.large}>
-                  Basic Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className={textStyles.body.regular}>
-                    Community Name *
-                  </Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Form */}
+            <div className="lg:col-span-2 space-y-8">
+              <Card className="bg-card border-border/50 backdrop-blur-sm shadow-2xl">
+                <CardHeader className="border-b border-border/30">
+                  <CardTitle className="font-ts-block ts-xl uppercase text-brand-white tracking-wide">
+                    Basic Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6 p-6">
+                  <div className="space-y-3">
+                    <Label htmlFor="name" className="font-helvetica-bold helvetica-base text-brand-white">
+                      Community Name *
+                    </Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="Enter your community name..."
+                      className="bg-input border-border/50 focus:border-brand-green focus:ring-brand-green/20 text-brand-white placeholder:text-muted-foreground transition-all duration-300 h-12"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label
+                      htmlFor="description"
+                      className="font-helvetica-bold helvetica-base text-brand-white"
+                    >
+                      Description
+                    </Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({ ...formData, description: e.target.value })
+                      }
+                      placeholder="Describe what makes your community unique..."
+                      className="bg-input border-border/50 focus:border-brand-green focus:ring-brand-green/20 text-brand-white placeholder:text-muted-foreground transition-all duration-300 min-h-[120px] resize-none"
+                      rows={4}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card border-border/50 backdrop-blur-sm shadow-2xl">
+                <CardHeader className="border-b border-border/30">
+                  <CardTitle className="font-ts-block ts-xl uppercase text-brand-white tracking-wide">
+                    Community Image
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <ImageUpload
+                    value={formData.imageUrl || undefined}
+                    onChange={(url) =>
+                      setFormData({ ...formData, imageUrl: url })
                     }
-                    placeholder="Enter community name"
-                    className="bg-secondary border-secondary-foreground/20 focus:border-primary"
-                    required
+                    bucketName="communities"
+                    folder="images"
+                    maxSize={5 * 1024 * 1024} // 5MB
+                    acceptedFormats={["image/jpeg", "image/png", "image/webp"]}
                   />
-                </div>
+                </CardContent>
+              </Card>
+            </div>
 
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="description"
-                    className={textStyles.body.regular}
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <Card className="bg-card border-border/50 backdrop-blur-sm shadow-2xl">
+                <CardHeader className="border-b border-border/30">
+                  <CardTitle className="font-ts-block ts-lg uppercase text-brand-white tracking-wide">
+                    Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 p-6">
+                  <Button
+                    type="submit"
+                    className="w-full bg-brand-green hover:bg-brand-green/90 text-brand-black font-helvetica-bold helvetica-base h-12 shadow-glow-primary transition-all duration-300 hover:shadow-glow-accent"
+                    disabled={isSubmitting}
                   >
-                    Description
-                  </Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Describe what this community is about..."
-                    className="bg-secondary border-secondary-foreground/20 focus:border-primary min-h-[100px]"
-                    rows={4}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand-black mr-3"></div>
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-5 w-5 mr-3" />
+                        Create Community
+                      </>
+                    )}
+                  </Button>
 
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className={textStyles.subheading.large}>
-                  Community Image
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ImageUpload
-                  value={formData.imageUrl || undefined}
-                  onChange={(url) =>
-                    setFormData({ ...formData, imageUrl: url })
-                  }
-                  bucketName="communities"
-                  folder="images"
-                  maxSize={5 * 1024 * 1024} // 5MB
-                  acceptedFormats={["image/jpeg", "image/png", "image/webp"]}
-                />
-              </CardContent>
-            </Card>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-border/50 text-brand-white hover:bg-brand-green/10 hover:border-brand-green hover:text-brand-green font-helvetica-regular helvetica-base h-12 transition-all duration-300"
+                    onClick={handleSaveDraft}
+                    disabled={isSubmitting}
+                  >
+                    Save as Draft
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card border-border/50 backdrop-blur-sm shadow-2xl">
+                <CardHeader className="border-b border-border/30">
+                  <CardTitle className="font-ts-block ts-lg uppercase text-brand-white tracking-wide">
+                    Tips
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 p-6">
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-2 h-2 bg-brand-green rounded-full mt-2 flex-shrink-0"></div>
+                      <p className="font-helvetica-regular helvetica-sm text-muted-foreground">
+                        Choose a clear, descriptive name that represents your community
+                      </p>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="w-2 h-2 bg-brand-green rounded-full mt-2 flex-shrink-0"></div>
+                      <p className="font-helvetica-regular helvetica-sm text-muted-foreground">
+                        Add a compelling description to attract the right members
+                      </p>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="w-2 h-2 bg-brand-green rounded-full mt-2 flex-shrink-0"></div>
+                      <p className="font-helvetica-regular helvetica-sm text-muted-foreground">
+                        Upload a distinctive image to make your community recognizable
+                      </p>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="w-2 h-2 bg-brand-green rounded-full mt-2 flex-shrink-0"></div>
+                      <p className="font-helvetica-regular helvetica-sm text-muted-foreground">
+                        You&apos;ll automatically become the first admin member
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className={textStyles.subheading.regular}>
-                  Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  type="submit"
-                  className="w-full bg-brand-green hover:bg-brand-green/90 text-brand-black"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-black mr-2"></div>
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Create Community
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleSaveDraft}
-                  disabled={isSubmitting}
-                >
-                  Save as Draft
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className={textStyles.subheading.regular}>
-                  Tips
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="text-sm text-muted-foreground space-y-2">
-                  <p>• Choose a clear, descriptive name for your community</p>
-                  <p>
-                    • Add a description to help members understand the purpose
-                  </p>
-                  <p>
-                    • Upload an image to make your community more recognizable
-                  </p>
-                  <p>
-                    • You&apos;ll be automatically added as the first admin
-                    member
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

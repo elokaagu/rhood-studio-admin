@@ -50,7 +50,11 @@ export default function CreateCommunityPage() {
         error: userError,
       } = await supabase.auth.getUser();
 
+      console.log("Current user:", user?.id, user?.email);
+      console.log("User error:", userError);
+
       if (userError || !user) {
+        console.error("Authentication failed:", userError);
         toast({
           title: "Error",
           description: "You must be logged in to create a community",
@@ -66,7 +70,10 @@ export default function CreateCommunityPage() {
         .eq("id", user.id)
         .single();
 
+      console.log("User profile check:", { userProfile, profileError });
+
       if (profileError || !userProfile) {
+        console.error("User profile not found:", profileError);
         toast({
           title: "Error",
           description:
@@ -77,6 +84,14 @@ export default function CreateCommunityPage() {
       }
 
       // Create community
+      console.log("Creating community with data:", {
+        name: formData.name.trim(),
+        description: formData.description.trim() || null,
+        image_url: formData.imageUrl,
+        created_by: user.id,
+        member_count: 0,
+      });
+
       const { data, error } = await supabase
         .from("communities")
         .insert([
@@ -93,13 +108,21 @@ export default function CreateCommunityPage() {
 
       if (error) {
         console.error("Error creating community:", error);
+        console.error("Error details:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
         toast({
           title: "Error",
-          description: "Failed to create community. Please try again.",
+          description: `Failed to create community: ${error.message}`,
           variant: "destructive",
         });
         return;
       }
+
+      console.log("Community created successfully:", data);
 
       // Add creator as first member
       const { error: memberError } = await supabase

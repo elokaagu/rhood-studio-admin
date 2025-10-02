@@ -13,6 +13,8 @@ interface ImageDisplayProps {
   className?: string;
   sizes?: string;
   priority?: boolean;
+  placeholder?: "blur" | "empty";
+  blurDataURL?: string;
 }
 
 export function ImageDisplay({
@@ -24,6 +26,8 @@ export function ImageDisplay({
   className = "",
   sizes,
   priority = false,
+  placeholder = "blur",
+  blurDataURL,
 }: ImageDisplayProps) {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -53,6 +57,9 @@ export function ImageDisplay({
     );
   }
 
+  // Generate a simple blur placeholder if none provided
+  const defaultBlurDataURL = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q==";
+
   const imageProps = {
     src,
     alt,
@@ -60,17 +67,20 @@ export function ImageDisplay({
     onLoad: handleLoad,
     className: `${className} ${
       imageLoading ? "opacity-0" : "opacity-100"
-    } transition-opacity duration-200`,
+    } transition-opacity duration-300`,
     priority,
+    placeholder,
+    blurDataURL: blurDataURL || defaultBlurDataURL,
+    loading: (priority ? "eager" : "lazy") as "eager" | "lazy",
     ...(fill ? { fill: true } : { width, height }),
     ...(sizes && { sizes }),
   };
 
   return (
-    <div className="relative">
+    <div className="relative overflow-hidden">
       {imageLoading && (
         <div
-          className={`absolute inset-0 flex items-center justify-center bg-muted animate-pulse ${className}`}
+          className={`absolute inset-0 flex items-center justify-center bg-muted/50 backdrop-blur-sm animate-pulse ${className}`}
         >
           <div className="text-sm text-muted-foreground">Loading...</div>
         </div>

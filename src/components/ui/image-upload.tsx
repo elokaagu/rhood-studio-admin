@@ -109,8 +109,8 @@ export function ImageUpload({
 
         onChange(imageUrl);
 
-        // Test if the uploaded image is accessible
-        const testImage = new Image();
+         // Test if the uploaded image is accessible
+         const testImage = document.createElement('img');
         testImage.onload = () => {
           console.log("Image loaded successfully:", imageUrl);
           // Clean up preview URL and set to uploaded URL

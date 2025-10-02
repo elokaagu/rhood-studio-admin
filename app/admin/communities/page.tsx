@@ -286,19 +286,19 @@ export default function CommunitiesPage() {
 
       {/* Communities List */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
             <Card key={i} className="bg-card border-border">
-              <CardHeader>
+              <CardContent className="p-6">
                 <div className="animate-pulse">
-                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="animate-pulse space-y-2">
-                  <div className="h-3 bg-muted rounded"></div>
-                  <div className="h-3 bg-muted rounded w-2/3"></div>
+                  <div className="flex items-center space-x-4">
+                    <div className="h-12 w-12 bg-muted rounded-full"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded w-1/3"></div>
+                      <div className="h-3 bg-muted rounded w-1/4"></div>
+                      <div className="h-3 bg-muted rounded w-2/3"></div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -328,15 +328,15 @@ export default function CommunitiesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-4">
           {filteredCommunities.map((community) => (
             <Card
               key={community.id}
               className="bg-card border-border hover:border-primary/50 transition-colors"
             >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
                     {/* Community Avatar */}
                     <div className="flex-shrink-0">
                       {community.image_url ? (
@@ -350,109 +350,110 @@ export default function CommunitiesPage() {
                           />
                         </div>
                       ) : (
-                        <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
-                          <MessageSquare className="h-6 w-6 text-primary" />
+                        <div className="w-12 h-12 bg-brand-green/20 rounded-full flex items-center justify-center">
+                          <MessageSquare className="h-6 w-6 text-brand-green" />
                         </div>
                       )}
                     </div>
 
+                    {/* Community Info */}
                     <div className="flex-1 min-w-0">
-                      <CardTitle
-                        className={`${textStyles.subheading.regular} truncate`}
-                      >
-                        {community.name}
-                      </CardTitle>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <Users className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">
-                          {community.member_count || 0} members
-                        </span>
+                      <div className="flex items-center space-x-3 mb-1">
+                        <CardTitle
+                          className={`${textStyles.subheading.regular} truncate`}
+                        >
+                          {community.name}
+                        </CardTitle>
+                        <div className="flex items-center space-x-2">
+                          <Users className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">
+                            {community.member_count || 0} members
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {community.description && (
+                        <p
+                          className={`${textStyles.body.small} text-muted-foreground mb-2 line-clamp-1`}
+                        >
+                          {community.description}
+                        </p>
+                      )}
+
+                      <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                        <div className="flex items-center space-x-1">
+                          <Avatar className="w-4 h-4">
+                            <AvatarImage
+                              src={community.creator_avatar || undefined}
+                            />
+                            <AvatarFallback className="text-xs">
+                              {community.creator_name?.[0]?.toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>Created by {community.creator_name}</span>
+                        </div>
+                        <span>{formatDate(community.created_at)}</span>
                       </div>
                     </div>
-                  </div>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() =>
-                          router.push(`/admin/communities/${community.id}/edit`)
-                        }
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
+                    {/* Actions */}
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() =>
                           router.push(`/admin/communities/${community.id}`)
                         }
                       >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        View Messages
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive"
+                        <MessageSquare className="h-3 w-3 mr-1" />
+                        View Chat
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() =>
-                          handleDeleteCommunity(community.id, community.name)
+                          router.push(`/admin/communities/${community.id}/edit`)
                         }
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-
-              <CardContent className="pt-0">
-                {community.description && (
-                  <p
-                    className={`${textStyles.body.small} text-muted-foreground mb-3 line-clamp-2`}
-                  >
-                    {community.description}
-                  </p>
-                )}
-
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center space-x-2">
-                    <Avatar className="w-4 h-4">
-                      <AvatarImage
-                        src={community.creator_avatar || undefined}
-                      />
-                      <AvatarFallback className="text-xs">
-                        {community.creator_name?.[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span>Created by {community.creator_name}</span>
+                        <Settings className="h-3 w-3" />
+                      </Button>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(`/admin/communities/${community.id}/edit`)
+                            }
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(`/admin/communities/${community.id}`)
+                            }
+                          >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            View Messages
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() =>
+                              handleDeleteCommunity(community.id, community.name)
+                            }
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
-                  <span>{formatDate(community.created_at)}</span>
-                </div>
-
-                <div className="mt-4 flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() =>
-                      router.push(`/admin/communities/${community.id}`)
-                    }
-                  >
-                    <MessageSquare className="h-3 w-3 mr-1" />
-                    View Chat
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      router.push(`/admin/communities/${community.id}/edit`)
-                    }
-                  >
-                    <Settings className="h-3 w-3" />
-                  </Button>
                 </div>
               </CardContent>
             </Card>

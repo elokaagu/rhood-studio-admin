@@ -304,7 +304,7 @@ export default function MembersPage() {
 
       // Try a simpler approach - just delete the user profile directly
       // If this fails, we'll know it's a permissions issue
-      const { data: deletedData, error } = await supabase
+      let { data: deletedData, error } = await supabase
         .from("user_profiles")
         .delete()
         .eq("id", memberToDelete.id)
@@ -317,13 +317,15 @@ export default function MembersPage() {
           details: error.details,
           hint: error.hint,
           code: error.code,
-          fullError: error
+          fullError: error,
         });
-        
+
         // If it's a foreign key constraint error, try deleting related records first
-        if (error.message && error.message.includes('foreign key')) {
-          console.log("Foreign key constraint detected, trying to delete related records first...");
-          
+        if (error.message && error.message.includes("foreign key")) {
+          console.log(
+            "Foreign key constraint detected, trying to delete related records first..."
+          );
+
           // Delete from community_members table
           const { error: communityMembersError } = await supabase
             .from("community_members")
@@ -331,7 +333,10 @@ export default function MembersPage() {
             .eq("user_id", memberToDelete.id);
 
           if (communityMembersError) {
-            console.error("Error deleting community members:", communityMembersError);
+            console.error(
+              "Error deleting community members:",
+              communityMembersError
+            );
           }
 
           // Delete from messages table
@@ -355,18 +360,18 @@ export default function MembersPage() {
           }
 
           // Try deleting the user profile again
-          const { data: retryDeletedData, error: retryError } = await supabase
+          const retryResult = await supabase
             .from("user_profiles")
             .delete()
             .eq("id", memberToDelete.id)
             .select();
 
-          if (retryError) {
-            console.error("Error on retry:", retryError);
-            throw retryError;
+          if (retryResult.error) {
+            console.error("Error on retry:", retryResult.error);
+            throw retryResult.error;
           }
 
-          deletedData = retryDeletedData;
+          deletedData = retryResult.data;
         } else {
           throw error;
         }
@@ -383,17 +388,18 @@ export default function MembersPage() {
         title: "Member Deleted",
         description: `"${memberToDelete.name}" has been deleted successfully.`,
       });
-
     } catch (error) {
       console.error("Error deleting member:", error);
       console.error("Full error object:", {
         error,
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        message: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
       });
       toast({
         title: "Delete Failed",
-        description: `Failed to delete member: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: `Failed to delete member: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
         variant: "destructive",
       });
     } finally {

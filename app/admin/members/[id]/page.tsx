@@ -210,22 +210,27 @@ export default function MemberDetailsPage() {
         // Continue with user deletion even if this fails
       }
 
-      // Try to delete from connection table (this is what was causing the error)
-      // Note: The table might not exist in types, so we'll try it and catch any errors
-      try {
-        const { error: connectionError } = await supabase
-          .from("connection" as any)
-          .delete()
-          .eq("user_id", memberToDelete.id);
+      // Delete from connections table (this is what was causing the error)
+      // The table is called "connections" (plural) and has follower_id foreign key
+      const { error: connectionsError } = await supabase
+        .from("connections" as any)
+        .delete()
+        .eq("follower_id", memberToDelete.id);
 
-        if (connectionError) {
-          console.error("Error deleting connections:", connectionError);
-        }
-      } catch (connectionTableError) {
-        console.log(
-          "Connection table might not exist or have different structure:",
-          connectionTableError
-        );
+      if (connectionsError) {
+        console.error("Error deleting connections:", connectionsError);
+        // Continue with user deletion even if this fails
+      }
+
+      // Also try deleting where user is the following (not just follower)
+      const { error: connectionsFollowingError } = await supabase
+        .from("connections" as any)
+        .delete()
+        .eq("following_id", memberToDelete.id);
+
+      if (connectionsFollowingError) {
+        console.error("Error deleting connections (following):", connectionsFollowingError);
+        // Continue with user deletion even if this fails
       }
 
       // Finally, delete the user profile

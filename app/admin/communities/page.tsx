@@ -26,6 +26,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { textStyles } from "@/lib/typography";
 import Image from "next/image";
 
@@ -45,6 +56,11 @@ export default function CommunitiesPage() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [communityToDelete, setCommunityToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -107,24 +123,21 @@ export default function CommunitiesPage() {
     }
   }, [toast]);
 
+  // Open delete dialog
+  const openDeleteDialog = (communityId: string, communityName: string) => {
+    setCommunityToDelete({ id: communityId, name: communityName });
+    setDeleteDialogOpen(true);
+  };
+
   // Delete community
-  const handleDeleteCommunity = async (
-    communityId: string,
-    communityName: string
-  ) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete "${communityName}"? This action cannot be undone.`
-      )
-    ) {
-      return;
-    }
+  const handleDeleteCommunity = async () => {
+    if (!communityToDelete) return;
 
     try {
       const { error } = await supabase
         .from("communities")
         .delete()
-        .eq("id", communityId);
+        .eq("id", communityToDelete.id);
 
       if (error) {
         console.error("Error deleting community:", error);
@@ -141,7 +154,9 @@ export default function CommunitiesPage() {
         description: "Community deleted successfully",
       });
 
-      // Refresh the list
+      // Close dialog and refresh the list
+      setDeleteDialogOpen(false);
+      setCommunityToDelete(null);
       fetchCommunities();
     } catch (error) {
       console.error("Error:", error);
@@ -465,7 +480,7 @@ export default function CommunitiesPage() {
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() =>
-                              handleDeleteCommunity(
+                              openDeleteDialog(
                                 community.id,
                                 community.name
                               )
@@ -484,6 +499,43 @@ export default function CommunitiesPage() {
           ))}
         </div>
       )}
+
+      {/* R/HOOD Themed Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-card border-border/50 backdrop-blur-sm shadow-2xl max-w-md">
+          <AlertDialogHeader className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-brand-green/20 rounded-full flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-brand-green" />
+              </div>
+              <AlertDialogTitle className="font-ts-block ts-lg uppercase text-brand-white tracking-wide">
+                Delete Community
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="font-helvetica-regular helvetica-base text-muted-foreground">
+              Are you sure you want to delete{" "}
+              <span className="font-helvetica-bold text-brand-white">
+                "{communityToDelete?.name}"
+              </span>
+              ? This action cannot be undone and will permanently remove the community and all its messages.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="space-x-3">
+            <AlertDialogCancel 
+              className="border-border/50 text-brand-white hover:bg-muted/50 hover:border-brand-green/50 font-helvetica-regular helvetica-base transition-all duration-300"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-helvetica-bold helvetica-base shadow-glow-primary transition-all duration-300"
+              onClick={handleDeleteCommunity}
+            >
+              Delete Community
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

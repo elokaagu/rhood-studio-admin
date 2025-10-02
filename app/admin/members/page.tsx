@@ -300,17 +300,57 @@ export default function MembersPage() {
     if (!memberToDelete) return;
 
     try {
-      // Delete from Supabase database
-      const { error } = await supabase
+      console.log("Deleting member:", memberToDelete.id, memberToDelete.name);
+
+      // First, delete related records that might have foreign key constraints
+      // Delete from community_members table
+      const { error: communityMembersError } = await supabase
+        .from("community_members")
+        .delete()
+        .eq("user_id", memberToDelete.id.toString());
+
+      if (communityMembersError) {
+        console.error("Error deleting community members:", communityMembersError);
+        // Continue with user deletion even if this fails
+      }
+
+      // Delete from messages table
+      const { error: messagesError } = await supabase
+        .from("messages")
+        .delete()
+        .eq("sender_id", memberToDelete.id.toString());
+
+      if (messagesError) {
+        console.error("Error deleting messages:", messagesError);
+        // Continue with user deletion even if this fails
+      }
+
+      // Delete from applications table
+      const { error: applicationsError } = await supabase
+        .from("applications")
+        .delete()
+        .eq("user_id", memberToDelete.id.toString());
+
+      if (applicationsError) {
+        console.error("Error deleting applications:", applicationsError);
+        // Continue with user deletion even if this fails
+      }
+
+      // Finally, delete the user profile
+      const { data: deletedData, error } = await supabase
         .from("user_profiles")
         .delete()
-        .eq("id", memberToDelete.id.toString());
+        .eq("id", memberToDelete.id.toString())
+        .select();
 
       if (error) {
+        console.error("Error deleting user profile:", error);
         throw error;
       }
 
-      // Remove from local state
+      console.log("Member deleted successfully from database:", deletedData);
+
+      // Remove from local state immediately
       setMembers((prevMembers) =>
         prevMembers.filter((member) => member.id !== memberToDelete.id)
       );
@@ -319,11 +359,33 @@ export default function MembersPage() {
         title: "Member Deleted",
         description: `"${memberToDelete.name}" has been deleted successfully.`,
       });
+
+      // Verify deletion by checking if member still exists
+      const { data: verifyData, error: verifyError } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .eq("id", memberToDelete.id.toString())
+        .single();
+
+      if (verifyError && verifyError.code === 'PGRST116') {
+        // Member not found - deletion successful
+        console.log("Deletion verified: Member no longer exists");
+      } else if (verifyData) {
+        // Member still exists - deletion failed
+        console.log("Deletion failed: Member still exists", verifyData);
+        toast({
+          title: "Error",
+          description: "Member deletion failed. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
     } catch (error) {
       console.error("Error deleting member:", error);
       toast({
         title: "Delete Failed",
-        description: "Failed to delete member. Please try again.",
+        description: `Failed to delete member: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {

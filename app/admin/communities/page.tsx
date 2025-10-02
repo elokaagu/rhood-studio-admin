@@ -220,8 +220,8 @@ export default function CommunitiesPage() {
                   )}
                 </p>
               </div>
-              <div className="h-8 w-8 bg-blue-500/20 rounded-full flex items-center justify-center">
-                <Users className="h-4 w-4 text-blue-500" />
+              <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
+                <Users className="h-4 w-4 text-brand-green" />
               </div>
             </div>
           </CardContent>
@@ -238,8 +238,8 @@ export default function CommunitiesPage() {
                   {communities.filter((c) => (c.member_count || 0) > 0).length}
                 </p>
               </div>
-              <div className="h-8 w-8 bg-green-500/20 rounded-full flex items-center justify-center">
-                <MessageSquare className="h-4 w-4 text-green-500" />
+              <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
+                <MessageSquare className="h-4 w-4 text-brand-green" />
               </div>
             </div>
           </CardContent>
@@ -263,8 +263,8 @@ export default function CommunitiesPage() {
                   }
                 </p>
               </div>
-              <div className="h-8 w-8 bg-purple-500/20 rounded-full flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-purple-500" />
+              <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-brand-green" />
               </div>
             </div>
           </CardContent>

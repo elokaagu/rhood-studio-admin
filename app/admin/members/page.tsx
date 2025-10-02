@@ -335,26 +335,53 @@ export default function MembersPage() {
         console.error("Error deleting applications:", applicationsError);
       }
 
-      // Step 4: Delete from connections (both directions)
-      const { error: followerError } = await supabase
+      // Step 4: Check connections table and delete from connections (both directions)
+      console.log("Step 4: Checking connections table...");
+      
+      // First, let's check if there are any connections for this user
+      const { data: existingConnections, error: checkError } = await supabase
+        .from("connections" as any)
+        .select("*")
+        .or(`follower_id.eq.${memberToDelete.id},following_id.eq.${memberToDelete.id}`);
+
+      if (checkError) {
+        console.error("Error checking connections table:", checkError);
+        console.log("Connections table might not exist or have different structure");
+      } else {
+        console.log(`Found ${existingConnections?.length || 0} existing connections for user`);
+        if (existingConnections && existingConnections.length > 0) {
+          console.log("Existing connections:", existingConnections);
+        }
+      }
+
+      console.log("Step 4a: Deleting follower connections...");
+      const { data: followerData, error: followerError } = await supabase
         .from("connections" as any)
         .delete()
-        .eq("follower_id", memberToDelete.id);
+        .eq("follower_id", memberToDelete.id)
+        .select("id");
 
       if (followerError) {
         console.error("Error deleting follower connections:", followerError);
+      } else {
+        console.log(`Deleted ${followerData?.length || 0} follower connections`);
       }
 
-      const { error: followingError } = await supabase
+      console.log("Step 4b: Deleting following connections...");
+      const { data: followingData, error: followingError } = await supabase
         .from("connections" as any)
         .delete()
-        .eq("following_id", memberToDelete.id);
+        .eq("following_id", memberToDelete.id)
+        .select("id");
 
       if (followingError) {
         console.error("Error deleting following connections:", followingError);
+      } else {
+        console.log(`Deleted ${followingData?.length || 0} following connections`);
       }
 
       // Step 5: Delete user profile
+      console.log("Step 5: Attempting to delete user profile...");
       const { data: deletedData, error: userProfileError } = await supabase
         .from("user_profiles")
         .delete()
@@ -363,7 +390,27 @@ export default function MembersPage() {
 
       if (userProfileError) {
         console.error("Error deleting user profile:", userProfileError);
-        throw userProfileError;
+        
+        // If we still get a foreign key error, let's try a different approach
+        if (userProfileError.message && userProfileError.message.includes("foreign key")) {
+          console.log("Foreign key constraint still exists. Trying alternative approach...");
+          
+          // Try using a raw SQL query to delete with CASCADE
+          const { error: sqlError } = await (supabase.rpc as any)('delete_user_with_cascade', {
+            user_id_param: memberToDelete.id
+          });
+          
+          if (sqlError) {
+            console.error("SQL cascade deletion also failed:", sqlError);
+            throw userProfileError; // Throw original error
+          } else {
+            console.log("User deleted successfully using SQL cascade");
+          }
+        } else {
+          throw userProfileError;
+        }
+      } else {
+        console.log("User profile deleted successfully");
       }
 
       console.log("Deletion completed successfully:", deletedData);

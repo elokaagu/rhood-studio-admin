@@ -12,6 +12,7 @@ TO authenticated
 USING (auth.uid() = created_by);
 
 -- 3. Also add a policy for admins to delete any community (if needed)
+-- Note: This assumes there's a role field in user_profiles, adjust as needed
 CREATE POLICY "Admins can delete any community" 
 ON public.communities 
 FOR DELETE 
@@ -20,7 +21,7 @@ USING (
   EXISTS (
     SELECT 1 FROM user_profiles 
     WHERE id = auth.uid() 
-    AND 'Admin' = ANY(roles)
+    AND (role = 'admin' OR role = 'Admin')
   )
 );
 
@@ -62,7 +63,7 @@ SELECT
     WHEN EXISTS (
       SELECT 1 FROM user_profiles 
       WHERE id = auth.uid() 
-      AND 'Admin' = ANY(roles)
+      AND (role = 'admin' OR role = 'Admin')
     )
     THEN '✅ User is admin'
     ELSE '❌ User is not admin'

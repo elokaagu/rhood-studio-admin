@@ -42,10 +42,10 @@ UNION ALL
 
 -- 5. Show communities with creator info
 SELECT 
-  'Community: ' || name as check_type,
-  'ID: ' || id || ', Created by: ' || COALESCE(created_by::text, 'NULL') as result
+  'Community ID: ' || id as check_type,
+  'Created by: ' || COALESCE(created_by::text, 'NULL') as result
 FROM communities
-ORDER BY name
+ORDER BY id
 LIMIT 10;
 
 -- 6. Test if current user can delete (this will show the policy result)

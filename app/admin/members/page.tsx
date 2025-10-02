@@ -302,41 +302,8 @@ export default function MembersPage() {
     try {
       console.log("Deleting member:", memberToDelete.id, memberToDelete.name);
 
-      // First, delete related records that might have foreign key constraints
-      // Delete from community_members table
-      const { error: communityMembersError } = await supabase
-        .from("community_members")
-        .delete()
-        .eq("user_id", memberToDelete.id);
-
-      if (communityMembersError) {
-        console.error("Error deleting community members:", communityMembersError);
-        // Continue with user deletion even if this fails
-      }
-
-      // Delete from messages table
-      const { error: messagesError } = await supabase
-        .from("messages")
-        .delete()
-        .eq("sender_id", memberToDelete.id);
-
-      if (messagesError) {
-        console.error("Error deleting messages:", messagesError);
-        // Continue with user deletion even if this fails
-      }
-
-      // Delete from applications table
-      const { error: applicationsError } = await supabase
-        .from("applications")
-        .delete()
-        .eq("user_id", memberToDelete.id);
-
-      if (applicationsError) {
-        console.error("Error deleting applications:", applicationsError);
-        // Continue with user deletion even if this fails
-      }
-
-      // Finally, delete the user profile
+      // Try a simpler approach - just delete the user profile directly
+      // If this fails, we'll know it's a permissions issue
       const { data: deletedData, error } = await supabase
         .from("user_profiles")
         .delete()
@@ -345,7 +312,64 @@ export default function MembersPage() {
 
       if (error) {
         console.error("Error deleting user profile:", error);
-        throw error;
+        console.error("Error details:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: error
+        });
+        
+        // If it's a foreign key constraint error, try deleting related records first
+        if (error.message && error.message.includes('foreign key')) {
+          console.log("Foreign key constraint detected, trying to delete related records first...");
+          
+          // Delete from community_members table
+          const { error: communityMembersError } = await supabase
+            .from("community_members")
+            .delete()
+            .eq("user_id", memberToDelete.id);
+
+          if (communityMembersError) {
+            console.error("Error deleting community members:", communityMembersError);
+          }
+
+          // Delete from messages table
+          const { error: messagesError } = await supabase
+            .from("messages")
+            .delete()
+            .eq("sender_id", memberToDelete.id);
+
+          if (messagesError) {
+            console.error("Error deleting messages:", messagesError);
+          }
+
+          // Delete from applications table
+          const { error: applicationsError } = await supabase
+            .from("applications")
+            .delete()
+            .eq("user_id", memberToDelete.id);
+
+          if (applicationsError) {
+            console.error("Error deleting applications:", applicationsError);
+          }
+
+          // Try deleting the user profile again
+          const { data: retryDeletedData, error: retryError } = await supabase
+            .from("user_profiles")
+            .delete()
+            .eq("id", memberToDelete.id)
+            .select();
+
+          if (retryError) {
+            console.error("Error on retry:", retryError);
+            throw retryError;
+          }
+
+          deletedData = retryDeletedData;
+        } else {
+          throw error;
+        }
       }
 
       console.log("Member deleted successfully from database:", deletedData);
@@ -360,29 +384,13 @@ export default function MembersPage() {
         description: `"${memberToDelete.name}" has been deleted successfully.`,
       });
 
-      // Verify deletion by checking if member still exists
-      const { data: verifyData, error: verifyError } = await supabase
-        .from("user_profiles")
-        .select("id")
-        .eq("id", memberToDelete.id)
-        .single();
-
-      if (verifyError && verifyError.code === 'PGRST116') {
-        // Member not found - deletion successful
-        console.log("Deletion verified: Member no longer exists");
-      } else if (verifyData) {
-        // Member still exists - deletion failed
-        console.log("Deletion failed: Member still exists", verifyData);
-        toast({
-          title: "Error",
-          description: "Member deletion failed. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
     } catch (error) {
       console.error("Error deleting member:", error);
+      console.error("Full error object:", {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       toast({
         title: "Delete Failed",
         description: `Failed to delete member: ${error instanceof Error ? error.message : 'Unknown error'}`,

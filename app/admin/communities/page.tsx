@@ -98,6 +98,7 @@ export default function CommunitiesPage() {
       const transformedCommunities =
         data?.map((community) => {
           console.log('Community data:', community.name, {
+            id: community.id,
             image_url: community.image_url,
             has_image: !!community.image_url,
             image_type: typeof community.image_url
@@ -111,6 +112,8 @@ export default function CommunitiesPage() {
           };
         }) || [];
 
+      console.log('Fetched communities count:', transformedCommunities.length);
+      console.log('Community IDs:', transformedCommunities.map(c => c.id));
       setCommunities(transformedCommunities);
     } catch (error) {
       console.error("Error:", error);
@@ -153,7 +156,8 @@ export default function CommunitiesPage() {
       const { error } = await supabase
         .from("communities")
         .delete()
-        .eq("id", communityToDelete.id);
+        .eq("id", communityToDelete.id)
+        .select();
 
       if (error) {
         console.error("Error deleting community:", error);
@@ -167,9 +171,6 @@ export default function CommunitiesPage() {
 
       console.log("Community deleted successfully from database");
 
-      // Optimistically update the UI
-      setCommunities(prev => prev.filter(c => c.id !== communityToDelete.id));
-
       toast({
         title: "Success",
         description: "Community deleted successfully",
@@ -179,8 +180,10 @@ export default function CommunitiesPage() {
       setDeleteDialogOpen(false);
       setCommunityToDelete(null);
       
-      // Refresh the list to ensure consistency
-      await fetchCommunities();
+      // Small delay to ensure database consistency, then refresh
+      setTimeout(async () => {
+        await fetchCommunities();
+      }, 500);
     } catch (error) {
       console.error("Error:", error);
       toast({

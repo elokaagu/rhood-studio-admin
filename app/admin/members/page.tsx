@@ -359,14 +359,19 @@ export default function MembersPage() {
             console.error("Error deleting applications:", applicationsError);
           }
 
-          // Delete from connection table (this is what was causing the error)
-          const { error: connectionError } = await supabase
-            .from("connection")
-            .delete()
-            .eq("user_id", memberToDelete.id);
+          // Try to delete from connection table (this is what was causing the error)
+          // Note: The table might not exist in types, so we'll try it and catch any errors
+          try {
+            const { error: connectionError } = await supabase
+              .from("connection" as any)
+              .delete()
+              .eq("user_id", memberToDelete.id);
 
-          if (connectionError) {
-            console.error("Error deleting connections:", connectionError);
+            if (connectionError) {
+              console.error("Error deleting connections:", connectionError);
+            }
+          } catch (connectionTableError) {
+            console.log("Connection table might not exist or have different structure:", connectionTableError);
           }
 
           // Try deleting the user profile again

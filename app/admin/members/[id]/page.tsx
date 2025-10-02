@@ -181,7 +181,10 @@ export default function MemberDetailsPage() {
         .eq("user_id", memberToDelete.id);
 
       if (communityMembersError) {
-        console.error("Error deleting community members:", communityMembersError);
+        console.error(
+          "Error deleting community members:",
+          communityMembersError
+        );
         // Continue with user deletion even if this fails
       }
 
@@ -207,15 +210,19 @@ export default function MemberDetailsPage() {
         // Continue with user deletion even if this fails
       }
 
-      // Delete from connection table (this is what was causing the error)
-      const { error: connectionError } = await supabase
-        .from("connection")
-        .delete()
-        .eq("user_id", memberToDelete.id);
+      // Try to delete from connection table (this is what was causing the error)
+      // Note: The table might not exist in types, so we'll try it and catch any errors
+      try {
+        const { error: connectionError } = await supabase
+          .from("connection" as any)
+          .delete()
+          .eq("user_id", memberToDelete.id);
 
-      if (connectionError) {
-        console.error("Error deleting connections:", connectionError);
-        // Continue with user deletion even if this fails
+        if (connectionError) {
+          console.error("Error deleting connections:", connectionError);
+        }
+      } catch (connectionTableError) {
+        console.log("Connection table might not exist or have different structure:", connectionTableError);
       }
 
       // Finally, delete the user profile
@@ -244,7 +251,7 @@ export default function MemberDetailsPage() {
         .eq("id", memberToDelete.id)
         .single();
 
-      if (verifyError && verifyError.code === 'PGRST116') {
+      if (verifyError && verifyError.code === "PGRST116") {
         // Member not found - deletion successful
         console.log("Deletion verified: Member no longer exists");
         // Redirect to members list
@@ -259,12 +266,13 @@ export default function MemberDetailsPage() {
         });
         return;
       }
-
     } catch (error) {
       console.error("Error deleting member:", error);
       toast({
         title: "Delete Failed",
-        description: `Failed to delete member: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: `Failed to delete member: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
         variant: "destructive",
       });
     } finally {

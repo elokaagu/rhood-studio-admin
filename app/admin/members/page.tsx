@@ -55,7 +55,7 @@ export default function MembersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<{
-    id: number;
+    id: string;
     name: string;
   } | null>(null);
 
@@ -291,7 +291,7 @@ export default function MembersPage() {
     window.location.href = `mailto:${memberEmail}`;
   };
 
-  const handleDeleteMember = async (memberId: number, memberName: string) => {
+  const handleDeleteMember = async (memberId: string, memberName: string) => {
     setMemberToDelete({ id: memberId, name: memberName });
     setDeleteModalOpen(true);
   };
@@ -307,7 +307,7 @@ export default function MembersPage() {
       const { error: communityMembersError } = await supabase
         .from("community_members")
         .delete()
-        .eq("user_id", memberToDelete.id.toString());
+        .eq("user_id", memberToDelete.id);
 
       if (communityMembersError) {
         console.error("Error deleting community members:", communityMembersError);
@@ -318,7 +318,7 @@ export default function MembersPage() {
       const { error: messagesError } = await supabase
         .from("messages")
         .delete()
-        .eq("sender_id", memberToDelete.id.toString());
+        .eq("sender_id", memberToDelete.id);
 
       if (messagesError) {
         console.error("Error deleting messages:", messagesError);
@@ -329,7 +329,7 @@ export default function MembersPage() {
       const { error: applicationsError } = await supabase
         .from("applications")
         .delete()
-        .eq("user_id", memberToDelete.id.toString());
+        .eq("user_id", memberToDelete.id);
 
       if (applicationsError) {
         console.error("Error deleting applications:", applicationsError);
@@ -340,7 +340,7 @@ export default function MembersPage() {
       const { data: deletedData, error } = await supabase
         .from("user_profiles")
         .delete()
-        .eq("id", memberToDelete.id.toString())
+        .eq("id", memberToDelete.id)
         .select();
 
       if (error) {
@@ -364,7 +364,7 @@ export default function MembersPage() {
       const { data: verifyData, error: verifyError } = await supabase
         .from("user_profiles")
         .select("id")
-        .eq("id", memberToDelete.id.toString())
+        .eq("id", memberToDelete.id)
         .single();
 
       if (verifyError && verifyError.code === 'PGRST116') {

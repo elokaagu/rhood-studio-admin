@@ -83,6 +83,7 @@ export default function CommunityDetailsPage({
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -278,9 +279,24 @@ export default function CommunityDetailsPage({
 
   // Delete community
   const handleDeleteCommunity = async () => {
-    if (!community) return;
+    if (!community || isDeleting) return;
 
     try {
+      setIsDeleting(true);
+      console.log("Deleting community:", community.id);
+
+      // First, delete related community members
+      const { error: membersError } = await supabase
+        .from("community_members")
+        .delete()
+        .eq("community_id", community.id);
+
+      if (membersError) {
+        console.error("Error deleting community members:", membersError);
+        // Continue with community deletion even if members deletion fails
+      }
+
+      // Delete the community
       const { error } = await supabase
         .from("communities")
         .delete()
@@ -290,11 +306,13 @@ export default function CommunityDetailsPage({
         console.error("Error deleting community:", error);
         toast({
           title: "Error",
-          description: "Failed to delete community",
+          description: `Failed to delete community: ${error.message}`,
           variant: "destructive",
         });
         return;
       }
+
+      console.log("Community deleted successfully from database");
 
       toast({
         title: "Success",
@@ -310,6 +328,8 @@ export default function CommunityDetailsPage({
         description: "An unexpected error occurred",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -659,8 +679,16 @@ export default function CommunityDetailsPage({
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-helvetica-bold helvetica-base shadow-glow-primary transition-all duration-300"
               onClick={handleDeleteCommunity}
+              disabled={isDeleting}
             >
-              Delete Community
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-destructive-foreground mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                "Delete Community"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

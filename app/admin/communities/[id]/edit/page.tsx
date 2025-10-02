@@ -110,8 +110,9 @@ export default function EditCommunityPage({
 
     try {
       setIsSubmitting(true);
+      console.log("Updating community:", communityId, formData);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("communities")
         .update({
           name: formData.name.trim(),
@@ -119,17 +120,27 @@ export default function EditCommunityPage({
           image_url: formData.imageUrl,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", communityId);
+        .eq("id", communityId)
+        .select()
+        .single();
 
       if (error) {
         console.error("Error updating community:", error);
+        console.error("Error details:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
         toast({
           title: "Error",
-          description: "Failed to update community. Please try again.",
+          description: `Failed to update community: ${error.message}`,
           variant: "destructive",
         });
         return;
       }
+
+      console.log("Community updated successfully in database:", data);
 
       toast({
         title: "Success",

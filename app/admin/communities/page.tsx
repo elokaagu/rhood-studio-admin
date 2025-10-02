@@ -61,6 +61,7 @@ export default function CommunitiesPage() {
     id: string;
     name: string;
   } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -131,9 +132,24 @@ export default function CommunitiesPage() {
 
   // Delete community
   const handleDeleteCommunity = async () => {
-    if (!communityToDelete) return;
+    if (!communityToDelete || isDeleting) return;
 
     try {
+      setIsDeleting(true);
+      console.log("Deleting community:", communityToDelete.id);
+
+      // First, delete related community members
+      const { error: membersError } = await supabase
+        .from("community_members")
+        .delete()
+        .eq("community_id", communityToDelete.id);
+
+      if (membersError) {
+        console.error("Error deleting community members:", membersError);
+        // Continue with community deletion even if members deletion fails
+      }
+
+      // Delete the community
       const { error } = await supabase
         .from("communities")
         .delete()
@@ -143,21 +159,28 @@ export default function CommunitiesPage() {
         console.error("Error deleting community:", error);
         toast({
           title: "Error",
-          description: "Failed to delete community",
+          description: `Failed to delete community: ${error.message}`,
           variant: "destructive",
         });
         return;
       }
+
+      console.log("Community deleted successfully from database");
+
+      // Optimistically update the UI
+      setCommunities(prev => prev.filter(c => c.id !== communityToDelete.id));
 
       toast({
         title: "Success",
         description: "Community deleted successfully",
       });
 
-      // Close dialog and refresh the list
+      // Close dialog and reset state
       setDeleteDialogOpen(false);
       setCommunityToDelete(null);
-      fetchCommunities();
+      
+      // Refresh the list to ensure consistency
+      await fetchCommunities();
     } catch (error) {
       console.error("Error:", error);
       toast({
@@ -165,6 +188,8 @@ export default function CommunitiesPage() {
         description: "An unexpected error occurred",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -530,8 +555,16 @@ export default function CommunitiesPage() {
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-helvetica-bold helvetica-base shadow-glow-primary transition-all duration-300"
               onClick={handleDeleteCommunity}
+              disabled={isDeleting}
             >
-              Delete Community
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-destructive-foreground mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                "Delete Community"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

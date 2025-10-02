@@ -142,10 +142,17 @@ export default function CreateCommunityPage() {
       }
 
       // Update member count
-      await supabase
+      const { error: countError } = await supabase
         .from("communities")
         .update({ member_count: 1 })
         .eq("id", data.id);
+
+      if (countError) {
+        console.error("Error updating member count:", countError);
+        // Don't fail the whole operation for this
+      }
+
+      console.log("Community fully created and configured in database");
 
       toast({
         title: "Success",

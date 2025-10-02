@@ -14,6 +14,7 @@ SELECT
   END as result;
 
 -- Test community creation (this should work if everything is set up correctly)
+
 -- Note: This will only work if you're authenticated and have a user profile
 INSERT INTO communities (
   name,

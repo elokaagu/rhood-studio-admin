@@ -664,7 +664,7 @@ export default function CommunityDetailsPage({
             <AlertDialogDescription className="font-helvetica-regular helvetica-base text-muted-foreground">
               Are you sure you want to delete{" "}
               <span className="font-helvetica-bold text-brand-white">
-                "{community?.name}"
+                &quot;{community?.name}&quot;
               </span>
               ? This action cannot be undone and will permanently remove the community and all its messages.
             </AlertDialogDescription>

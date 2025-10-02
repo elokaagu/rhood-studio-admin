@@ -23,7 +23,6 @@ SELECT
 FROM information_schema.columns 
 WHERE table_schema = 'public' 
 AND table_name = 'communities'
-ORDER BY ordinal_position
 
 UNION ALL
 
@@ -40,4 +39,5 @@ SELECT
   'Record ' || ROW_NUMBER() OVER (ORDER BY id) as check_type,
   'ID: ' || id as result
 FROM communities
-LIMIT 5;
+
+ORDER BY check_type;

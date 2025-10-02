@@ -302,103 +302,16 @@ export default function MembersPage() {
     try {
       console.log("Deleting member:", memberToDelete.id, memberToDelete.name);
 
-      // Try a simpler approach - just delete the user profile directly
-      // If this fails, we'll know it's a permissions issue
-      let { data: deletedData, error } = await supabase
-        .from("user_profiles")
-        .delete()
-        .eq("id", memberToDelete.id)
-        .select();
+      // Import and use the robust deletion function
+      const { deleteMemberRobust } = await import("@/lib/robust-member-deletion");
+      
+      const result = await deleteMemberRobust(memberToDelete.id);
 
-      if (error) {
-        console.error("Error deleting user profile:", error);
-        console.error("Error details:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-          fullError: error,
-        });
-
-        // If it's a foreign key constraint error, try deleting related records first
-        if (error.message && error.message.includes("foreign key")) {
-          console.log(
-            "Foreign key constraint detected, trying to delete related records first..."
-          );
-
-          // Delete from community_members table
-          const { error: communityMembersError } = await supabase
-            .from("community_members")
-            .delete()
-            .eq("user_id", memberToDelete.id);
-
-          if (communityMembersError) {
-            console.error(
-              "Error deleting community members:",
-              communityMembersError
-            );
-          }
-
-          // Delete from messages table
-          const { error: messagesError } = await supabase
-            .from("messages")
-            .delete()
-            .eq("sender_id", memberToDelete.id);
-
-          if (messagesError) {
-            console.error("Error deleting messages:", messagesError);
-          }
-
-          // Delete from applications table
-          const { error: applicationsError } = await supabase
-            .from("applications")
-            .delete()
-            .eq("user_id", memberToDelete.id);
-
-          if (applicationsError) {
-            console.error("Error deleting applications:", applicationsError);
-          }
-
-          // Delete from connections table (this is what was causing the error)
-          // The table is called "connections" (plural) and has follower_id foreign key
-          const { error: connectionsError } = await supabase
-            .from("connections" as any)
-            .delete()
-            .eq("follower_id", memberToDelete.id);
-
-          if (connectionsError) {
-            console.error("Error deleting connections:", connectionsError);
-          }
-
-          // Also try deleting where user is the following (not just follower)
-          const { error: connectionsFollowingError } = await supabase
-            .from("connections" as any)
-            .delete()
-            .eq("following_id", memberToDelete.id);
-
-          if (connectionsFollowingError) {
-            console.error("Error deleting connections (following):", connectionsFollowingError);
-          }
-
-          // Try deleting the user profile again
-          const retryResult = await supabase
-            .from("user_profiles")
-            .delete()
-            .eq("id", memberToDelete.id)
-            .select();
-
-          if (retryResult.error) {
-            console.error("Error on retry:", retryResult.error);
-            throw retryResult.error;
-          }
-
-          deletedData = retryResult.data;
-        } else {
-          throw error;
-        }
+      if (!result.success) {
+        throw new Error(result.error || "Unknown error during deletion");
       }
 
-      console.log("Member deleted successfully from database:", deletedData);
+      console.log("Deletion completed successfully:", result.deletedRecords);
 
       // Remove from local state immediately
       setMembers((prevMembers) =>

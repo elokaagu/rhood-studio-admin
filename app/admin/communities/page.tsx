@@ -62,6 +62,7 @@ export default function CommunitiesPage() {
     name: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const router = useRouter();
 
@@ -412,7 +413,7 @@ export default function CommunitiesPage() {
                   <div className="flex items-center space-x-4 flex-1 min-w-0">
                     {/* Community Avatar */}
                     <div className="flex-shrink-0">
-                      {community.image_url ? (
+                      {community.image_url && !imageErrors.has(community.id) ? (
                         <div className="relative w-12 h-12 rounded-full overflow-hidden">
                           <Image
                             src={community.image_url}
@@ -427,6 +428,7 @@ export default function CommunitiesPage() {
                             onError={(e) => {
                               console.error('Community avatar load error:', community.name, community.image_url);
                               console.error('Error event:', e);
+                              setImageErrors(prev => new Set(prev).add(community.id));
                             }}
                             onLoad={() => {
                               console.log('Community avatar loaded successfully:', community.name, community.image_url);

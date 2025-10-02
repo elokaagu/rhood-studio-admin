@@ -84,6 +84,8 @@ export default function CommunityDetailsPage({
   const [sendingMessage, setSendingMessage] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -95,6 +97,10 @@ export default function CommunityDetailsPage({
     if (!communityId) return;
 
     try {
+      // Reset image state when fetching new community
+      setImageError(false);
+      setImageLoading(true);
+
       const { data, error } = await supabase
         .from("communities")
         .select(
@@ -441,7 +447,11 @@ export default function CommunityDetailsPage({
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center space-x-3">
-            {community.image_url ? (
+            {!community.image_url || imageError ? (
+              <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                <MessageSquare className="h-5 w-5 text-primary" />
+              </div>
+            ) : (
               <div className="relative w-10 h-10 rounded-full overflow-hidden">
                 <Image
                   src={community.image_url}
@@ -452,11 +462,21 @@ export default function CommunityDetailsPage({
                   placeholder="blur"
                   blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                   loading="lazy"
+                  onError={(e) => {
+                    console.error('Community image failed to load:', community.name, community.image_url);
+                    setImageError(true);
+                    setImageLoading(false);
+                  }}
+                  onLoad={() => {
+                    console.log('Community image loaded successfully:', community.name, community.image_url);
+                    setImageLoading(false);
+                  }}
                 />
-              </div>
-            ) : (
-              <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                <MessageSquare className="h-5 w-5 text-primary" />
+                {imageLoading && (
+                  <div className="absolute inset-0 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
+                    <MessageSquare className="h-5 w-5 text-primary/50" />
+                  </div>
+                )}
               </div>
             )}
             <div>

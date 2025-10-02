@@ -207,6 +207,17 @@ export default function MemberDetailsPage() {
         // Continue with user deletion even if this fails
       }
 
+      // Delete from connection table (this is what was causing the error)
+      const { error: connectionError } = await supabase
+        .from("connection")
+        .delete()
+        .eq("user_id", memberToDelete.id);
+
+      if (connectionError) {
+        console.error("Error deleting connections:", connectionError);
+        // Continue with user deletion even if this fails
+      }
+
       // Finally, delete the user profile
       const { data: deletedData, error } = await supabase
         .from("user_profiles")

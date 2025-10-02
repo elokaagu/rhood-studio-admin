@@ -1,7 +1,7 @@
 -- Debug FUTURE BEATS Community Image
 -- Run this in your Supabase SQL Editor
 
--- 1. Check if FUTURE BEATS community exists and has an image
+-- 1. Check if FUTURE BEATS community exists
 SELECT 
   'FUTURE BEATS Community Check' as check_type,
   CASE 
@@ -15,27 +15,7 @@ SELECT
 
 UNION ALL
 
--- 2. Show FUTURE BEATS community details
-SELECT 
-  'Community Details' as check_type,
-  'Name: ' || name || ', ID: ' || id || ', Has Image: ' || CASE WHEN image_url IS NOT NULL THEN 'YES' ELSE 'NO' END as result
-FROM communities 
-WHERE name ILIKE '%future beats%' OR name ILIKE '%future%'
-LIMIT 1
-
-UNION ALL
-
--- 3. Show the actual image URL if it exists
-SELECT 
-  'Image URL' as check_type,
-  COALESCE(image_url, 'NULL - No image URL') as result
-FROM communities 
-WHERE name ILIKE '%future beats%' OR name ILIKE '%future%'
-LIMIT 1
-
-UNION ALL
-
--- 4. Check all communities with images
+-- 2. Check all communities with images
 SELECT 
   'Communities with Images' as check_type,
   COUNT(*)::text || ' communities have images' as result
@@ -44,7 +24,7 @@ WHERE image_url IS NOT NULL
 
 UNION ALL
 
--- 5. Show first few communities with their image status
+-- 3. Show first few communities with their image status
 SELECT 
   'Community: ' || name as check_type,
   CASE 
@@ -52,5 +32,13 @@ SELECT
     ELSE 'No image'
   END as result
 FROM communities 
-ORDER BY created_at DESC
+ORDER BY created_at DESC NULLS LAST
 LIMIT 5;
+
+-- 4. Separate query for FUTURE BEATS details (if exists)
+SELECT 
+  'FUTURE BEATS Details' as check_type,
+  'Name: ' || name || ', ID: ' || id || ', Has Image: ' || CASE WHEN image_url IS NOT NULL THEN 'YES (' || LEFT(image_url, 30) || '...)' ELSE 'NO' END as result
+FROM communities 
+WHERE name ILIKE '%future beats%' OR name ILIKE '%future%'
+LIMIT 1;

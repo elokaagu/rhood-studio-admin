@@ -43,7 +43,7 @@ UNION ALL
 -- 5. Show communities with creator info
 SELECT 
   'Community: ' || name as check_type,
-  'ID: ' || id || ', Created by: ' || COALESCE(created_by, 'NULL') as result
+  'ID: ' || id || ', Created by: ' || COALESCE(created_by::text, 'NULL') as result
 FROM communities
 ORDER BY created_at DESC
 LIMIT 10;

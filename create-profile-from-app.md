@@ -13,32 +13,30 @@ Since `auth.uid()` returns null in the SQL Editor, here's how to create your pro
 // Get your user ID
 supabase.auth.getUser().then(async (userResult) => {
   const userId = userResult.data.user?.id;
-  console.log('Your User ID:', userId);
-  
+  console.log("Your User ID:", userId);
+
   if (!userId) {
-    console.error('Not logged in!');
+    console.error("Not logged in!");
     return;
   }
-  
+
   // Create your profile
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .upsert({
-      id: userId,
-      first_name: 'Studio',
-      last_name: 'Admin', 
-      dj_name: 'Rhood Admin',
-      email: 'admin@rhood.studio',
-      city: 'Studio',
-      bio: 'Rhood Studio Administrator',
-      genres: ['Admin', 'Studio', 'Management']
-    });
-    
+  const { data, error } = await supabase.from("user_profiles").upsert({
+    id: userId,
+    first_name: "Studio",
+    last_name: "Admin",
+    dj_name: "Rhood Admin",
+    email: "admin@rhood.studio",
+    city: "Studio",
+    bio: "Rhood Studio Administrator",
+    genres: ["Admin", "Studio", "Management"],
+  });
+
   if (error) {
-    console.error('Error creating profile:', error);
+    console.error("Error creating profile:", error);
   } else {
-    console.log('✅ Profile created successfully!');
-    console.log('You can now create communities!');
+    console.log("✅ Profile created successfully!");
+    console.log("You can now create communities!");
   }
 });
 ```

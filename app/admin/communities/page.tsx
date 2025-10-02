@@ -371,7 +371,7 @@ export default function CommunitiesPage() {
                           </span>
                         </div>
                       </div>
-                      
+
                       {community.description && (
                         <p
                           className={`${textStyles.body.small} text-muted-foreground mb-2 line-clamp-1`}
@@ -417,17 +417,23 @@ export default function CommunitiesPage() {
                       >
                         <Settings className="h-3 w-3" />
                       </Button>
-                      
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() =>
-                              router.push(`/admin/communities/${community.id}/edit`)
+                              router.push(
+                                `/admin/communities/${community.id}/edit`
+                              )
                             }
                           >
                             <Edit className="h-4 w-4 mr-2" />
@@ -444,7 +450,10 @@ export default function CommunitiesPage() {
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() =>
-                              handleDeleteCommunity(community.id, community.name)
+                              handleDeleteCommunity(
+                                community.id,
+                                community.name
+                              )
                             }
                           >
                             <Trash2 className="h-4 w-4 mr-2" />

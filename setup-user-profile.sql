@@ -3,6 +3,7 @@
 
 -- Step 1: Get your current user ID
 SELECT auth.uid() as user_id;
+\\|
 
 -- Step 2: Check if you already have a profile
 SELECT * FROM user_profiles WHERE id = auth.uid();

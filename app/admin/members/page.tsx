@@ -393,18 +393,51 @@ export default function MembersPage() {
         
         // If we still get a foreign key error, let's try a different approach
         if (userProfileError.message && userProfileError.message.includes("foreign key")) {
-          console.log("Foreign key constraint still exists. Trying alternative approach...");
+          console.log("Foreign key constraint still exists. Trying manual approach...");
           
-          // Try using a raw SQL query to delete with CASCADE
-          const { error: sqlError } = await (supabase.rpc as any)('delete_user_with_cascade', {
-            user_id_param: memberToDelete.id
-          });
+          // Try to manually delete any remaining connections using raw SQL
+          const { error: rawSqlError } = await supabase
+            .from("connections" as any)
+            .delete()
+            .or(`follower_id.eq.${memberToDelete.id},following_id.eq.${memberToDelete.id}`);
           
-          if (sqlError) {
-            console.error("SQL cascade deletion also failed:", sqlError);
-            throw userProfileError; // Throw original error
+          if (rawSqlError) {
+            console.error("Manual connections deletion failed:", rawSqlError);
           } else {
-            console.log("User deleted successfully using SQL cascade");
+            console.log("Manually deleted remaining connections");
+            
+            // Try deleting user profile again
+            const { data: retryData, error: retryError } = await supabase
+              .from("user_profiles")
+              .delete()
+              .eq("id", memberToDelete.id)
+              .select();
+            
+            if (retryError) {
+              console.error("Retry deletion also failed:", retryError);
+              throw userProfileError; // Throw original error
+            } else {
+              console.log("User deleted successfully on retry");
+              return; // Success, exit early
+            }
+          }
+          
+          // If manual approach fails, try the SQL function as last resort
+          try {
+            const { error: sqlError } = await (supabase.rpc as any)('delete_user_with_cascade', {
+              user_id_param: memberToDelete.id
+            });
+            
+            if (sqlError) {
+              console.error("SQL cascade deletion also failed:", sqlError);
+              throw userProfileError; // Throw original error
+            } else {
+              console.log("User deleted successfully using SQL cascade");
+              return; // Success, exit early
+            }
+          } catch (sqlFunctionError) {
+            console.error("SQL function doesn't exist or failed:", sqlFunctionError);
+            throw userProfileError; // Throw original error
           }
         } else {
           throw userProfileError;

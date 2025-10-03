@@ -206,6 +206,25 @@ export default function MemberDetailsPage() {
         console.error("Error deleting applications:", applicationsError);
       }
 
+      // Delete from message_threads table (this was causing constraint errors)
+      const { error: messageThreadsError1 } = await supabase
+        .from("message_threads" as any)
+        .delete()
+        .eq("participant_1", memberToDelete.id);
+
+      if (messageThreadsError1) {
+        console.error("Error deleting message_threads (participant_1):", messageThreadsError1);
+      }
+
+      const { error: messageThreadsError2 } = await supabase
+        .from("message_threads" as any)
+        .delete()
+        .eq("participant_2", memberToDelete.id);
+
+      if (messageThreadsError2) {
+        console.error("Error deleting message_threads (participant_2):", messageThreadsError2);
+      }
+
       // Step 4: Delete from connections (both directions)
       const { error: followerError } = await supabase
         .from("connections" as any)

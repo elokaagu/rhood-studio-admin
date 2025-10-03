@@ -338,12 +338,48 @@ export default function MembersPage() {
         console.error("Error deleting applications:", applicationsError);
       }
 
-      // Step 4: Skip connections deletion for now and try to delete user profile directly
-      console.log("Step 4: Skipping connections deletion due to persistent issues...");
-      console.log("Will attempt to delete user profile and handle constraint error if it occurs");
+      // Step 4: Delete from message_threads (this was causing constraint errors)
+      console.log("Step 4: Deleting from message_threads...");
+      const { error: messageThreadsError1 } = await supabase
+        .from("message_threads" as any)
+        .delete()
+        .eq("participant_1", memberToDelete.id);
 
-      // Step 5: Delete user profile
-      console.log("Step 5: Attempting to delete user profile...");
+      if (messageThreadsError1) {
+        console.error("Error deleting message_threads (participant_1):", messageThreadsError1);
+      }
+
+      const { error: messageThreadsError2 } = await supabase
+        .from("message_threads" as any)
+        .delete()
+        .eq("participant_2", memberToDelete.id);
+
+      if (messageThreadsError2) {
+        console.error("Error deleting message_threads (participant_2):", messageThreadsError2);
+      }
+
+      // Step 5: Delete from connections
+      console.log("Step 5: Deleting from connections...");
+      const { error: connectionsError1 } = await supabase
+        .from("connections" as any)
+        .delete()
+        .eq("follower_id", memberToDelete.id);
+
+      if (connectionsError1) {
+        console.error("Error deleting connections (follower_id):", connectionsError1);
+      }
+
+      const { error: connectionsError2 } = await supabase
+        .from("connections" as any)
+        .delete()
+        .eq("following_id", memberToDelete.id);
+
+      if (connectionsError2) {
+        console.error("Error deleting connections (following_id):", connectionsError2);
+      }
+
+      // Step 6: Delete user profile
+      console.log("Step 6: Attempting to delete user profile...");
       const { data: deletedData, error: userProfileError } = await supabase
         .from("user_profiles")
         .delete()

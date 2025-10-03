@@ -32,45 +32,98 @@ function ApplicationsContent() {
   // Fetch applications from database
   const fetchApplications = async () => {
     try {
-      const { data, error } = await supabase
-        .from("applications")
-        .select(
+      // Fetch from both applications table and application_form_responses table
+      const [applicationsResult, formResponsesResult] = await Promise.all([
+        // Fetch from simple applications table
+        supabase
+          .from("applications")
+          .select(
+            `
+            *,
+            opportunities(title),
+            user_profiles(dj_name, city, genres)
           `
-          *,
-          opportunities(title),
-          user_profiles(dj_name, city, genres)
-        `
-        )
-        .order("created_at", { ascending: false });
+          )
+          .order("created_at", { ascending: false }),
+        
+        // Fetch from application form responses table
+        supabase
+          .from("application_form_responses")
+          .select(
+            `
+            *,
+            opportunities(title),
+            user_profiles(dj_name, city, genres),
+            application_forms(title)
+          `
+          )
+          .order("submitted_at", { ascending: false })
+      ]);
 
-      if (error) {
-        throw error;
-      } else {
-        // Transform the data to match the expected format
-        const transformedApplications =
-          data?.map((app: any) => ({
-            id: app.id,
-            applicant: {
-              name: app.user_profiles?.dj_name || "Unknown",
-              djName: app.user_profiles?.dj_name || "Unknown",
-              avatar: "/person1.jpg", // Default avatar
-              location: app.user_profiles?.city || "Unknown",
-              genres: app.user_profiles?.genres || [],
-            },
-            opportunity: app.opportunities?.title || "Unknown Opportunity",
-            opportunityId: app.opportunity_id,
-            appliedDate: app.created_at
-              ? new Date(app.created_at).toISOString().split("T")[0]
-              : "Unknown",
-            status: app.status || "pending",
-            experience: "Unknown", // This field might need to be added to the database
-            portfolio: "Unknown", // This field might need to be added to the database
-          })) || [];
+      let allApplications: any[] = [];
 
-        setApplications(transformedApplications);
-        setIsLoading(false);
-        return; // Exit early if successful
+      // Process simple applications
+      if (applicationsResult.data && !applicationsResult.error) {
+        const transformedApplications = applicationsResult.data.map((app: any) => ({
+          id: app.id,
+          type: "simple",
+          applicant: {
+            name: app.user_profiles?.dj_name || "Unknown",
+            djName: app.user_profiles?.dj_name || "Unknown",
+            avatar: "/person1.jpg",
+            location: app.user_profiles?.city || "Unknown",
+            genres: app.user_profiles?.genres || [],
+          },
+          opportunity: app.opportunities?.title || "Unknown Opportunity",
+          opportunityId: app.opportunity_id,
+          appliedDate: app.created_at
+            ? new Date(app.created_at).toISOString().split("T")[0]
+            : "Unknown",
+          status: app.status || "pending",
+          experience: "Unknown",
+          portfolio: "Unknown",
+          message: app.message || "",
+        }));
+        allApplications = [...allApplications, ...transformedApplications];
       }
+
+      // Process form responses (briefs)
+      if (formResponsesResult.data && !formResponsesResult.error) {
+        const transformedFormResponses = formResponsesResult.data.map((response: any) => ({
+          id: response.id,
+          type: "form_response",
+          applicant: {
+            name: response.user_profiles?.dj_name || "Unknown",
+            djName: response.user_profiles?.dj_name || "Unknown",
+            avatar: "/person1.jpg",
+            location: response.user_profiles?.city || "Unknown",
+            genres: response.user_profiles?.genres || [],
+          },
+          opportunity: response.opportunities?.title || response.application_forms?.title || "Form Submission",
+          opportunityId: response.opportunity_id,
+          appliedDate: response.submitted_at
+            ? new Date(response.submitted_at).toISOString().split("T")[0]
+            : "Unknown",
+          status: response.status || "pending",
+          experience: response.response_data?.experience || "Unknown",
+          portfolio: response.response_data?.portfolio || response.response_data?.soundcloud || "Unknown",
+          message: response.review_notes || "",
+          responseData: response.response_data, // Store full response data for details
+        }));
+        allApplications = [...allApplications, ...transformedFormResponses];
+      }
+
+      // Sort all applications by date (most recent first)
+      allApplications.sort((a, b) => {
+        const dateA = new Date(a.appliedDate);
+        const dateB = new Date(b.appliedDate);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      setApplications(allApplications);
+      setIsLoading(false);
+      console.log(`Loaded ${allApplications.length} applications (${applicationsResult.data?.length || 0} simple + ${formResponsesResult.data?.length || 0} form responses)`);
+      return;
     } catch (error) {
       console.error("Error fetching applications:", error);
     }
@@ -168,11 +221,13 @@ function ApplicationsContent() {
     }
   };
 
-  const handleApprove = async (applicationId: string) => {
+  const handleApprove = async (applicationId: string, applicationType: string) => {
     try {
+      let tableName = applicationType === "form_response" ? "application_form_responses" : "applications";
+      
       // First, get the application details to create notification
       const { data: applicationData, error: fetchError } = await supabase
-        .from("applications")
+        .from(tableName as any)
         .select(
           `
           *,
@@ -188,9 +243,13 @@ function ApplicationsContent() {
       }
 
       // Update application status
+      const updateData = applicationType === "form_response" 
+        ? { status: "approved", reviewed_at: new Date().toISOString() }
+        : { status: "approved" };
+        
       const { error } = await supabase
-        .from("applications")
-        .update({ status: "approved" })
+        .from(tableName as any)
+        .update(updateData)
         .eq("id", applicationId);
 
       if (error) {
@@ -198,12 +257,12 @@ function ApplicationsContent() {
       }
 
       // Create notification for the user
-      if (applicationData?.user_id && applicationData?.opportunities?.title) {
+      if ((applicationData as any)?.user_id && (applicationData as any)?.opportunities?.title) {
         await createApplicationStatusNotification(
-          applicationData.user_id,
+          (applicationData as any).user_id,
           applicationId,
           "approved",
-          applicationData.opportunities.title
+          (applicationData as any).opportunities.title
         );
       }
 
@@ -225,11 +284,13 @@ function ApplicationsContent() {
     }
   };
 
-  const handleReject = async (applicationId: string) => {
+  const handleReject = async (applicationId: string, applicationType: string) => {
     try {
+      let tableName = applicationType === "form_response" ? "application_form_responses" : "applications";
+      
       // First, get the application details to create notification
       const { data: applicationData, error: fetchError } = await supabase
-        .from("applications")
+        .from(tableName as any)
         .select(
           `
           *,
@@ -245,9 +306,13 @@ function ApplicationsContent() {
       }
 
       // Update application status
+      const updateData = applicationType === "form_response" 
+        ? { status: "rejected", reviewed_at: new Date().toISOString() }
+        : { status: "rejected" };
+        
       const { error } = await supabase
-        .from("applications")
-        .update({ status: "rejected" })
+        .from(tableName as any)
+        .update(updateData)
         .eq("id", applicationId);
 
       if (error) {
@@ -255,12 +320,12 @@ function ApplicationsContent() {
       }
 
       // Create notification for the user
-      if (applicationData?.user_id && applicationData?.opportunities?.title) {
+      if ((applicationData as any)?.user_id && (applicationData as any)?.opportunities?.title) {
         await createApplicationStatusNotification(
-          applicationData.user_id,
+          (applicationData as any).user_id,
           applicationId,
           "rejected",
-          applicationData.opportunities.title
+          (applicationData as any).opportunities.title
         );
       }
 
@@ -428,6 +493,18 @@ function ApplicationsContent() {
                       {getStatusIcon(application.status)}
                       <span className="ml-1">{application.status}</span>
                     </Badge>
+                    
+                    {/* Application type indicator */}
+                    <Badge
+                      variant="outline"
+                      className={
+                        application.type === "form_response"
+                          ? "border-brand-green text-brand-green bg-transparent text-xs"
+                          : "border-blue-400 text-blue-400 bg-transparent text-xs"
+                      }
+                    >
+                      {application.type === "form_response" ? "Brief" : "Simple"}
+                    </Badge>
 
                     <div className="flex items-center space-x-2">
                       <Button
@@ -447,7 +524,7 @@ function ApplicationsContent() {
                             variant="outline"
                             size="sm"
                             className="text-brand-green hover:text-brand-green/80"
-                            onClick={() => handleApprove(application.id)}
+                            onClick={() => handleApprove(application.id, application.type)}
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
                             Approve
@@ -456,7 +533,7 @@ function ApplicationsContent() {
                             variant="outline"
                             size="sm"
                             className="text-red-600 hover:text-red-700"
-                            onClick={() => handleReject(application.id)}
+                            onClick={() => handleReject(application.id, application.type)}
                           >
                             <XCircle className="h-4 w-4 mr-1" />
                             Reject

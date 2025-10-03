@@ -183,7 +183,10 @@ export default function MemberDetailsPage() {
         .eq("user_id", memberToDelete.id);
 
       if (communityMembersError) {
-        console.error("Error deleting community members:", communityMembersError);
+        console.error(
+          "Error deleting community members:",
+          communityMembersError
+        );
       }
 
       // Step 2: Delete from messages
@@ -213,7 +216,10 @@ export default function MemberDetailsPage() {
         .eq("participant_1", memberToDelete.id);
 
       if (messageThreadsError1) {
-        console.error("Error deleting message_threads (participant_1):", messageThreadsError1);
+        console.error(
+          "Error deleting message_threads (participant_1):",
+          messageThreadsError1
+        );
       }
 
       const { error: messageThreadsError2 } = await supabase
@@ -222,7 +228,10 @@ export default function MemberDetailsPage() {
         .eq("participant_2", memberToDelete.id);
 
       if (messageThreadsError2) {
-        console.error("Error deleting message_threads (participant_2):", messageThreadsError2);
+        console.error(
+          "Error deleting message_threads (participant_2):",
+          messageThreadsError2
+        );
       }
 
       // Step 4: Delete from connections (both directions)

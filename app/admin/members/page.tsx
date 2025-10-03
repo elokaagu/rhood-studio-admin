@@ -346,7 +346,10 @@ export default function MembersPage() {
         .eq("participant_1", memberToDelete.id);
 
       if (messageThreadsError1) {
-        console.error("Error deleting message_threads (participant_1):", messageThreadsError1);
+        console.error(
+          "Error deleting message_threads (participant_1):",
+          messageThreadsError1
+        );
       }
 
       const { error: messageThreadsError2 } = await supabase
@@ -355,7 +358,10 @@ export default function MembersPage() {
         .eq("participant_2", memberToDelete.id);
 
       if (messageThreadsError2) {
-        console.error("Error deleting message_threads (participant_2):", messageThreadsError2);
+        console.error(
+          "Error deleting message_threads (participant_2):",
+          messageThreadsError2
+        );
       }
 
       // Step 5: Delete from connections
@@ -366,7 +372,10 @@ export default function MembersPage() {
         .eq("follower_id", memberToDelete.id);
 
       if (connectionsError1) {
-        console.error("Error deleting connections (follower_id):", connectionsError1);
+        console.error(
+          "Error deleting connections (follower_id):",
+          connectionsError1
+        );
       }
 
       const { error: connectionsError2 } = await supabase
@@ -375,7 +384,10 @@ export default function MembersPage() {
         .eq("following_id", memberToDelete.id);
 
       if (connectionsError2) {
-        console.error("Error deleting connections (following_id):", connectionsError2);
+        console.error(
+          "Error deleting connections (following_id):",
+          connectionsError2
+        );
       }
 
       // Step 6: Delete user profile
@@ -397,13 +409,13 @@ export default function MembersPage() {
           console.log(
             "Foreign key constraint prevents deletion. Manual deletion required."
           );
-          
+
           // Show user-friendly error with manual deletion instructions
           throw new Error(
             `Unable to delete member due to database constraints. ` +
-            `Please use the manual deletion script: ` +
-            `Run the SQL commands in manual-user-deletion.sql in your Supabase dashboard, ` +
-            `replacing 'USER_ID_HERE' with: ${memberToDelete.id}`
+              `Please use the manual deletion script: ` +
+              `Run the SQL commands in manual-user-deletion.sql in your Supabase dashboard, ` +
+              `replacing 'USER_ID_HERE' with: ${memberToDelete.id}`
           );
         } else {
           throw userProfileError;

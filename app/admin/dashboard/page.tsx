@@ -260,13 +260,13 @@ export default function DashboardPage() {
 
   // Skeleton component for stats cards
   const StatsSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {[1, 2, 3, 4].map((index) => (
         <Card key={index} className="bg-card border-border">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-3">
             <Skeleton className="h-4 w-24" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <Skeleton className="h-8 w-16 mb-2" />
             <Skeleton className="h-3 w-20" />
           </CardContent>
@@ -278,11 +278,11 @@ export default function DashboardPage() {
   // Skeleton component for activity cards
   const ActivitySkeleton = () => (
     <Card className="bg-card border-border">
-      <CardHeader>
+      <CardHeader className="pb-4">
         <Skeleton className="h-6 w-32" />
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
+      <CardContent className="pt-0">
+        <div className="space-y-4">
           {[1, 2, 3, 4].map((index) => (
             <Card key={index} className="bg-card border-border">
               <CardContent className="p-4">
@@ -299,11 +299,11 @@ export default function DashboardPage() {
   // Skeleton component for events cards
   const EventsSkeleton = () => (
     <Card className="bg-card border-border">
-      <CardHeader>
+      <CardHeader className="pb-4">
         <Skeleton className="h-6 w-40" />
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
+      <CardContent className="pt-0">
+        <div className="space-y-4">
           {[1, 2, 3].map((index) => (
             <Card key={index} className="bg-card border-border">
               <CardContent className="p-4">
@@ -312,7 +312,7 @@ export default function DashboardPage() {
                     <Skeleton className="h-4 w-full mb-2" />
                     <Skeleton className="h-3 w-24" />
                   </div>
-                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <Skeleton className="h-6 w-16 rounded-full ml-3" />
                 </div>
               </CardContent>
             </Card>
@@ -323,31 +323,31 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {isLoading ? (
         <>
           <StatsSkeleton />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <ActivitySkeleton />
             <EventsSkeleton />
           </div>
         </>
       ) : (
-        <div className="animate-in fade-in-0 duration-500">
+        <div className="animate-in fade-in-0 duration-500 space-y-8">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat, index) => (
               <Card key={index} className="bg-card border-border">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-3">
                   <CardTitle className={textStyles.subheading.small}>
                     {stat.title}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                   <div className={textStyles.subheading.large}>
                     {stat.value}
                   </div>
-                  <p className={`${textStyles.body.small} mt-1`}>
+                  <p className={`${textStyles.body.small} mt-2`}>
                     {stat.change}
                   </p>
                 </CardContent>
@@ -356,10 +356,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Activity and Upcoming Events */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Recent Activity */}
             <Card className="bg-card border-border">
-              <CardHeader>
+              <CardHeader className="pb-4">
                 <CardTitle
                   className={`${textStyles.headline.section} text-left`}
                 >
@@ -368,8 +368,8 @@ export default function DashboardPage() {
                   ACTIVITY
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+              <CardContent className="pt-0">
+                <div className="space-y-4">
                   {recentActivity.map((activity, index) => (
                     <Card key={index} className="bg-card border-border">
                       <CardContent className="p-4">
@@ -377,7 +377,7 @@ export default function DashboardPage() {
                           <p className={textStyles.body.regular}>
                             {activity.message}
                           </p>
-                          <p className={`${textStyles.body.small} mt-1`}>
+                          <p className={`${textStyles.body.small} mt-2`}>
                             {activity.time}
                           </p>
                         </div>
@@ -390,7 +390,7 @@ export default function DashboardPage() {
 
             {/* Upcoming Events */}
             <Card className="bg-card border-border">
-              <CardHeader>
+              <CardHeader className="pb-4">
                 <CardTitle
                   className={`${textStyles.headline.section} text-left`}
                 >
@@ -399,8 +399,8 @@ export default function DashboardPage() {
                   EVENTS
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+              <CardContent className="pt-0">
+                <div className="space-y-4">
                   {upcomingEvents.map((event, index) => (
                     <Card key={index} className="bg-card border-border">
                       <CardContent className="p-4">
@@ -409,13 +409,13 @@ export default function DashboardPage() {
                             <p className={textStyles.body.regular}>
                               {event.title}
                             </p>
-                            <p className={`${textStyles.body.small} mt-1`}>
+                            <p className={`${textStyles.body.small} mt-2`}>
                               {event.date} - {event.time}
                             </p>
                           </div>
                           <Badge
                             variant="outline"
-                            className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                            className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase ml-3"
                           >
                             {event.genre}
                           </Badge>

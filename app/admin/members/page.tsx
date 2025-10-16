@@ -96,13 +96,20 @@ export default function MembersPage() {
                 .from("ai_matching_feedback")
                 .select("rating")
                 .eq("user_id", member.id);
-              
+
               if (feedbackData && feedbackData.length > 0) {
-                const totalRating = feedbackData.reduce((sum, feedback) => sum + feedback.rating, 0);
+                const totalRating = feedbackData.reduce(
+                  (sum, feedback) => sum + feedback.rating,
+                  0
+                );
                 rating = totalRating / feedbackData.length;
               }
             } catch (ratingError) {
-              console.warn("Could not fetch rating for user:", member.id, ratingError);
+              console.warn(
+                "Could not fetch rating for user:",
+                member.id,
+                ratingError
+              );
             }
 
             return {
@@ -215,27 +222,31 @@ export default function MembersPage() {
   // Format date to "13th October 2025" format
   const formatDate = (dateString: string) => {
     if (!dateString || dateString === "Unknown") return "Unknown";
-    
+
     try {
       const date = new Date(dateString);
       const day = date.getDate();
-      const month = date.toLocaleString('en-US', { month: 'long' });
+      const month = date.toLocaleString("en-US", { month: "long" });
       const year = date.getFullYear();
-      
+
       // Add ordinal suffix to day
       const getOrdinalSuffix = (day: number) => {
-        if (day >= 11 && day <= 13) return 'th';
+        if (day >= 11 && day <= 13) return "th";
         switch (day % 10) {
-          case 1: return 'st';
-          case 2: return 'nd';
-          case 3: return 'rd';
-          default: return 'th';
+          case 1:
+            return "st";
+          case 2:
+            return "nd";
+          case 3:
+            return "rd";
+          default:
+            return "th";
         }
       };
-      
+
       return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
     } catch (error) {
-      console.error('Error formatting date:', error);
+      console.error("Error formatting date:", error);
       return dateString;
     }
   };

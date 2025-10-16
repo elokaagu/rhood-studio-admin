@@ -450,15 +450,6 @@ export default function MemberDetailsPage() {
                 <h3 className={textStyles.subheading.small}>Bio</h3>
                 <p className={textStyles.body.regular}>{member.bio}</p>
               </div>
-
-              <div className="space-y-2">
-                <h3 className={textStyles.subheading.small}>Genres</h3>
-                <div className="flex flex-wrap gap-2">
-                  {member.genres.map((genre: string) => (
-                    <div key={genre}>{getGenreBadge(genre)}</div>
-                  ))}
-                </div>
-              </div>
             </CardContent>
           </Card>
 

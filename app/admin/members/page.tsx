@@ -686,11 +686,8 @@ export default function MembersPage() {
                     </div>
                   </div>
 
-                  {/* Right Side - Tags and Actions */}
+                  {/* Right Side - Actions */}
                   <div className="flex items-center space-x-2">
-                    {member.genres.map((genre: string) => (
-                      <div key={genre}>{getGenreBadge(genre)}</div>
-                    ))}
                     {getStatusBadge(member.status)}
 
                     <Button

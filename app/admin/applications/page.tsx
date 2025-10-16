@@ -41,7 +41,7 @@ function ApplicationsContent() {
             `
             *,
             opportunities(title),
-            user_profiles(dj_name, city, genres)
+            user_profiles(dj_name, first_name, last_name, city, location, genres, email)
           `
           )
           .order("created_at", { ascending: false }),
@@ -53,7 +53,7 @@ function ApplicationsContent() {
             `
             *,
             opportunities(title),
-            user_profiles(dj_name, city, genres),
+            user_profiles(dj_name, first_name, last_name, city, location, genres, email),
             application_forms(title)
           `
           )
@@ -64,61 +64,69 @@ function ApplicationsContent() {
 
       // Process simple applications
       if (applicationsResult.data && !applicationsResult.error) {
+        console.log("Simple applications data:", applicationsResult.data);
         const transformedApplications = applicationsResult.data.map(
-          (app: any) => ({
-            id: app.id,
-            type: "simple",
-            applicant: {
-              name: app.user_profiles?.dj_name || "Unknown",
-              djName: app.user_profiles?.dj_name || "Unknown",
-              avatar: "/person1.jpg",
-              location: app.user_profiles?.city || "Unknown",
-              genres: app.user_profiles?.genres || [],
-            },
-            opportunity: app.opportunities?.title || "Unknown Opportunity",
-            opportunityId: app.opportunity_id,
-            appliedDate: app.created_at
-              ? new Date(app.created_at).toISOString().split("T")[0]
-              : "Unknown",
-            status: app.status || "pending",
-            experience: "Unknown",
-            portfolio: "Unknown",
-            message: app.message || "",
-          })
+          (app: any) => {
+            console.log("Processing application:", app);
+            return {
+              id: app.id,
+              type: "simple",
+              applicant: {
+                name: app.user_profiles?.dj_name || app.user_profiles?.first_name || "Unknown",
+                djName: app.user_profiles?.dj_name || app.user_profiles?.first_name || "Unknown",
+                avatar: "/person1.jpg",
+                location: app.user_profiles?.city || app.user_profiles?.location || "Unknown",
+                genres: app.user_profiles?.genres || [],
+              },
+              opportunity: app.opportunities?.title || "Unknown Opportunity",
+              opportunityId: app.opportunity_id,
+              appliedDate: app.created_at
+                ? new Date(app.created_at).toISOString().split("T")[0]
+                : "Unknown",
+              status: app.status || "pending",
+              experience: "Unknown",
+              portfolio: "Unknown",
+              message: app.message || "",
+            };
+          }
         );
         allApplications = [...allApplications, ...transformedApplications];
       }
 
       // Process form responses (briefs)
       if (formResponsesResult.data && !formResponsesResult.error) {
+        console.log("Form responses data:", formResponsesResult.data);
         const transformedFormResponses = formResponsesResult.data.map(
-          (response: any) => ({
-            id: response.id,
-            type: "form_response",
-            applicant: {
-              name: response.user_profiles?.dj_name || "Unknown",
-              djName: response.user_profiles?.dj_name || "Unknown",
-              avatar: "/person1.jpg",
-              location: response.user_profiles?.city || "Unknown",
-              genres: response.user_profiles?.genres || [],
-            },
-            opportunity:
-              response.opportunities?.title ||
-              response.application_forms?.title ||
-              "Form Submission",
-            opportunityId: response.opportunity_id,
-            appliedDate: response.submitted_at
-              ? new Date(response.submitted_at).toISOString().split("T")[0]
-              : "Unknown",
-            status: response.status || "pending",
-            experience: response.response_data?.experience || "Unknown",
-            portfolio:
-              response.response_data?.portfolio ||
-              response.response_data?.soundcloud ||
-              "Unknown",
-            message: response.review_notes || "",
-            responseData: response.response_data, // Store full response data for details
-          })
+          (response: any) => {
+            console.log("Processing form response:", response);
+            return {
+              id: response.id,
+              type: "form_response",
+              applicant: {
+                name: response.user_profiles?.dj_name || response.user_profiles?.first_name || "Unknown",
+                djName: response.user_profiles?.dj_name || response.user_profiles?.first_name || "Unknown",
+                avatar: "/person1.jpg",
+                location: response.user_profiles?.city || response.user_profiles?.location || "Unknown",
+                genres: response.user_profiles?.genres || [],
+              },
+              opportunity:
+                response.opportunities?.title ||
+                response.application_forms?.title ||
+                "Form Submission",
+              opportunityId: response.opportunity_id,
+              appliedDate: response.submitted_at
+                ? new Date(response.submitted_at).toISOString().split("T")[0]
+                : "Unknown",
+              status: response.status || "pending",
+              experience: response.response_data?.experience || "Unknown",
+              portfolio:
+                response.response_data?.portfolio ||
+                response.response_data?.soundcloud ||
+                "Unknown",
+              message: response.review_notes || "",
+              responseData: response.response_data, // Store full response data for details
+            };
+          }
         );
         allApplications = [...allApplications, ...transformedFormResponses];
       }

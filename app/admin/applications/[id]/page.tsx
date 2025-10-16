@@ -471,19 +471,6 @@ export default function ApplicationDetailsPage() {
                 </p>
               </div>
 
-              <div>
-                <h4 className={textStyles.subheading.small}>Cover Letter</h4>
-                <p className={textStyles.body.regular}>
-                  {application.coverLetter}
-                </p>
-              </div>
-
-              <div>
-                <h4 className={textStyles.subheading.small}>Equipment</h4>
-                <p className={textStyles.body.regular}>
-                  {application.equipment}
-                </p>
-              </div>
 
               <div>
                 <h4 className={textStyles.subheading.small}>Portfolio</h4>
@@ -523,12 +510,6 @@ export default function ApplicationDetailsPage() {
                 </span>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className={textStyles.body.regular}>Experience</span>
-                <span className={textStyles.subheading.small}>
-                  {application.experience}
-                </span>
-              </div>
             </CardContent>
           </Card>
 
@@ -560,7 +541,7 @@ export default function ApplicationDetailsPage() {
                 }
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Open Portfolio
+                Listen to Audio ID
               </Button>
               <Button
                 variant="outline"

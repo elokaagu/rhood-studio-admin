@@ -574,18 +574,6 @@ function ApplicationsContent() {
                           ({application.applicant.djName})
                         </span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        {application.applicant.genres.map((genre: string) => (
-                          <Badge
-                            key={genre}
-                            variant="outline"
-                            className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
-                          >
-                            <Music className="h-3 w-3 mr-1" />
-                            {genre}
-                          </Badge>
-                        ))}
-                      </div>
                     </div>
                   </div>
 
@@ -595,7 +583,9 @@ function ApplicationsContent() {
                       className="border-gray-400 text-gray-400 bg-transparent text-xs"
                     >
                       {getStatusIcon(application.status)}
-                      <span className="ml-1">{application.status}</span>
+                      <span className="ml-1">
+                        {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                      </span>
                     </Badge>
 
 

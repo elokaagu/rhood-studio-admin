@@ -598,19 +598,6 @@ function ApplicationsContent() {
                       <span className="ml-1">{application.status}</span>
                     </Badge>
 
-                    {/* Application type indicator */}
-                    <Badge
-                      variant="outline"
-                      className={
-                        application.type === "form_response"
-                          ? "border-brand-green text-brand-green bg-transparent text-xs"
-                          : "border-blue-400 text-blue-400 bg-transparent text-xs"
-                      }
-                    >
-                      {application.type === "form_response"
-                        ? "Brief"
-                        : "Simple"}
-                    </Badge>
 
                     <div className="flex items-center space-x-2">
                       <Button

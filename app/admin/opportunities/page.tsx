@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
+import { formatDate } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
 import {
@@ -333,9 +334,7 @@ export default function OpportunitiesPage() {
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1" />
                         {opportunity.event_date
-                          ? new Date(
-                              opportunity.event_date
-                            ).toLocaleDateString()
+                          ? formatDate(opportunity.event_date)
                           : opportunity.date}
                       </div>
                       <div className="flex items-center">

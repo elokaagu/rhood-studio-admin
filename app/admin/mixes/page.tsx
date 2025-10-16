@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateShort } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { textStyles } from "@/lib/typography";
 import Image from "next/image";
@@ -96,7 +97,7 @@ export default function MixesPage() {
         const transformedMixes = (data || []).map((mix: any) => ({
           ...mix,
           // Ensure consistent field names
-          uploadDate: mix.created_at ? new Date(mix.created_at).toLocaleDateString() : mix.uploadDate,
+          uploadDate: mix.created_at ? formatDateShort(mix.created_at) : mix.uploadDate,
           audioUrl: mix.file_url || mix.audioUrl,
           appliedFor: mix.applied_for || mix.appliedFor,
           // Add default values for missing fields
@@ -858,7 +859,7 @@ export default function MixesPage() {
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />
                           {mix.created_at
-                            ? new Date(mix.created_at).toLocaleDateString()
+                            ? formatDateShort(mix.created_at)
                             : mix.uploadDate}
                         </div>
                       </div>

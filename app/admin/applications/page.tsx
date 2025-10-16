@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
+import { formatDate } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { createApplicationStatusNotification } from "@/lib/notifications";
 import {
@@ -90,7 +91,7 @@ function ApplicationsContent() {
               opportunity: app.opportunities?.title || "Unknown Opportunity",
               opportunityId: app.opportunity_id,
               appliedDate: app.created_at
-                ? new Date(app.created_at).toISOString().split("T")[0]
+                ? formatDate(app.created_at)
                 : "Unknown",
               status: app.status || "pending",
               experience: "Unknown",
@@ -133,7 +134,7 @@ function ApplicationsContent() {
                 "Form Submission",
               opportunityId: response.opportunity_id,
               appliedDate: response.submitted_at
-                ? new Date(response.submitted_at).toISOString().split("T")[0]
+                ? formatDate(response.submitted_at)
                 : "Unknown",
               status: response.status || "pending",
               experience: response.response_data?.experience || "Unknown",

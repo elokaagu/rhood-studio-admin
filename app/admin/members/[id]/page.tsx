@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
+import { formatDate } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft,
@@ -71,7 +72,7 @@ export default function MemberDetailsPage() {
           email: data.email || "No email",
           location: data.city || "Unknown",
           joinDate: data.created_at
-            ? new Date(data.created_at).toISOString().split("T")[0]
+            ? formatDate(data.created_at)
             : "Unknown",
           genres: data.genres || [],
           status: "active", // Default to active since is_active field doesn't exist in schema
@@ -105,7 +106,7 @@ export default function MemberDetailsPage() {
         name: "Eloka Agu",
         email: "eloka.agu@icloud.com",
         location: "San Francisco",
-        joinDate: "2025-09-22",
+        joinDate: "22nd September 2025",
         genres: ["HOUSE", "DRUM & BASS"],
         status: "active",
         gigs: 0,
@@ -121,7 +122,7 @@ export default function MemberDetailsPage() {
         name: "Elijah",
         email: "placeholder_bb5bfd41-2512-4260-a9e5-e3d5b64999d9@example.com",
         location: "Los Angeles",
-        joinDate: "2025-09-10",
+        joinDate: "10th September 2025",
         genres: ["TECHNO"],
         status: "active",
         gigs: 0,
@@ -136,7 +137,7 @@ export default function MemberDetailsPage() {
         name: "Eloka",
         email: "placeholder_af60c46a-6a04-4b1d-b0cb-1313c7adaeb0@example.com",
         location: "Miami",
-        joinDate: "2025-09-09",
+        joinDate: "9th September 2025",
         genres: ["TECHNO", "TECH HOUSE"],
         status: "active",
         gigs: 0,

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { textStyles } from "@/lib/typography";
+import { formatDateShort } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function DashboardPage() {
@@ -147,7 +148,7 @@ export default function DashboardPage() {
             activities.push({
               type: "application",
               message: `${app.user_profiles.dj_name} applied to ${app.opportunities.title}`,
-              time: new Date(app.created_at).toLocaleDateString(),
+              time: formatDateShort(app.created_at),
             });
           });
         }
@@ -158,7 +159,7 @@ export default function DashboardPage() {
             activities.push({
               type: "opportunity",
               message: `New opportunity posted: ${opp.title}`,
-              time: new Date(opp.created_at).toLocaleDateString(),
+              time: formatDateShort(opp.created_at),
             });
           });
         }
@@ -169,7 +170,7 @@ export default function DashboardPage() {
             activities.push({
               type: "member",
               message: `${user.dj_name} joined the platform`,
-              time: new Date(user.created_at).toLocaleDateString(),
+              time: formatDateShort(user.created_at),
             });
           });
         }
@@ -251,10 +252,7 @@ export default function DashboardPage() {
             } else if (diffDays === 0) {
               dateDisplay = "Today";
             } else {
-              dateDisplay = eventDate.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              });
+              dateDisplay = formatDateShort(eventDate);
             }
 
             return {

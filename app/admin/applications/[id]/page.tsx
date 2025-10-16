@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
+import { formatDate } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { createApplicationStatusNotification } from "@/lib/notifications";
 import {
@@ -163,7 +164,7 @@ export default function ApplicationDetailsPage() {
           opportunity: data.opportunities?.title || "Unknown Opportunity",
           opportunityId: data.opportunity_id,
           appliedDate: data.created_at
-            ? new Date(data.created_at).toISOString().split("T")[0]
+            ? formatDate(data.created_at)
             : "Unknown",
           status: data.status || "pending",
           coverLetter: data.message || "No cover letter provided",

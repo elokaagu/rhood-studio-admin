@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { textStyles } from "@/lib/typography";
+import { formatDate } from "@/lib/date-utils";
 import {
   Search,
   MapPin,
@@ -117,9 +118,9 @@ export default function MembersPage() {
               name: `${member.first_name} ${member.last_name}`,
               email: member.email,
               location: member.city,
-              joinedDate: member.created_at
-                ? new Date(member.created_at).toISOString().split("T")[0]
-                : "Unknown",
+            joinedDate: member.created_at
+              ? formatDate(member.created_at)
+              : "Unknown",
               gigs: 0, // This field might need to be calculated from applications
               rating: Math.round(rating * 10) / 10, // Round to 1 decimal place
               genres: member.genres || [],
@@ -154,7 +155,7 @@ export default function MembersPage() {
         name: "Alex Thompson",
         email: "alex@example.com",
         location: "London, UK",
-        joinedDate: "2024-01-15",
+        joinedDate: "15th January 2024",
         gigs: 12,
         rating: 4.8,
         genres: ["Techno", "House"],
@@ -166,7 +167,7 @@ export default function MembersPage() {
         name: "Maya Rodriguez",
         email: "maya@example.com",
         location: "Berlin, Germany",
-        joinedDate: "2024-02-03",
+        joinedDate: "3rd February 2024",
         gigs: 18,
         rating: 4.9,
         genres: ["Techno", "Industrial"],
@@ -178,7 +179,7 @@ export default function MembersPage() {
         name: "Kai Johnson",
         email: "kai@example.com",
         location: "Amsterdam, Netherlands",
-        joinedDate: "2024-03-12",
+        joinedDate: "12th March 2024",
         gigs: 8,
         rating: 4.7,
         genres: ["Drum & Bass", "Techno"],
@@ -190,7 +191,7 @@ export default function MembersPage() {
         name: "Sofia Martinez",
         email: "sofia@example.com",
         location: "Barcelona, Spain",
-        joinedDate: "2024-04-20",
+        joinedDate: "20th April 2024",
         gigs: 15,
         rating: 4.6,
         genres: ["Deep House", "Melodic Techno"],
@@ -202,7 +203,7 @@ export default function MembersPage() {
         name: "Chen Wei",
         email: "chen@example.com",
         location: "Tokyo, Japan",
-        joinedDate: "2024-05-08",
+        joinedDate: "8th May 2024",
         gigs: 6,
         rating: 4.5,
         genres: ["Minimal", "Ambient"],
@@ -219,37 +220,6 @@ export default function MembersPage() {
     fetchMembers();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Format date to "13th October 2025" format
-  const formatDate = (dateString: string) => {
-    if (!dateString || dateString === "Unknown") return "Unknown";
-
-    try {
-      const date = new Date(dateString);
-      const day = date.getDate();
-      const month = date.toLocaleString("en-US", { month: "long" });
-      const year = date.getFullYear();
-
-      // Add ordinal suffix to day
-      const getOrdinalSuffix = (day: number) => {
-        if (day >= 11 && day <= 13) return "th";
-        switch (day % 10) {
-          case 1:
-            return "st";
-          case 2:
-            return "nd";
-          case 3:
-            return "rd";
-          default:
-            return "th";
-        }
-      };
-
-      return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return dateString;
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {

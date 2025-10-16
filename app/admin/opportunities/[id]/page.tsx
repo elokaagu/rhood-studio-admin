@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
+import { formatDate } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
 import {
@@ -77,7 +78,7 @@ export default function OpportunityDetailsPage() {
           title: data.title,
           location: data.location,
           date: data.event_date
-            ? new Date(data.event_date).toISOString().split("T")[0]
+            ? formatDate(data.event_date)
             : "Unknown",
           pay: data.payment ? `£${data.payment}` : "N/A",
           applicants: 0, // This would need to be calculated from applications

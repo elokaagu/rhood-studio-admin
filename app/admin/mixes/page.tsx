@@ -970,11 +970,6 @@ export default function MixesPage() {
                           by {mix.artist}
                         </p>
                       </div>
-
-                      {/* Status Badge */}
-                      <div className="ml-4 flex-shrink-0">
-                        {getStatusBadge(mix.status)}
-                      </div>
                     </div>
 
                     {/* Metadata */}

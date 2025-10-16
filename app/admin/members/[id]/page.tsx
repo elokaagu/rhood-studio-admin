@@ -407,8 +407,8 @@ export default function MemberDetailsPage() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-16 w-16 bg-brand-green">
-                    <AvatarImage 
-                      src={member.profileImageUrl} 
+                    <AvatarImage
+                      src={member.profileImageUrl}
                       alt={member.name}
                       className="object-cover"
                     />

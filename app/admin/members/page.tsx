@@ -643,8 +643,8 @@ export default function MembersPage() {
                   <div className="flex items-center space-x-4 flex-1">
                     {/* Avatar with Profile Image */}
                     <Avatar className="h-12 w-12 bg-brand-green">
-                      <AvatarImage 
-                        src={member.profileImageUrl} 
+                      <AvatarImage
+                        src={member.profileImageUrl}
                         alt={member.name}
                         className="object-cover"
                       />

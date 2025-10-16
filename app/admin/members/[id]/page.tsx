@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,6 +78,7 @@ export default function MemberDetailsPage() {
           gigs: 0, // This would need to be calculated from applications
           bio: data.bio || "No bio available",
           phone: "No phone", // Phone field doesn't exist in database schema
+          profileImageUrl: data.profile_image_url, // Add profile image URL
           socialLinks: {
             instagram: data.instagram || "",
             soundcloud: data.soundcloud || "",
@@ -404,14 +406,19 @@ export default function MemberDetailsPage() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="h-16 w-16 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-lg font-bold text-gray-600">
+                  <Avatar className="h-16 w-16 bg-brand-green">
+                    <AvatarImage 
+                      src={member.profileImageUrl} 
+                      alt={member.name}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="text-brand-black font-bold text-lg">
                       {member.name
                         .split(" ")
                         .map((n: string) => n[0])
                         .join("")}
-                    </span>
-                  </div>
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
                     <CardTitle
                       className={`${textStyles.subheading.large} flex items-center`}

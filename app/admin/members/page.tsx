@@ -641,8 +641,13 @@ export default function MembersPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4 flex-1">
-                    {/* Avatar with Initials */}
+                    {/* Avatar with Profile Image */}
                     <Avatar className="h-12 w-12 bg-brand-green">
+                      <AvatarImage 
+                        src={member.profileImageUrl} 
+                        alt={member.name}
+                        className="object-cover"
+                      />
                       <AvatarFallback className="text-brand-black font-bold">
                         {getInitials(member.name)}
                       </AvatarFallback>

@@ -471,7 +471,6 @@ export default function ApplicationDetailsPage() {
                 </p>
               </div>
 
-
               <div>
                 <h4 className={textStyles.subheading.small}>Portfolio</h4>
                 <a
@@ -509,7 +508,6 @@ export default function ApplicationDetailsPage() {
                   {application.appliedDate}
                 </span>
               </div>
-
             </CardContent>
           </Card>
 

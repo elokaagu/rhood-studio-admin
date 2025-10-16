@@ -365,48 +365,43 @@ export default function OpportunitiesPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end space-y-2">
-                    <div className="flex items-center space-x-2">
-                      {getStatusBadge(
-                        opportunity.is_active ? "active" : opportunity.status
-                      )}
-                      <Badge
-                        variant="outline"
-                        className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
-                      >
-                        {opportunity.genre}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-foreground"
-                        onClick={() =>
-                          (window.location.href = `/admin/opportunities/${opportunity.id}`)
-                        }
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Details
-                      </Button>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-card border-border">
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(opportunity.id, opportunity.title)}
-                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                  <div className="flex items-center space-x-2">
+                    {getStatusBadge(
+                      opportunity.is_active ? "active" : opportunity.status
+                    )}
+                    <Badge
+                      variant="outline"
+                      className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                    >
+                      {opportunity.genre}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-foreground"
+                      onClick={() =>
+                        (window.location.href = `/admin/opportunities/${opportunity.id}`)
+                      }
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View Details
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-card border-border">
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(opportunity.id, opportunity.title)}
+                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardContent>

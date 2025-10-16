@@ -244,26 +244,26 @@ export default function DashboardPage() {
             const now = new Date();
             const diffTime = eventDate.getTime() - now.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
+
             let dateDisplay = "";
             if (diffDays === 1) {
               dateDisplay = "Tomorrow";
             } else if (diffDays === 0) {
               dateDisplay = "Today";
             } else {
-              dateDisplay = eventDate.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric' 
+              dateDisplay = eventDate.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
               });
             }
 
             return {
               title: opp.title,
               date: dateDisplay,
-              time: eventDate.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true 
+              time: eventDate.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
               }),
               genre: opp.genre || "General",
               location: opp.location,
@@ -519,10 +519,14 @@ export default function DashboardPage() {
                   ) : (
                     <div className="text-center py-8">
                       <div className="text-4xl mb-4">📅</div>
-                      <p className={`${textStyles.body.regular} text-muted-foreground`}>
+                      <p
+                        className={`${textStyles.body.regular} text-muted-foreground`}
+                      >
                         No upcoming events
                       </p>
-                      <p className={`${textStyles.body.small} text-muted-foreground mt-2`}>
+                      <p
+                        className={`${textStyles.body.small} text-muted-foreground mt-2`}
+                      >
                         Create opportunities to see upcoming events here
                       </p>
                     </div>

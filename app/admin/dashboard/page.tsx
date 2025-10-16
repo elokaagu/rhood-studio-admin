@@ -344,8 +344,12 @@ export default function DashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className={textStyles.subheading.large}>{stat.value}</div>
-                  <p className={`${textStyles.body.small} mt-1`}>{stat.change}</p>
+                  <div className={textStyles.subheading.large}>
+                    {stat.value}
+                  </div>
+                  <p className={`${textStyles.body.small} mt-1`}>
+                    {stat.change}
+                  </p>
                 </CardContent>
               </Card>
             ))}
@@ -356,7 +360,9 @@ export default function DashboardPage() {
             {/* Recent Activity */}
             <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className={`${textStyles.headline.section} text-left`}>
+                <CardTitle
+                  className={`${textStyles.headline.section} text-left`}
+                >
                   RECENT
                   <br />
                   ACTIVITY
@@ -385,7 +391,9 @@ export default function DashboardPage() {
             {/* Upcoming Events */}
             <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className={`${textStyles.headline.section} text-left`}>
+                <CardTitle
+                  className={`${textStyles.headline.section} text-left`}
+                >
                   UPCOMING
                   <br />
                   EVENTS

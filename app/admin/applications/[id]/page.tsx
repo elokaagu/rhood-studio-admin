@@ -122,7 +122,7 @@ export default function ApplicationDetailsPage() {
           `
           *,
           opportunities!inner(title, description, location, event_date, payment, genre),
-          user_profiles!inner(dj_name, city, genres, email, bio)
+          user_profiles!inner(dj_name, city, genres, email, bio, profile_image_url)
         `
         )
         .eq("id", applicationId as string)
@@ -153,7 +153,7 @@ export default function ApplicationDetailsPage() {
           applicant: {
             name: data.user_profiles?.dj_name || "Unknown",
             djName: data.user_profiles?.dj_name || "Unknown",
-            avatar: "/person1.jpg", // Default avatar
+            avatar: data.user_profiles?.profile_image_url || "/person1.jpg", // Use actual profile image or fallback
             location: data.user_profiles?.city || "Unknown",
             genres: data.user_profiles?.genres || [],
             email: data.user_profiles?.email || "Unknown",
@@ -400,13 +400,17 @@ export default function ApplicationDetailsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start space-x-4">
-                <Avatar className="h-16 w-16">
+                <Avatar className="h-16 w-16 bg-brand-green">
                   <AvatarImage
                     src={application.applicant.avatar}
                     alt={application.applicant.name}
+                    className="object-cover"
                   />
-                  <AvatarFallback>
-                    <User className="h-8 w-8" />
+                  <AvatarFallback className="text-brand-black font-bold text-lg">
+                    {application.applicant.name
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("")}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">

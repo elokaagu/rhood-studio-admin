@@ -81,7 +81,8 @@ export default function EditMemberPage() {
       if (data) {
         const transformedMember = {
           id: data.id,
-          name: data.dj_name || `${data.first_name} ${data.last_name}` || "Unknown",
+          name:
+            data.dj_name || `${data.first_name} ${data.last_name}` || "Unknown",
           email: data.email || "No email",
           location: data.city || "Unknown",
           joinDate: data.created_at
@@ -438,8 +439,7 @@ export default function EditMemberPage() {
                 Joined {member.joinDate}
               </div>
               <div className="flex items-center text-muted-foreground">
-                <Music className="h-4 w-4 mr-2" />
-                0 gigs
+                <Music className="h-4 w-4 mr-2" />0 gigs
               </div>
             </CardContent>
           </Card>

@@ -112,7 +112,9 @@ export default function CommunitiesPage() {
           // Count members per community
           const counts = result.data.reduce(
             (acc: Record<string, number>, member) => {
-              acc[member.community_id] = (acc[member.community_id] || 0) + 1;
+              if (member.community_id) {
+                acc[member.community_id] = (acc[member.community_id] || 0) + 1;
+              }
               return acc;
             },
             {}
@@ -121,7 +123,7 @@ export default function CommunitiesPage() {
           return { data: counts, error: null };
         });
 
-      const memberCountMap = memberCounts || {};
+      const memberCountMap = (memberCounts || {}) as Record<string, number>;
 
       // Transform the data to include creator information and actual member counts
       const transformedCommunities =

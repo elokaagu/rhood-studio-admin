@@ -67,6 +67,7 @@ export default function MixesPage() {
     status: "pending",
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [mixes, setMixes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -352,6 +353,45 @@ export default function MixesPage() {
     }
   };
 
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid Image Type",
+          description: "Please select a valid JPEG, PNG, or WebP image.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Image Too Large",
+          description: "Please select an image smaller than 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedImage(file);
+      toast({
+        title: "Image Selected",
+        description: `${file.name} (${(file.size / 1024 / 1024).toFixed(
+          2
+        )} MB)`,
+      });
+    }
+  };
+
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
@@ -387,7 +427,7 @@ export default function MixesPage() {
         throw tableCheckError;
       }
 
-      // Upload file to Supabase Storage
+      // Upload audio file to Supabase Storage
       const fileExt = selectedFile.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random()
         .toString(36)
@@ -402,10 +442,40 @@ export default function MixesPage() {
         throw uploadError;
       }
 
-      // Get the public URL for the uploaded file
+      // Get the public URL for the uploaded audio file
       const {
         data: { publicUrl },
       } = supabase.storage.from("mixes").getPublicUrl(filePath);
+
+      // Upload image file if provided
+      let imageUrl = null;
+      if (selectedImage) {
+        const imageExt = selectedImage.name.split(".").pop();
+        const imageFileName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2)}.${imageExt}`;
+        const imagePath = `mixes/artwork/${imageFileName}`;
+
+        const { error: imageUploadError } = await supabase.storage
+          .from("mixes")
+          .upload(imagePath, selectedImage);
+
+        if (imageUploadError) {
+          console.error("Image upload error:", imageUploadError);
+          toast({
+            title: "Image Upload Warning",
+            description:
+              "Audio uploaded but image failed. You can add artwork later.",
+            variant: "destructive",
+          });
+        } else {
+          // Get the public URL for the uploaded image
+          const {
+            data: { publicUrl: imagePublicUrl },
+          } = supabase.storage.from("mixes").getPublicUrl(imagePath);
+          imageUrl = imagePublicUrl;
+        }
+      }
 
       // Save mix metadata to database
       const { error: dbError } = await supabase.from("mixes").insert({
@@ -418,6 +488,7 @@ export default function MixesPage() {
         file_url: publicUrl,
         file_name: selectedFile.name,
         file_size: selectedFile.size,
+        image_url: imageUrl,
         // Note: duration would need to be extracted from audio file metadata
         // For now, we'll leave it null and it can be updated later
       });
@@ -441,6 +512,7 @@ export default function MixesPage() {
         status: "pending",
       });
       setSelectedFile(null);
+      setSelectedImage(null);
       setIsUploadModalOpen(false);
 
       // Refresh the mixes list
@@ -515,6 +587,31 @@ export default function MixesPage() {
                     {(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
                   </p>
                 )}
+              </div>
+
+              {/* Image Upload */}
+              <div className="space-y-2">
+                <Label htmlFor="image" className={textStyles.body.regular}>
+                  Mix Artwork (Optional)
+                </Label>
+                <Input
+                  id="image"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                  onChange={handleImageSelect}
+                  className="bg-secondary border-border text-foreground"
+                />
+                {selectedImage && (
+                  <p
+                    className={`${textStyles.body.small} text-muted-foreground`}
+                  >
+                    Selected: {selectedImage.name} (
+                    {(selectedImage.size / 1024 / 1024).toFixed(2)} MB)
+                  </p>
+                )}
+                <p className={`${textStyles.body.small} text-muted-foreground`}>
+                  Recommended: Square image, 400x400px or larger (max 5MB)
+                </p>
               </div>
 
               {/* Basic Information */}
@@ -879,17 +976,6 @@ export default function MixesPage() {
                   <div className="flex items-center space-x-2">
                     {getGenreBadge(mix.genre)}
                     {getStatusBadge(mix.status)}
-
-                    {mix.status === "pending" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-brand-green text-brand-black hover:bg-brand-green/90"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Review
-                      </Button>
-                    )}
 
                     <Button
                       variant="outline"

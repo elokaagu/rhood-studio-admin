@@ -140,7 +140,10 @@ export default function MembersPage() {
               email: member.email,
               location: member.city,
               joinedDate: member.created_at
-                ? formatDate(member.created_at)
+                ? (() => {
+                    const formatted = formatDate(member.created_at);
+                    return formatted === "Invalid Date" ? "Unknown" : formatted;
+                  })()
                 : "Unknown",
               gigs: 0, // This field might need to be calculated from applications
               rating: Math.round(rating * 10) / 10, // Round to 1 decimal place
@@ -246,8 +249,12 @@ export default function MembersPage() {
     // Sort demo data based on current sort option
     const sortOrder = getSortOrder();
     const sortedDemoMembers = demoMembers.sort((a, b) => {
-      const aDate = new Date(a[sortOrder.column as keyof typeof a] as string).getTime();
-      const bDate = new Date(b[sortOrder.column as keyof typeof b] as string).getTime();
+      const aDate = new Date(
+        a[sortOrder.column as keyof typeof a] as string
+      ).getTime();
+      const bDate = new Date(
+        b[sortOrder.column as keyof typeof b] as string
+      ).getTime();
       return sortOrder.ascending ? aDate - bDate : bDate - aDate;
     });
 
@@ -691,7 +698,7 @@ export default function MembersPage() {
             Inactive
           </Button>
         </div>
-        
+
         {/* Sort Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -86,7 +86,12 @@ export default function EditMemberPage() {
           email: data.email || "No email",
           location: data.city || "Unknown",
           joinDate: data.created_at
-            ? new Date(data.created_at).toISOString().split("T")[0]
+            ? (() => {
+                const date = new Date(data.created_at);
+                return isNaN(date.getTime())
+                  ? "Unknown"
+                  : date.toISOString().split("T")[0];
+              })()
             : "Unknown",
           bio: data.bio || "",
           profileImageUrl: data.profile_image_url || undefined,
@@ -374,12 +379,17 @@ export default function EditMemberPage() {
                     <Input
                       id="instagram"
                       name="instagram"
-                      value={formData.instagram.replace('https://instagram.com/', '')}
+                      value={formData.instagram.replace(
+                        "https://instagram.com/",
+                        ""
+                      )}
                       onChange={(e) => {
                         const handle = e.target.value;
-                        setFormData(prev => ({
+                        setFormData((prev) => ({
                           ...prev,
-                          instagram: handle ? `https://instagram.com/${handle}` : ''
+                          instagram: handle
+                            ? `https://instagram.com/${handle}`
+                            : "",
                         }));
                       }}
                       className="pl-40"
@@ -400,12 +410,17 @@ export default function EditMemberPage() {
                     <Input
                       id="soundcloud"
                       name="soundcloud"
-                      value={formData.soundcloud.replace('https://soundcloud.com/', '')}
+                      value={formData.soundcloud.replace(
+                        "https://soundcloud.com/",
+                        ""
+                      )}
                       onChange={(e) => {
                         const handle = e.target.value;
-                        setFormData(prev => ({
+                        setFormData((prev) => ({
                           ...prev,
-                          soundcloud: handle ? `https://soundcloud.com/${handle}` : ''
+                          soundcloud: handle
+                            ? `https://soundcloud.com/${handle}`
+                            : "",
                         }));
                       }}
                       className="pl-44"

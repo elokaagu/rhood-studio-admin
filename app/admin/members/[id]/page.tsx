@@ -71,7 +71,12 @@ export default function MemberDetailsPage() {
             data.dj_name || `${data.first_name} ${data.last_name}` || "Unknown",
           email: data.email || "No email",
           location: data.city || "Unknown",
-          joinDate: data.created_at ? formatDate(data.created_at) : "Unknown",
+          joinDate: data.created_at
+            ? (() => {
+                const formatted = formatDate(data.created_at);
+                return formatted === "Invalid Date" ? "Unknown" : formatted;
+              })()
+            : "Unknown",
           genres: data.genres || [],
           status: "active", // Default to active since is_active field doesn't exist in schema
           gigs: 0, // This would need to be calculated from applications
@@ -483,16 +488,43 @@ export default function MemberDetailsPage() {
                   <h4 className={textStyles.subheading.small}>Social Links</h4>
                   <div className="space-y-2">
                     {Object.entries(member.socialLinks).map(
-                      ([platform, handle]) => (
-                        <div key={platform} className="flex items-center">
-                          <span className="capitalize text-sm text-muted-foreground w-20">
-                            {platform}:
-                          </span>
-                          <span className={textStyles.body.regular}>
-                            {handle as string}
-                          </span>
-                        </div>
-                      )
+                      ([platform, handle]) => {
+                        const url = handle as string;
+                        const isUrl = url.startsWith("http");
+                        const fullUrl = isUrl
+                          ? url
+                          : platform === "instagram"
+                          ? `https://instagram.com/${url.replace("@", "")}`
+                          : platform === "soundcloud"
+                          ? `https://soundcloud.com/${url}`
+                          : platform === "twitter"
+                          ? `https://twitter.com/${url.replace("@", "")}`
+                          : url;
+
+                        return (
+                          <div key={platform} className="flex items-center">
+                            <span className="capitalize text-sm text-muted-foreground w-20">
+                              {platform}:
+                            </span>
+                            {handle ? (
+                              <a
+                                href={fullUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`${textStyles.body.regular} text-brand-green hover:text-brand-green/80 underline hover:no-underline transition-colors`}
+                              >
+                                {handle as string}
+                              </a>
+                            ) : (
+                              <span
+                                className={`${textStyles.body.regular} text-muted-foreground`}
+                              >
+                                Not provided
+                              </span>
+                            )}
+                          </div>
+                        );
+                      }
                     )}
                   </div>
                 </div>

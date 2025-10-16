@@ -70,7 +70,9 @@ export default function CommunitiesPage() {
   const fetchCommunities = useCallback(async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+
+      // First, get all communities
+      const { data: communitiesData, error: communitiesError } = await supabase
         .from("communities")
         .select(
           `
@@ -85,8 +87,8 @@ export default function CommunitiesPage() {
         )
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching communities:", error);
+      if (communitiesError) {
+        console.error("Error fetching communities:", communitiesError);
         toast({
           title: "Error",
           description: "Failed to fetch communities",
@@ -95,9 +97,35 @@ export default function CommunitiesPage() {
         return;
       }
 
-      // Transform the data to include creator information
+      // Get member counts for each community
+      const { data: memberCounts, error: memberCountsError } = await supabase
+        .from("community_members")
+        .select("community_id")
+        .then(async (result) => {
+          if (result.error) {
+            console.log(
+              "community_members table might not exist, using fallback"
+            );
+            return { data: [], error: null };
+          }
+
+          // Count members per community
+          const counts = result.data.reduce(
+            (acc: Record<string, number>, member) => {
+              acc[member.community_id] = (acc[member.community_id] || 0) + 1;
+              return acc;
+            },
+            {}
+          );
+
+          return { data: counts, error: null };
+        });
+
+      const memberCountMap = memberCounts || {};
+
+      // Transform the data to include creator information and actual member counts
       const transformedCommunities =
-        data?.map((community) => {
+        communitiesData?.map((community) => {
           console.log("Community data:", community.name, {
             id: community.id,
             image_url: community.image_url,
@@ -110,6 +138,7 @@ export default function CommunitiesPage() {
               ? `${community.creator.first_name} ${community.creator.last_name}`
               : "Admin",
             creator_avatar: community.creator?.profile_image_url || null,
+            member_count: memberCountMap[community.id] || 0, // Use actual member count
           };
         }) || [];
 

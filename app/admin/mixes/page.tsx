@@ -84,77 +84,39 @@ export default function MixesPage() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        throw error;
+        console.error("Error fetching mixes:", error);
+        toast({
+          title: "Database Error",
+          description: "Failed to load mixes from database. Please check your connection.",
+          variant: "destructive",
+        });
+        setMixes([]);
       } else {
-        setMixes(data || []);
-        setIsLoading(false);
-        return; // Exit early if successful
+        // Transform the data to ensure consistent format
+        const transformedMixes = (data || []).map((mix: any) => ({
+          ...mix,
+          // Ensure consistent field names
+          uploadDate: mix.created_at ? new Date(mix.created_at).toLocaleDateString() : mix.uploadDate,
+          audioUrl: mix.file_url || mix.audioUrl,
+          appliedFor: mix.applied_for || mix.appliedFor,
+          // Add default values for missing fields
+          plays: mix.plays || 0,
+          rating: mix.rating || 0.0,
+        }));
+        
+        setMixes(transformedMixes);
       }
     } catch (error) {
       console.error("Error fetching mixes:", error);
+      toast({
+        title: "Database Error",
+        description: "Failed to load mixes from database. Please check your connection.",
+        variant: "destructive",
+      });
+      setMixes([]);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Fallback to demo data
-    setMixes([
-      {
-        id: 1,
-        title: "Soulection 702",
-        artist: "Eloka Agu",
-        duration: "22:59",
-        uploadDate: "2024-10-05",
-        plays: 0,
-        rating: 0.0,
-        appliedFor: "N/A",
-        genre: "R&B",
-        status: "pending",
-        audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-        image_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center", // Mix artwork
-      },
-      {
-        id: 2,
-        title: "Summer House Vibes",
-        artist: "Maya Rodriguez",
-        duration: "45:12",
-        uploadDate: "2024-08-12",
-        plays: 892,
-        rating: 4.9,
-        appliedFor: "Rooftop Summer Sessions",
-        genre: "House",
-        status: "pending",
-        audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-        image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=400&fit=crop&crop=center",
-      },
-      {
-        id: 3,
-        title: "Drum & Bass Energy",
-        artist: "Kai Johnson",
-        duration: "52:45",
-        uploadDate: "2024-08-14",
-        plays: 634,
-        rating: 4.7,
-        appliedFor: "Club Residency Audition",
-        genre: "Drum & Bass",
-        status: "approved",
-        audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-        image_url: "https://images.unsplash.com/photo-1571266028243-e68e8c6c5e0b?w=400&h=400&fit=crop&crop=center",
-      },
-      {
-        id: 4,
-        title: "Deep House Journey",
-        artist: "Sofia Martinez",
-        duration: "61:18",
-        uploadDate: "2024-08-16",
-        plays: 1105,
-        rating: 4.6,
-        appliedFor: "Rooftop Summer Sessions",
-        genre: "Deep House",
-        status: "rejected",
-        audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
-        image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&h=400&fit=crop&crop=center",
-      },
-    ]);
-
-    setIsLoading(false);
   };
 
   // Load mixes on component mount
@@ -821,10 +783,18 @@ export default function MixesPage() {
             <p className={textStyles.body.regular}>Loading mixes...</p>
           </div>
         ) : mixes.length === 0 ? (
-          <div className="text-center py-8">
-            <p className={textStyles.body.regular}>
-              No mixes found. Upload your first mix!
-            </p>
+          <div className="text-center py-12">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                <Music className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className={textStyles.subheading.large}>No mixes found</h3>
+                <p className={`${textStyles.body.regular} text-muted-foreground mt-2`}>
+                  No mixes have been uploaded yet. Upload your first mix to get started!
+                </p>
+              </div>
+            </div>
           </div>
         ) : (
           mixes.map((mix) => (

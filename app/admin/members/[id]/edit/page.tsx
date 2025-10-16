@@ -66,13 +66,6 @@ export default function EditMemberPage() {
     initializeParams();
   }, [params]);
 
-  // Fetch member data
-  useEffect(() => {
-    if (memberId) {
-      fetchMember();
-    }
-  }, [memberId, fetchMember]);
-
   const fetchMember = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -95,7 +88,7 @@ export default function EditMemberPage() {
             ? new Date(data.created_at).toISOString().split("T")[0]
             : "Unknown",
           bio: data.bio || "",
-          profileImageUrl: data.profile_image_url,
+          profileImageUrl: data.profile_image_url || undefined,
           instagram: data.instagram || "",
           soundcloud: data.soundcloud || "",
           dj_name: data.dj_name || "",
@@ -127,6 +120,13 @@ export default function EditMemberPage() {
       setIsLoading(false);
     }
   }, [memberId, toast]);
+
+  // Fetch member data
+  useEffect(() => {
+    if (memberId) {
+      fetchMember();
+    }
+  }, [memberId, fetchMember]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

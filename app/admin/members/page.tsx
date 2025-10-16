@@ -87,26 +87,45 @@ export default function MembersPage() {
         }
       } else {
         // Transform the data to match the expected format
-        const transformedMembers =
-          data?.map((member: any) => ({
-            id: member.id,
-            name: `${member.first_name} ${member.last_name}`,
-            email: member.email,
-            location: member.city,
-            joinedDate: member.created_at
-              ? new Date(member.created_at).toISOString().split("T")[0]
-              : "Unknown",
-            gigs: 0, // This field might need to be calculated from applications
-            rating: 0.0, // This field might need to be calculated from feedback
-            genres: member.genres || [],
-            status: "active", // Default status
-            lastActive: "Unknown", // This field might need to be tracked
-            djName: member.dj_name,
-            bio: member.bio,
-            instagram: member.instagram,
-            soundcloud: member.soundcloud,
-            profileImageUrl: member.profile_image_url,
-          })) || [];
+        const transformedMembers = await Promise.all(
+          (data || []).map(async (member: any) => {
+            // Calculate rating from ai_matching_feedback table
+            let rating = 0.0;
+            try {
+              const { data: feedbackData } = await supabase
+                .from("ai_matching_feedback")
+                .select("rating")
+                .eq("user_id", member.id);
+              
+              if (feedbackData && feedbackData.length > 0) {
+                const totalRating = feedbackData.reduce((sum, feedback) => sum + feedback.rating, 0);
+                rating = totalRating / feedbackData.length;
+              }
+            } catch (ratingError) {
+              console.warn("Could not fetch rating for user:", member.id, ratingError);
+            }
+
+            return {
+              id: member.id,
+              name: `${member.first_name} ${member.last_name}`,
+              email: member.email,
+              location: member.city,
+              joinedDate: member.created_at
+                ? new Date(member.created_at).toISOString().split("T")[0]
+                : "Unknown",
+              gigs: 0, // This field might need to be calculated from applications
+              rating: Math.round(rating * 10) / 10, // Round to 1 decimal place
+              genres: member.genres || [],
+              status: "active", // Default status
+              lastActive: "Unknown", // This field might need to be tracked
+              djName: member.dj_name,
+              bio: member.bio,
+              instagram: member.instagram,
+              soundcloud: member.soundcloud,
+              profileImageUrl: member.profile_image_url,
+            };
+          })
+        );
 
         setMembers(transformedMembers);
         setIsLoading(false);
@@ -192,6 +211,34 @@ export default function MembersPage() {
   useEffect(() => {
     fetchMembers();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Format date to "13th October 2025" format
+  const formatDate = (dateString: string) => {
+    if (!dateString || dateString === "Unknown") return "Unknown";
+    
+    try {
+      const date = new Date(dateString);
+      const day = date.getDate();
+      const month = date.toLocaleString('en-US', { month: 'long' });
+      const year = date.getFullYear();
+      
+      // Add ordinal suffix to day
+      const getOrdinalSuffix = (day: number) => {
+        if (day >= 11 && day <= 13) return 'th';
+        switch (day % 10) {
+          case 1: return 'st';
+          case 2: return 'nd';
+          case 3: return 'rd';
+          default: return 'th';
+        }
+      };
+      
+      return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return dateString;
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -681,7 +728,7 @@ export default function MembersPage() {
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />
-                          Joined {member.joinedDate}
+                          Joined {formatDate(member.joinedDate)}
                         </div>
                         <div className="flex items-center">
                           <Music className="h-4 w-4 mr-1" />

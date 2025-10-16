@@ -251,13 +251,13 @@ function ApplicationsContent() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "approved":
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+        return <CheckCircle className="h-4 w-4 text-foreground" />;
       case "rejected":
-        return <XCircle className="h-4 w-4 text-red-600" />;
+        return <XCircle className="h-4 w-4 text-foreground" />;
       case "pending":
-        return <Clock className="h-4 w-4 text-yellow-600" />;
+        return <Clock className="h-4 w-4 text-foreground" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-600" />;
+        return <Clock className="h-4 w-4 text-foreground" />;
     }
   };
 
@@ -599,7 +599,7 @@ function ApplicationsContent() {
                   <div className="flex items-center space-x-2">
                     <Badge
                       variant="outline"
-                      className="border-gray-400 text-gray-400 bg-transparent text-xs"
+                      className="border-border text-foreground bg-transparent text-xs"
                     >
                       {getStatusIcon(application.status)}
                       <span className="ml-1">

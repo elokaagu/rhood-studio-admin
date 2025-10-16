@@ -11,7 +11,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [statsLoaded, setStatsLoaded] = useState(false);
   const [activityLoaded, setActivityLoaded] = useState(false);
-  
+
   const [stats, setStats] = useState([
     {
       title: "Active Opportunities",
@@ -328,13 +328,13 @@ export default function DashboardPage() {
       {isLoading || !statsLoaded ? (
         <StatsSkeleton />
       ) : (
-        <div 
+        <div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in-0 duration-500"
-          style={{ animationDelay: '0ms' }}
+          style={{ animationDelay: "0ms" }}
         >
           {stats.map((stat, index) => (
-            <Card 
-              key={index} 
+            <Card
+              key={index}
               className="bg-card border-border animate-in fade-in-0 duration-500"
               style={{ animationDelay: `${index * 100}ms` }}
             >
@@ -358,9 +358,9 @@ export default function DashboardPage() {
         {isLoading || !activityLoaded ? (
           <ActivitySkeleton />
         ) : (
-          <Card 
+          <Card
             className="bg-card border-border animate-in fade-in-0 duration-500"
-            style={{ animationDelay: '400ms' }}
+            style={{ animationDelay: "400ms" }}
           >
             <CardHeader>
               <CardTitle className={`${textStyles.headline.section} text-left`}>
@@ -372,8 +372,8 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-3">
                 {recentActivity.map((activity, index) => (
-                  <Card 
-                    key={index} 
+                  <Card
+                    key={index}
                     className="bg-card border-border animate-in fade-in-0 duration-300"
                     style={{ animationDelay: `${500 + index * 100}ms` }}
                   >
@@ -398,9 +398,9 @@ export default function DashboardPage() {
         {isLoading ? (
           <EventsSkeleton />
         ) : (
-          <Card 
+          <Card
             className="bg-card border-border animate-in fade-in-0 duration-500"
-            style={{ animationDelay: '600ms' }}
+            style={{ animationDelay: "600ms" }}
           >
             <CardHeader>
               <CardTitle className={`${textStyles.headline.section} text-left`}>
@@ -412,15 +412,17 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-3">
                 {upcomingEvents.map((event, index) => (
-                  <Card 
-                    key={index} 
+                  <Card
+                    key={index}
                     className="bg-card border-border animate-in fade-in-0 duration-300"
                     style={{ animationDelay: `${700 + index * 100}ms` }}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className={textStyles.body.regular}>{event.title}</p>
+                          <p className={textStyles.body.regular}>
+                            {event.title}
+                          </p>
                           <p className={`${textStyles.body.small} mt-1`}>
                             {event.date} - {event.time}
                           </p>

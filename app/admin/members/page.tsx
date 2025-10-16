@@ -40,12 +40,16 @@ import {
   Trash2,
   MoreVertical,
   Eye,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 export default function MembersPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("date_joined_newest");
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteFormData, setInviteFormData] = useState({
     name: "",
@@ -60,13 +64,30 @@ export default function MembersPage() {
     name: string;
   } | null>(null);
 
+  // Get sort order based on current sort option
+  const getSortOrder = () => {
+    switch (sortBy) {
+      case "date_joined_newest":
+        return { column: "created_at", ascending: false };
+      case "date_joined_oldest":
+        return { column: "created_at", ascending: true };
+      case "last_active_newest":
+        return { column: "updated_at", ascending: false };
+      case "last_active_oldest":
+        return { column: "updated_at", ascending: true };
+      default:
+        return { column: "created_at", ascending: false };
+    }
+  };
+
   // Fetch members from database
   const fetchMembers = async () => {
     try {
+      const sortOrder = getSortOrder();
       const { data, error } = await supabase
         .from("user_profiles")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order(sortOrder.column, { ascending: sortOrder.ascending });
 
       if (error) {
         // Check if it's a table doesn't exist error
@@ -148,8 +169,8 @@ export default function MembersPage() {
       });
     }
 
-    // Fallback to demo data
-    setMembers([
+    // Fallback to demo data with proper timestamps for sorting
+    const demoMembers = [
       {
         id: 1,
         name: "Alex Thompson",
@@ -161,6 +182,8 @@ export default function MembersPage() {
         genres: ["Techno", "House"],
         status: "active",
         lastActive: "2 hours ago",
+        created_at: "2024-01-15T10:00:00Z",
+        updated_at: "2024-12-13T14:00:00Z", // Recently updated
       },
       {
         id: 2,
@@ -173,6 +196,8 @@ export default function MembersPage() {
         genres: ["Techno", "Industrial"],
         status: "active",
         lastActive: "1 day ago",
+        created_at: "2024-02-03T14:30:00Z",
+        updated_at: "2024-12-12T09:00:00Z", // Yesterday
       },
       {
         id: 3,
@@ -185,6 +210,8 @@ export default function MembersPage() {
         genres: ["Drum & Bass", "Techno"],
         status: "active",
         lastActive: "3 hours ago",
+        created_at: "2024-03-12T16:45:00Z",
+        updated_at: "2024-12-13T11:00:00Z", // Recently updated
       },
       {
         id: 4,
@@ -197,6 +224,8 @@ export default function MembersPage() {
         genres: ["Deep House", "Melodic Techno"],
         status: "inactive",
         lastActive: "2 weeks ago",
+        created_at: "2024-04-20T11:15:00Z",
+        updated_at: "2024-11-29T08:30:00Z", // Old update
       },
       {
         id: 5,
@@ -209,16 +238,28 @@ export default function MembersPage() {
         genres: ["Minimal", "Ambient"],
         status: "active",
         lastActive: "5 minutes ago",
+        created_at: "2024-05-08T13:20:00Z",
+        updated_at: "2024-12-13T16:55:00Z", // Very recent
       },
-    ]);
+    ];
+
+    // Sort demo data based on current sort option
+    const sortOrder = getSortOrder();
+    const sortedDemoMembers = demoMembers.sort((a, b) => {
+      const aDate = new Date(a[sortOrder.column as keyof typeof a] as string).getTime();
+      const bDate = new Date(b[sortOrder.column as keyof typeof b] as string).getTime();
+      return sortOrder.ascending ? aDate - bDate : bDate - aDate;
+    });
+
+    setMembers(sortedDemoMembers);
 
     setIsLoading(false);
   };
 
-  // Load members on component mount
+  // Load members on component mount and when sorting changes
   useEffect(() => {
     fetchMembers();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -650,6 +691,49 @@ export default function MembersPage() {
             Inactive
           </Button>
         </div>
+        
+        {/* Sort Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="min-w-[140px]">
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              {sortBy === "date_joined_newest" && "Newest First"}
+              {sortBy === "date_joined_oldest" && "Oldest First"}
+              {sortBy === "last_active_newest" && "Recently Active"}
+              {sortBy === "last_active_oldest" && "Least Active"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-card border-border">
+            <DropdownMenuItem
+              onClick={() => setSortBy("date_joined_newest")}
+              className="flex items-center"
+            >
+              <ArrowDown className="h-4 w-4 mr-2" />
+              Date Joined (Newest)
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setSortBy("date_joined_oldest")}
+              className="flex items-center"
+            >
+              <ArrowUp className="h-4 w-4 mr-2" />
+              Date Joined (Oldest)
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setSortBy("last_active_newest")}
+              className="flex items-center"
+            >
+              <ArrowDown className="h-4 w-4 mr-2" />
+              Last Active (Recent)
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setSortBy("last_active_oldest")}
+              className="flex items-center"
+            >
+              <ArrowUp className="h-4 w-4 mr-2" />
+              Last Active (Oldest)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Members List */}

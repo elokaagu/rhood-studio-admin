@@ -245,6 +245,8 @@ function ApplicationsContent() {
           ? "application_form_responses"
           : "applications";
 
+      console.log(`Approving ${applicationType} application ${applicationId} from table ${tableName}`);
+
       // First, get the application details to create notification
       const { data: applicationData, error: fetchError } = await supabase
         .from(tableName as any)
@@ -259,35 +261,64 @@ function ApplicationsContent() {
         .single();
 
       if (fetchError) {
+        console.error("Error fetching application data:", fetchError);
         throw fetchError;
       }
 
-      // Update application status
+      console.log("Application data fetched:", applicationData);
+
+      // Update application status with proper validation
       const updateData =
         applicationType === "form_response"
-          ? { status: "approved", reviewed_at: new Date().toISOString() }
-          : { status: "approved" };
+          ? { 
+              status: "approved", 
+              reviewed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          : { 
+              status: "approved",
+              updated_at: new Date().toISOString()
+            };
 
-      const { error } = await supabase
+      console.log("Updating with data:", updateData);
+
+      const { data: updatedData, error } = await supabase
         .from(tableName as any)
         .update(updateData)
-        .eq("id", applicationId);
+        .eq("id", applicationId)
+        .select()
+        .single();
 
       if (error) {
+        console.error("Error updating application:", error);
+        console.error("Error details:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         throw error;
       }
+
+      console.log("Application updated successfully:", updatedData);
 
       // Create notification for the user
       if (
         (applicationData as any)?.user_id &&
         (applicationData as any)?.opportunities?.title
       ) {
-        await createApplicationStatusNotification(
-          (applicationData as any).user_id,
-          applicationId,
-          "approved",
-          (applicationData as any).opportunities.title
-        );
+        try {
+          await createApplicationStatusNotification(
+            (applicationData as any).user_id,
+            applicationId,
+            "approved",
+            (applicationData as any).opportunities.title
+          );
+          console.log("Notification created successfully");
+        } catch (notificationError) {
+          console.error("Error creating notification:", notificationError);
+          // Don't throw here - the approval succeeded, notification is secondary
+        }
       }
 
       toast({
@@ -318,6 +349,8 @@ function ApplicationsContent() {
           ? "application_form_responses"
           : "applications";
 
+      console.log(`Rejecting ${applicationType} application ${applicationId} from table ${tableName}`);
+
       // First, get the application details to create notification
       const { data: applicationData, error: fetchError } = await supabase
         .from(tableName as any)
@@ -332,35 +365,64 @@ function ApplicationsContent() {
         .single();
 
       if (fetchError) {
+        console.error("Error fetching application data:", fetchError);
         throw fetchError;
       }
 
-      // Update application status
+      console.log("Application data fetched:", applicationData);
+
+      // Update application status with proper validation
       const updateData =
         applicationType === "form_response"
-          ? { status: "rejected", reviewed_at: new Date().toISOString() }
-          : { status: "rejected" };
+          ? { 
+              status: "rejected", 
+              reviewed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          : { 
+              status: "rejected",
+              updated_at: new Date().toISOString()
+            };
 
-      const { error } = await supabase
+      console.log("Updating with data:", updateData);
+
+      const { data: updatedData, error } = await supabase
         .from(tableName as any)
         .update(updateData)
-        .eq("id", applicationId);
+        .eq("id", applicationId)
+        .select()
+        .single();
 
       if (error) {
+        console.error("Error updating application:", error);
+        console.error("Error details:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         throw error;
       }
+
+      console.log("Application updated successfully:", updatedData);
 
       // Create notification for the user
       if (
         (applicationData as any)?.user_id &&
         (applicationData as any)?.opportunities?.title
       ) {
-        await createApplicationStatusNotification(
-          (applicationData as any).user_id,
-          applicationId,
-          "rejected",
-          (applicationData as any).opportunities.title
-        );
+        try {
+          await createApplicationStatusNotification(
+            (applicationData as any).user_id,
+            applicationId,
+            "rejected",
+            (applicationData as any).opportunities.title
+          );
+          console.log("Notification created successfully");
+        } catch (notificationError) {
+          console.error("Error creating notification:", notificationError);
+          // Don't throw here - the rejection succeeded, notification is secondary
+        }
       }
 
       toast({

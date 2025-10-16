@@ -148,7 +148,12 @@ export default function CommunityDetailsPage({
 
   // Fetch messages
   const fetchMessages = useCallback(async () => {
-    if (!communityId) return;
+    if (!communityId) {
+      console.log("No communityId, skipping fetchMessages");
+      return;
+    }
+
+    console.log(`Fetching messages for community: ${communityId}`);
 
     try {
       const { data, error } = await supabase
@@ -169,8 +174,16 @@ export default function CommunityDetailsPage({
 
       if (error) {
         console.error("Error fetching messages:", error);
+        console.error("Error details:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         return;
       }
+
+      console.log(`Found ${data?.length || 0} messages for community ${communityId}:`, data);
 
       const transformedMessages =
         data?.map((message) => ({
@@ -181,9 +194,10 @@ export default function CommunityDetailsPage({
           sender_avatar: message.sender?.profile_image_url || null,
         })) || [];
 
+      console.log("Transformed messages:", transformedMessages);
       setMessages(transformedMessages);
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error in fetchMessages:", error);
     }
   }, [communityId]);
 

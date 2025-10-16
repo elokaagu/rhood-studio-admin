@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,9 +71,9 @@ export default function EditMemberPage() {
     if (memberId) {
       fetchMember();
     }
-  }, [memberId]);
+  }, [memberId, fetchMember]);
 
-  const fetchMember = async () => {
+  const fetchMember = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("user_profiles")
@@ -126,7 +126,7 @@ export default function EditMemberPage() {
       });
       setIsLoading(false);
     }
-  };
+  }, [memberId, toast]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -196,7 +196,7 @@ export default function EditMemberPage() {
         <div className="text-center">
           <h1 className={textStyles.headline.section}>MEMBER NOT FOUND</h1>
           <p className={textStyles.body.regular}>
-            The member you're looking for doesn't exist.
+            The member you&apos;re looking for doesn&apos;t exist.
           </p>
           <Button
             onClick={() => router.push("/admin/members")}
@@ -217,7 +217,7 @@ export default function EditMemberPage() {
         <div>
           <h1 className={textStyles.headline.section}>EDIT MEMBER</h1>
           <p className={textStyles.body.regular}>
-            Update {member.name}'s profile information
+            Update {member.name}&apos;s profile information
           </p>
         </div>
         <Button

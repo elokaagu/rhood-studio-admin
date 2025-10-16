@@ -570,9 +570,6 @@ function ApplicationsContent() {
                         <span className="text-foreground font-medium">
                           {application.applicant.name}
                         </span>
-                        <span className="ml-2">
-                          ({application.applicant.djName})
-                        </span>
                       </div>
                     </div>
                   </div>

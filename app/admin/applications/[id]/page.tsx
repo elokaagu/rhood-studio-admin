@@ -122,7 +122,7 @@ export default function ApplicationDetailsPage() {
           `
           *,
           opportunities!inner(title, description, location, event_date, payment, genre),
-          user_profiles!inner(dj_name, city, genres, email, bio, profile_image_url)
+          user_profiles!inner(dj_name, city, genres, email, bio, profile_image_url, instagram, soundcloud)
         `
         )
         .eq("id", applicationId as string)
@@ -152,13 +152,13 @@ export default function ApplicationDetailsPage() {
           id: data.id,
           applicant: {
             name: data.user_profiles?.dj_name || "Unknown",
-            djName: data.user_profiles?.dj_name || "Unknown",
             avatar: data.user_profiles?.profile_image_url || "/person1.jpg", // Use actual profile image or fallback
             location: data.user_profiles?.city || "Unknown",
             genres: data.user_profiles?.genres || [],
             email: data.user_profiles?.email || "Unknown",
-            phone: "Unknown", // Phone field doesn't exist in user_profiles
             bio: data.user_profiles?.bio || "No bio available",
+            instagram: data.user_profiles?.instagram || null,
+            soundcloud: data.user_profiles?.soundcloud || null,
           },
           opportunity: data.opportunities?.title || "Unknown Opportunity",
           opportunityId: data.opportunity_id,
@@ -166,10 +166,7 @@ export default function ApplicationDetailsPage() {
             ? new Date(data.created_at).toISOString().split("T")[0]
             : "Unknown",
           status: data.status || "pending",
-          experience: "Unknown", // This field might need to be added to the database
-          portfolio: "Unknown", // This field might need to be added to the database
           coverLetter: data.message || "No cover letter provided",
-          equipment: "Unknown", // This field might need to be added to the database
         };
 
         setApplication(transformedApplication);
@@ -192,67 +189,58 @@ export default function ApplicationDetailsPage() {
         id: 1,
         applicant: {
           name: "Alex Thompson",
-          djName: "DJ AlexT",
           avatar: "/person1.jpg",
           location: "London, UK",
           genres: ["Techno", "House"],
           email: "alex.thompson@email.com",
-          phone: "+44 7700 900123",
           bio: "Passionate techno DJ with 3+ years of experience in underground venues across London.",
+          instagram: "https://instagram.com/alexthompson",
+          soundcloud: "https://soundcloud.com/alexthompson",
         },
         opportunity: "Underground Warehouse Rave",
         opportunityId: 1,
         appliedDate: "2024-01-15",
         status: "pending",
-        experience: "3 years",
-        portfolio: "soundcloud.com/alexthompson",
         coverLetter:
           "I'm excited to apply for this opportunity. I have extensive experience playing techno sets in underground venues and would love to bring my energy to this event.",
-        equipment: "Pioneer DDJ-1000, MacBook Pro, Audio-Technica ATH-M50x",
       },
       {
         id: 2,
         applicant: {
           name: "Maya Rodriguez",
-          djName: "Maya R",
           avatar: "/person2.jpg",
           location: "Berlin, Germany",
           genres: ["Electronic", "Progressive"],
           email: "maya.rodriguez@email.com",
-          phone: "+49 30 12345678",
           bio: "Electronic music producer and DJ based in Berlin, specializing in progressive house and techno.",
+          instagram: "https://instagram.com/mayarodriguez",
+          soundcloud: "https://soundcloud.com/mayarodriguez",
         },
         opportunity: "Rooftop Summer Sessions",
         opportunityId: 2,
         appliedDate: "2024-01-18",
         status: "approved",
-        experience: "5 years",
-        portfolio: "soundcloud.com/mayarodriguez",
         coverLetter:
           "As a Berlin-based DJ, I bring a unique perspective to house music. I'm excited about the opportunity to play at this rooftop venue.",
-        equipment: "Pioneer XDJ-RX2, MacBook Air, Sennheiser HD-25",
       },
       {
         id: 3,
         applicant: {
           name: "James Chen",
-          djName: "JC Beats",
           avatar: "/person1.jpg",
           location: "Amsterdam, Netherlands",
           genres: ["Drum & Bass", "Dubstep"],
           email: "james.chen@email.com",
-          phone: "+31 6 12345678",
           bio: "Drum & Bass enthusiast with a passion for high-energy sets and crowd interaction.",
+          instagram: null,
+          soundcloud: "https://soundcloud.com/jcbeats",
         },
         opportunity: "Club Residency Audition",
         opportunityId: 3,
         appliedDate: "2024-01-20",
         status: "rejected",
-        experience: "2 years",
-        portfolio: "soundcloud.com/jcbeats",
         coverLetter:
           "I'm applying for this residency opportunity to showcase my drum & bass skills and build a long-term relationship with the venue.",
-        equipment: "Pioneer DDJ-SX3, MacBook Pro, KRK Rokit 5",
       },
     ];
 
@@ -417,9 +405,6 @@ export default function ApplicationDetailsPage() {
                   <h3 className={textStyles.subheading.large}>
                     {application.applicant.name}
                   </h3>
-                  <p className={textStyles.body.regular}>
-                    {application.applicant.djName}
-                  </p>
                   <div className="flex items-center text-sm text-muted-foreground mt-2">
                     <MapPin className="h-4 w-4 mr-1" />
                     {application.applicant.location}
@@ -453,6 +438,37 @@ export default function ApplicationDetailsPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Social Media Links */}
+              {(application.applicant.instagram || application.applicant.soundcloud) && (
+                <div>
+                  <h4 className={textStyles.subheading.small}>Social Media</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {application.applicant.instagram && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-foreground"
+                        onClick={() => window.open(application.applicant.instagram, "_blank")}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Instagram
+                      </Button>
+                    )}
+                    {application.applicant.soundcloud && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-foreground"
+                        onClick={() => window.open(application.applicant.soundcloud, "_blank")}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        SoundCloud
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -469,19 +485,6 @@ export default function ApplicationDetailsPage() {
                 <p className={textStyles.body.regular}>
                   {application.opportunity}
                 </p>
-              </div>
-
-              <div>
-                <h4 className={textStyles.subheading.small}>Portfolio</h4>
-                <a
-                  href={`https://${application.portfolio}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center text-brand-green hover:text-brand-green/80"
-                >
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  {application.portfolio}
-                </a>
               </div>
             </CardContent>
           </Card>
@@ -534,11 +537,19 @@ export default function ApplicationDetailsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() =>
-                  window.open(`https://${application.portfolio}`, "_blank")
-                }
+                onClick={() => {
+                  if (application.applicant.soundcloud) {
+                    window.open(application.applicant.soundcloud, "_blank");
+                  } else {
+                    toast({
+                      title: "No SoundCloud Available",
+                      description: "This user hasn't provided a SoundCloud link.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
               >
-                <ExternalLink className="h-4 w-4 mr-2" />
+                <Music className="h-4 w-4 mr-2" />
                 Listen to Audio ID
               </Button>
               <Button

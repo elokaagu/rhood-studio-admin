@@ -324,124 +324,103 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Stats Grid */}
-      {isLoading || !statsLoaded ? (
-        <StatsSkeleton />
+      {isLoading ? (
+        <>
+          <StatsSkeleton />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ActivitySkeleton />
+            <EventsSkeleton />
+          </div>
+        </>
       ) : (
-        <div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in-0 duration-500"
-          style={{ animationDelay: "0ms" }}
-        >
-          {stats.map((stat, index) => (
-            <Card
-              key={index}
-              className="bg-card border-border animate-in fade-in-0 duration-500"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className={textStyles.subheading.small}>
-                  {stat.title}
+        <div className="animate-in fade-in-0 duration-500">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {stats.map((stat, index) => (
+              <Card key={index} className="bg-card border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className={textStyles.subheading.small}>
+                    {stat.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className={textStyles.subheading.large}>{stat.value}</div>
+                  <p className={`${textStyles.body.small} mt-1`}>{stat.change}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Recent Activity and Upcoming Events */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Activity */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className={`${textStyles.headline.section} text-left`}>
+                  RECENT
+                  <br />
+                  ACTIVITY
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className={textStyles.subheading.large}>{stat.value}</div>
-                <p className={`${textStyles.body.small} mt-1`}>{stat.change}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Recent Activity and Upcoming Events */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        {isLoading || !activityLoaded ? (
-          <ActivitySkeleton />
-        ) : (
-          <Card
-            className="bg-card border-border animate-in fade-in-0 duration-500"
-            style={{ animationDelay: "400ms" }}
-          >
-            <CardHeader>
-              <CardTitle className={`${textStyles.headline.section} text-left`}>
-                RECENT
-                <br />
-                ACTIVITY
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentActivity.map((activity, index) => (
-                  <Card
-                    key={index}
-                    className="bg-card border-border animate-in fade-in-0 duration-300"
-                    style={{ animationDelay: `${500 + index * 100}ms` }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex-1 min-w-0">
-                        <p className={textStyles.body.regular}>
-                          {activity.message}
-                        </p>
-                        <p className={`${textStyles.body.small} mt-1`}>
-                          {activity.time}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Upcoming Events */}
-        {isLoading ? (
-          <EventsSkeleton />
-        ) : (
-          <Card
-            className="bg-card border-border animate-in fade-in-0 duration-500"
-            style={{ animationDelay: "600ms" }}
-          >
-            <CardHeader>
-              <CardTitle className={`${textStyles.headline.section} text-left`}>
-                UPCOMING
-                <br />
-                EVENTS
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {upcomingEvents.map((event, index) => (
-                  <Card
-                    key={index}
-                    className="bg-card border-border animate-in fade-in-0 duration-300"
-                    style={{ animationDelay: `${700 + index * 100}ms` }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                <div className="space-y-3">
+                  {recentActivity.map((activity, index) => (
+                    <Card key={index} className="bg-card border-border">
+                      <CardContent className="p-4">
+                        <div className="flex-1 min-w-0">
                           <p className={textStyles.body.regular}>
-                            {event.title}
+                            {activity.message}
                           </p>
                           <p className={`${textStyles.body.small} mt-1`}>
-                            {event.date} - {event.time}
+                            {activity.time}
                           </p>
                         </div>
-                        <Badge
-                          variant="outline"
-                          className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
-                        >
-                          {event.genre}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Upcoming Events */}
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className={`${textStyles.headline.section} text-left`}>
+                  UPCOMING
+                  <br />
+                  EVENTS
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {upcomingEvents.map((event, index) => (
+                    <Card key={index} className="bg-card border-border">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className={textStyles.body.regular}>
+                              {event.title}
+                            </p>
+                            <p className={`${textStyles.body.small} mt-1`}>
+                              {event.date} - {event.time}
+                            </p>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                          >
+                            {event.genre}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

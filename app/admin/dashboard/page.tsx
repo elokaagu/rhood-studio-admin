@@ -3,10 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { textStyles } from "@/lib/typography";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function DashboardPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [statsLoaded, setStatsLoaded] = useState(false);
+  const [activityLoaded, setActivityLoaded] = useState(false);
+  
   const [stats, setStats] = useState([
     {
       title: "Active Opportunities",
@@ -77,8 +82,10 @@ export default function DashboardPage() {
             change: "Live data",
           },
         ]);
+        setStatsLoaded(true);
       } catch (error) {
         console.error("Error fetching stats:", error);
+        setStatsLoaded(true);
       }
     };
 
@@ -190,6 +197,7 @@ export default function DashboardPage() {
           (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
         );
         setRecentActivity(activities.slice(0, 4));
+        setActivityLoaded(true);
       } catch (error) {
         console.error("Error fetching recent activity:", error);
         setRecentActivity([
@@ -199,11 +207,22 @@ export default function DashboardPage() {
             time: "",
           },
         ]);
+        setActivityLoaded(true);
       }
     };
 
     fetchRecentActivity();
   }, []);
+
+  // Update main loading state when both stats and activity are loaded
+  useEffect(() => {
+    if (statsLoaded && activityLoaded) {
+      // Add a small delay for smooth transition
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 300);
+    }
+  }, [statsLoaded, activityLoaded]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -239,90 +258,187 @@ export default function DashboardPage() {
     }
   };
 
+  // Skeleton component for stats cards
+  const StatsSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {[1, 2, 3, 4].map((index) => (
+        <Card key={index} className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <Skeleton className="h-4 w-24" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-16 mb-2" />
+            <Skeleton className="h-3 w-20" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  // Skeleton component for activity cards
+  const ActivitySkeleton = () => (
+    <Card className="bg-card border-border">
+      <CardHeader>
+        <Skeleton className="h-6 w-32" />
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((index) => (
+            <Card key={index} className="bg-card border-border">
+              <CardContent className="p-4">
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-3 w-20" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Skeleton component for events cards
+  const EventsSkeleton = () => (
+    <Card className="bg-card border-border">
+      <CardHeader>
+        <Skeleton className="h-6 w-40" />
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {[1, 2, 3].map((index) => (
+            <Card key={index} className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <Card key={index} className="bg-card border-border">
-            <CardHeader className="pb-2">
-              <CardTitle className={textStyles.subheading.small}>
-                {stat.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={textStyles.subheading.large}>{stat.value}</div>
-              <p className={`${textStyles.body.small} mt-1`}>{stat.change}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {isLoading || !statsLoaded ? (
+        <StatsSkeleton />
+      ) : (
+        <div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in-0 duration-500"
+          style={{ animationDelay: '0ms' }}
+        >
+          {stats.map((stat, index) => (
+            <Card 
+              key={index} 
+              className="bg-card border-border animate-in fade-in-0 duration-500"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className={textStyles.subheading.small}>
+                  {stat.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={textStyles.subheading.large}>{stat.value}</div>
+                <p className={`${textStyles.body.small} mt-1`}>{stat.change}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Recent Activity and Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className={`${textStyles.headline.section} text-left`}>
-              RECENT
-              <br />
-              ACTIVITY
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentActivity.map((activity, index) => (
-                <Card key={index} className="bg-card border-border">
-                  <CardContent className="p-4">
-                    <div className="flex-1 min-w-0">
-                      <p className={textStyles.body.regular}>
-                        {activity.message}
-                      </p>
-                      <p className={`${textStyles.body.small} mt-1`}>
-                        {activity.time}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Upcoming Events */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className={`${textStyles.headline.section} text-left`}>
-              UPCOMING
-              <br />
-              EVENTS
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {upcomingEvents.map((event, index) => (
-                <Card key={index} className="bg-card border-border">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className={textStyles.body.regular}>{event.title}</p>
+        {isLoading || !activityLoaded ? (
+          <ActivitySkeleton />
+        ) : (
+          <Card 
+            className="bg-card border-border animate-in fade-in-0 duration-500"
+            style={{ animationDelay: '400ms' }}
+          >
+            <CardHeader>
+              <CardTitle className={`${textStyles.headline.section} text-left`}>
+                RECENT
+                <br />
+                ACTIVITY
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recentActivity.map((activity, index) => (
+                  <Card 
+                    key={index} 
+                    className="bg-card border-border animate-in fade-in-0 duration-300"
+                    style={{ animationDelay: `${500 + index * 100}ms` }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex-1 min-w-0">
+                        <p className={textStyles.body.regular}>
+                          {activity.message}
+                        </p>
                         <p className={`${textStyles.body.small} mt-1`}>
-                          {event.date} - {event.time}
+                          {activity.time}
                         </p>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
-                      >
-                        {event.genre}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Upcoming Events */}
+        {isLoading ? (
+          <EventsSkeleton />
+        ) : (
+          <Card 
+            className="bg-card border-border animate-in fade-in-0 duration-500"
+            style={{ animationDelay: '600ms' }}
+          >
+            <CardHeader>
+              <CardTitle className={`${textStyles.headline.section} text-left`}>
+                UPCOMING
+                <br />
+                EVENTS
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {upcomingEvents.map((event, index) => (
+                  <Card 
+                    key={index} 
+                    className="bg-card border-border animate-in fade-in-0 duration-300"
+                    style={{ animationDelay: `${700 + index * 100}ms` }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className={textStyles.body.regular}>{event.title}</p>
+                          <p className={`${textStyles.body.small} mt-1`}>
+                            {event.date} - {event.time}
+                          </p>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                        >
+                          {event.genre}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

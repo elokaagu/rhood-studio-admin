@@ -72,10 +72,19 @@ function ApplicationsContent() {
               id: app.id,
               type: "simple",
               applicant: {
-                name: app.user_profiles?.dj_name || app.user_profiles?.first_name || "Unknown",
-                djName: app.user_profiles?.dj_name || app.user_profiles?.first_name || "Unknown",
+                name:
+                  app.user_profiles?.dj_name ||
+                  app.user_profiles?.first_name ||
+                  "Unknown",
+                djName:
+                  app.user_profiles?.dj_name ||
+                  app.user_profiles?.first_name ||
+                  "Unknown",
                 avatar: "/person1.jpg",
-                location: app.user_profiles?.city || app.user_profiles?.location || "Unknown",
+                location:
+                  app.user_profiles?.city ||
+                  app.user_profiles?.location ||
+                  "Unknown",
                 genres: app.user_profiles?.genres || [],
               },
               opportunity: app.opportunities?.title || "Unknown Opportunity",
@@ -103,10 +112,19 @@ function ApplicationsContent() {
               id: response.id,
               type: "form_response",
               applicant: {
-                name: response.user_profiles?.dj_name || response.user_profiles?.first_name || "Unknown",
-                djName: response.user_profiles?.dj_name || response.user_profiles?.first_name || "Unknown",
+                name:
+                  response.user_profiles?.dj_name ||
+                  response.user_profiles?.first_name ||
+                  "Unknown",
+                djName:
+                  response.user_profiles?.dj_name ||
+                  response.user_profiles?.first_name ||
+                  "Unknown",
                 avatar: "/person1.jpg",
-                location: response.user_profiles?.city || response.user_profiles?.location || "Unknown",
+                location:
+                  response.user_profiles?.city ||
+                  response.user_profiles?.location ||
+                  "Unknown",
                 genres: response.user_profiles?.genres || [],
               },
               opportunity:
@@ -253,7 +271,9 @@ function ApplicationsContent() {
           ? "application_form_responses"
           : "applications";
 
-      console.log(`Approving ${applicationType} application ${applicationId} from table ${tableName}`);
+      console.log(
+        `Approving ${applicationType} application ${applicationId} from table ${tableName}`
+      );
 
       // First, get the application details to create notification
       const { data: applicationData, error: fetchError } = await supabase
@@ -278,14 +298,14 @@ function ApplicationsContent() {
       // Update application status with proper validation
       const updateData =
         applicationType === "form_response"
-          ? { 
-              status: "approved", 
-              reviewed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }
-          : { 
+          ? {
               status: "approved",
-              updated_at: new Date().toISOString()
+              reviewed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          : {
+              status: "approved",
+              updated_at: new Date().toISOString(),
             };
 
       console.log("Updating with data:", updateData);
@@ -303,7 +323,7 @@ function ApplicationsContent() {
           code: error.code,
           message: error.message,
           details: error.details,
-          hint: error.hint
+          hint: error.hint,
         });
         throw error;
       }
@@ -357,7 +377,9 @@ function ApplicationsContent() {
           ? "application_form_responses"
           : "applications";
 
-      console.log(`Rejecting ${applicationType} application ${applicationId} from table ${tableName}`);
+      console.log(
+        `Rejecting ${applicationType} application ${applicationId} from table ${tableName}`
+      );
 
       // First, get the application details to create notification
       const { data: applicationData, error: fetchError } = await supabase
@@ -382,14 +404,14 @@ function ApplicationsContent() {
       // Update application status with proper validation
       const updateData =
         applicationType === "form_response"
-          ? { 
-              status: "rejected", 
-              reviewed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }
-          : { 
+          ? {
               status: "rejected",
-              updated_at: new Date().toISOString()
+              reviewed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          : {
+              status: "rejected",
+              updated_at: new Date().toISOString(),
             };
 
       console.log("Updating with data:", updateData);
@@ -407,7 +429,7 @@ function ApplicationsContent() {
           code: error.code,
           message: error.message,
           details: error.details,
-          hint: error.hint
+          hint: error.hint,
         });
         throw error;
       }
@@ -581,10 +603,10 @@ function ApplicationsContent() {
                     >
                       {getStatusIcon(application.status)}
                       <span className="ml-1">
-                        {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                        {application.status.charAt(0).toUpperCase() +
+                          application.status.slice(1)}
                       </span>
                     </Badge>
-
 
                     <div className="flex items-center space-x-2">
                       <Button

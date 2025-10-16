@@ -88,7 +88,8 @@ export default function MixesPage() {
         console.error("Error fetching mixes:", error);
         toast({
           title: "Database Error",
-          description: "Failed to load mixes from database. Please check your connection.",
+          description:
+            "Failed to load mixes from database. Please check your connection.",
           variant: "destructive",
         });
         setMixes([]);
@@ -97,21 +98,24 @@ export default function MixesPage() {
         const transformedMixes = (data || []).map((mix: any) => ({
           ...mix,
           // Ensure consistent field names
-          uploadDate: mix.created_at ? formatDateShort(mix.created_at) : mix.uploadDate,
+          uploadDate: mix.created_at
+            ? formatDateShort(mix.created_at)
+            : mix.uploadDate,
           audioUrl: mix.file_url || mix.audioUrl,
           appliedFor: mix.applied_for || mix.appliedFor,
           // Add default values for missing fields
           plays: mix.plays || 0,
           rating: mix.rating || 0.0,
         }));
-        
+
         setMixes(transformedMixes);
       }
     } catch (error) {
       console.error("Error fetching mixes:", error);
       toast({
         title: "Database Error",
-        description: "Failed to load mixes from database. Please check your connection.",
+        description:
+          "Failed to load mixes from database. Please check your connection.",
         variant: "destructive",
       });
       setMixes([]);
@@ -160,24 +164,26 @@ export default function MixesPage() {
   // Format duration to proper MM:SS or HH:MM:SS format
   const formatDuration = (duration: string) => {
     if (!duration) return "Unknown";
-    
+
     // If duration is already in MM:SS or HH:MM:SS format, return as is
     if (duration.includes(":")) {
       return duration;
     }
-    
+
     // If duration is in seconds, convert to MM:SS or HH:MM:SS
     const seconds = parseInt(duration);
     if (isNaN(seconds)) return duration;
-    
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
-    
+
     if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+      return `${hours}:${minutes.toString().padStart(2, "0")}:${remainingSeconds
+        .toString()
+        .padStart(2, "0")}`;
     } else {
-      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+      return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
     }
   };
 
@@ -791,8 +797,11 @@ export default function MixesPage() {
               </div>
               <div>
                 <h3 className={textStyles.subheading.large}>No mixes found</h3>
-                <p className={`${textStyles.body.regular} text-muted-foreground mt-2`}>
-                  No mixes have been uploaded yet. Upload your first mix to get started!
+                <p
+                  className={`${textStyles.body.regular} text-muted-foreground mt-2`}
+                >
+                  No mixes have been uploaded yet. Upload your first mix to get
+                  started!
                 </p>
               </div>
             </div>

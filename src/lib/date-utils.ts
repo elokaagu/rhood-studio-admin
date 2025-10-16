@@ -7,19 +7,19 @@
  */
 export const formatDate = (dateString: string | Date | null): string => {
   if (!dateString || dateString === "Unknown") return "Unknown";
-  
+
   try {
     const date = new Date(dateString);
-    
+
     // Check if date is valid
     if (isNaN(date.getTime())) {
       return "Invalid Date";
     }
-    
+
     const day = date.getDate();
     const month = date.toLocaleString("en-US", { month: "long" });
     const year = date.getFullYear();
-    
+
     // Add ordinal suffix to day
     const getOrdinalSuffix = (day: number) => {
       if (day >= 11 && day <= 13) return "th";
@@ -34,7 +34,7 @@ export const formatDate = (dateString: string | Date | null): string => {
           return "th";
       }
     };
-    
+
     return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
   } catch (error) {
     console.error("Error formatting date:", error);
@@ -49,19 +49,19 @@ export const formatDate = (dateString: string | Date | null): string => {
  */
 export const formatDateShort = (dateString: string | Date | null): string => {
   if (!dateString || dateString === "Unknown") return "Unknown";
-  
+
   try {
     const date = new Date(dateString);
-    
+
     // Check if date is valid
     if (isNaN(date.getTime())) {
       return "Invalid Date";
     }
-    
+
     const day = date.getDate();
     const month = date.toLocaleString("en-US", { month: "short" });
     const year = date.getFullYear();
-    
+
     // Add ordinal suffix to day
     const getOrdinalSuffix = (day: number) => {
       if (day >= 11 && day <= 13) return "th";
@@ -76,7 +76,7 @@ export const formatDateShort = (dateString: string | Date | null): string => {
           return "th";
       }
     };
-    
+
     return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
   } catch (error) {
     console.error("Error formatting date:", error);
@@ -89,15 +89,17 @@ export const formatDateShort = (dateString: string | Date | null): string => {
  * @param dateString - Date string or Date object
  * @returns Relative date string
  */
-export const formatRelativeDate = (dateString: string | Date | null): string => {
+export const formatRelativeDate = (
+  dateString: string | Date | null
+): string => {
   if (!dateString || dateString === "Unknown") return "Unknown";
-  
+
   try {
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 1) {
       return "Tomorrow";
     } else if (diffDays === 0) {

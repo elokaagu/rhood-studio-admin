@@ -118,9 +118,9 @@ export default function MembersPage() {
               name: `${member.first_name} ${member.last_name}`,
               email: member.email,
               location: member.city,
-            joinedDate: member.created_at
-              ? formatDate(member.created_at)
-              : "Unknown",
+              joinedDate: member.created_at
+                ? formatDate(member.created_at)
+                : "Unknown",
               gigs: 0, // This field might need to be calculated from applications
               rating: Math.round(rating * 10) / 10, // Round to 1 decimal place
               genres: member.genres || [],
@@ -219,7 +219,6 @@ export default function MembersPage() {
   useEffect(() => {
     fetchMembers();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
 
   const getStatusBadge = (status: string) => {
     switch (status) {

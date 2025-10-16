@@ -41,7 +41,10 @@ export default function OpportunitiesPage() {
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [opportunityToDelete, setOpportunityToDelete] = useState<{ id: number; title: string } | null>(null);
+  const [opportunityToDelete, setOpportunityToDelete] = useState<{
+    id: number;
+    title: string;
+  } | null>(null);
 
   // Fetch opportunities from database
   const fetchOpportunities = async () => {
@@ -111,7 +114,10 @@ export default function OpportunitiesPage() {
     fetchOpportunities();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleDelete = async (opportunityId: number, opportunityTitle: string) => {
+  const handleDelete = async (
+    opportunityId: number,
+    opportunityTitle: string
+  ) => {
     setOpportunityToDelete({ id: opportunityId, title: opportunityTitle });
     setDeleteModalOpen(true);
   };
@@ -131,7 +137,7 @@ export default function OpportunitiesPage() {
       }
 
       // Remove from local state
-      setOpportunities((prevOpportunities) => 
+      setOpportunities((prevOpportunities) =>
         prevOpportunities.filter((opp) => opp.id !== opportunityToDelete.id)
       );
 
@@ -313,18 +319,24 @@ export default function OpportunitiesPage() {
                           loading="lazy"
                           priority={false}
                           onError={(e) => {
-                            console.error('Image load error:', opportunity.image_url);
-                            console.error('Error event:', e);
+                            console.error(
+                              "Image load error:",
+                              opportunity.image_url
+                            );
+                            console.error("Error event:", e);
                           }}
                           onLoad={() => {
-                            console.log('Image loaded successfully:', opportunity.image_url);
+                            console.log(
+                              "Image loaded successfully:",
+                              opportunity.image_url
+                            );
                           }}
                           unoptimized={true}
                         />
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="flex-1">
                     <h3 className={`${textStyles.subheading.large} mb-2`}>
                       {opportunity.title}
@@ -387,13 +399,22 @@ export default function OpportunitiesPage() {
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-card border-border">
+                      <DropdownMenuContent
+                        align="end"
+                        className="bg-card border-border"
+                      >
                         <DropdownMenuItem
-                          onClick={() => handleDelete(opportunity.id, opportunity.title)}
+                          onClick={() =>
+                            handleDelete(opportunity.id, opportunity.title)
+                          }
                           className="text-red-600 hover:bg-red-50 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -413,11 +434,14 @@ export default function OpportunitiesPage() {
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
+            <DialogTitle
+              className={`${textStyles.subheading.large} text-brand-white`}
+            >
               Delete Opportunity
             </DialogTitle>
             <DialogDescription className={textStyles.body.regular}>
-              Are you sure you want to delete &quot;{opportunityToDelete?.title}&quot;? This action cannot be undone.
+              Are you sure you want to delete &quot;{opportunityToDelete?.title}
+              &quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -367,14 +367,25 @@ export default function EditMemberPage() {
                 <Label htmlFor="instagram">Instagram</Label>
                 <div className="relative">
                   <Instagram className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="instagram"
-                    name="instagram"
-                    value={formData.instagram}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    placeholder="https://instagram.com/username"
-                  />
+                  <div className="flex items-center">
+                    <span className="absolute left-10 text-muted-foreground text-sm pointer-events-none">
+                      https://instagram.com/
+                    </span>
+                    <Input
+                      id="instagram"
+                      name="instagram"
+                      value={formData.instagram.replace('https://instagram.com/', '')}
+                      onChange={(e) => {
+                        const handle = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          instagram: handle ? `https://instagram.com/${handle}` : ''
+                        }));
+                      }}
+                      className="pl-40"
+                      placeholder="username"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -382,14 +393,25 @@ export default function EditMemberPage() {
                 <Label htmlFor="soundcloud">SoundCloud</Label>
                 <div className="relative">
                   <Volume2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="soundcloud"
-                    name="soundcloud"
-                    value={formData.soundcloud}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    placeholder="https://soundcloud.com/username"
-                  />
+                  <div className="flex items-center">
+                    <span className="absolute left-10 text-muted-foreground text-sm pointer-events-none">
+                      https://soundcloud.com/
+                    </span>
+                    <Input
+                      id="soundcloud"
+                      name="soundcloud"
+                      value={formData.soundcloud.replace('https://soundcloud.com/', '')}
+                      onChange={(e) => {
+                        const handle = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          soundcloud: handle ? `https://soundcloud.com/${handle}` : ''
+                        }));
+                      }}
+                      className="pl-44"
+                      placeholder="username"
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>

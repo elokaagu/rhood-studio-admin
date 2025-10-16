@@ -71,9 +71,7 @@ export default function MemberDetailsPage() {
             data.dj_name || `${data.first_name} ${data.last_name}` || "Unknown",
           email: data.email || "No email",
           location: data.city || "Unknown",
-          joinDate: data.created_at
-            ? formatDate(data.created_at)
-            : "Unknown",
+          joinDate: data.created_at ? formatDate(data.created_at) : "Unknown",
           genres: data.genres || [],
           status: "active", // Default to active since is_active field doesn't exist in schema
           gigs: 0, // This would need to be calculated from applications

@@ -441,7 +441,8 @@ export default function ApplicationDetailsPage() {
               </div>
 
               {/* Social Media Links */}
-              {(application.applicant.instagram || application.applicant.soundcloud) && (
+              {(application.applicant.instagram ||
+                application.applicant.soundcloud) && (
                 <div>
                   <h4 className={textStyles.subheading.small}>Social Media</h4>
                   <div className="flex flex-wrap gap-2">
@@ -450,7 +451,9 @@ export default function ApplicationDetailsPage() {
                         variant="outline"
                         size="sm"
                         className="text-foreground"
-                        onClick={() => window.open(application.applicant.instagram, "_blank")}
+                        onClick={() =>
+                          window.open(application.applicant.instagram, "_blank")
+                        }
                       >
                         <ExternalLink className="h-3 w-3 mr-1" />
                         Instagram
@@ -461,7 +464,12 @@ export default function ApplicationDetailsPage() {
                         variant="outline"
                         size="sm"
                         className="text-foreground"
-                        onClick={() => window.open(application.applicant.soundcloud, "_blank")}
+                        onClick={() =>
+                          window.open(
+                            application.applicant.soundcloud,
+                            "_blank"
+                          )
+                        }
                       >
                         <ExternalLink className="h-3 w-3 mr-1" />
                         SoundCloud
@@ -544,7 +552,8 @@ export default function ApplicationDetailsPage() {
                   } else {
                     toast({
                       title: "No SoundCloud Available",
-                      description: "This user hasn't provided a SoundCloud link.",
+                      description:
+                        "This user hasn't provided a SoundCloud link.",
                       variant: "destructive",
                     });
                   }

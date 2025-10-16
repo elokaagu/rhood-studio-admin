@@ -44,7 +44,10 @@ export default function OpportunityDetailsPage() {
   const [opportunity, setOpportunity] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [opportunityToDelete, setOpportunityToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [opportunityToDelete, setOpportunityToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
   // Fetch opportunity from database
   const fetchOpportunity = async () => {
@@ -61,7 +64,9 @@ export default function OpportunityDetailsPage() {
           error.message?.includes("relation") &&
           error.message?.includes("does not exist")
         ) {
-          console.warn("Opportunities table doesn't exist yet. Using demo data.");
+          console.warn(
+            "Opportunities table doesn't exist yet. Using demo data."
+          );
           toast({
             title: "Database Setup Required",
             description:
@@ -77,9 +82,7 @@ export default function OpportunityDetailsPage() {
           id: data.id,
           title: data.title,
           location: data.location,
-          date: data.event_date
-            ? formatDate(data.event_date)
-            : "Unknown",
+          date: data.event_date ? formatDate(data.event_date) : "Unknown",
           pay: data.payment ? `£${data.payment}` : "N/A",
           applicants: 0, // This would need to be calculated from applications
           status: data.is_active ? "active" : "draft",
@@ -164,7 +167,10 @@ export default function OpportunityDetailsPage() {
 
   const handleDelete = () => {
     if (opportunity) {
-      setOpportunityToDelete({ id: opportunityId as string, title: opportunity.title });
+      setOpportunityToDelete({
+        id: opportunityId as string,
+        title: opportunity.title,
+      });
       setDeleteModalOpen(true);
     }
   };
@@ -302,15 +308,17 @@ export default function OpportunityDetailsPage() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button 
+          <Button
             variant="outline"
-            onClick={() => router.push(`/admin/opportunities/${opportunityId}/edit`)}
+            onClick={() =>
+              router.push(`/admin/opportunities/${opportunityId}/edit`)
+            }
           >
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="text-red-600 hover:text-red-700"
             onClick={handleDelete}
           >
@@ -359,11 +367,17 @@ export default function OpportunityDetailsPage() {
                     loading="lazy"
                     priority={true}
                     onError={(e) => {
-                      console.error('Image load error in detail view:', opportunity.image_url);
-                      console.error('Error event:', e);
+                      console.error(
+                        "Image load error in detail view:",
+                        opportunity.image_url
+                      );
+                      console.error("Error event:", e);
                     }}
                     onLoad={() => {
-                      console.log('Image loaded successfully in detail view:', opportunity.image_url);
+                      console.log(
+                        "Image loaded successfully in detail view:",
+                        opportunity.image_url
+                      );
                     }}
                     unoptimized={true}
                   />
@@ -495,7 +509,10 @@ export default function OpportunityDetailsPage() {
                     More Actions
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-card border-border">
+                <DropdownMenuContent
+                  align="end"
+                  className="bg-card border-border"
+                >
                   <DropdownMenuItem
                     onClick={handleDelete}
                     className="text-red-600 hover:bg-red-50 hover:text-red-700"
@@ -514,11 +531,14 @@ export default function OpportunityDetailsPage() {
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
+            <DialogTitle
+              className={`${textStyles.subheading.large} text-brand-white`}
+            >
               Delete Opportunity
             </DialogTitle>
             <DialogDescription className={textStyles.body.regular}>
-              Are you sure you want to delete &quot;{opportunityToDelete?.title}&quot;? This action cannot be undone.
+              Are you sure you want to delete &quot;{opportunityToDelete?.title}
+              &quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

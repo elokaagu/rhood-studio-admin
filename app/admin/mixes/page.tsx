@@ -905,107 +905,134 @@ export default function MixesPage() {
           </div>
         ) : (
           mixes.map((mix) => (
-            <Card key={mix.id} className="bg-card border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1">
-                    {/* Mix Artwork */}
-                    <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-secondary">
+            <Card
+              key={mix.id}
+              className="bg-card border-border hover:border-brand-green/30 transition-all duration-300"
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-6">
+                  {/* Mix Artwork with Play Button */}
+                  <div className="relative group">
+                    <div className="relative h-20 w-20 rounded-xl overflow-hidden bg-gradient-to-br from-secondary to-muted shadow-lg">
                       {mix.image_url ? (
                         <Image
                           src={mix.image_url}
                           alt={`${mix.title} artwork`}
                           fill
-                          className="object-cover"
-                          sizes="48px"
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
+                          sizes="80px"
                           placeholder="blur"
                           blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                           loading="lazy"
                           unoptimized={true}
                         />
                       ) : (
-                        <div className="flex items-center justify-center h-full">
-                          <Music className="h-6 w-6 text-muted-foreground" />
+                        <div className="flex items-center justify-center h-full bg-gradient-to-br from-brand-green/20 to-brand-green/10">
+                          <Music className="h-8 w-8 text-brand-green/60" />
                         </div>
                       )}
+
                       {/* Play Button Overlay */}
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="absolute inset-0 h-full w-full rounded-lg bg-black/20 border-none hover:bg-black/30"
-                        onClick={() =>
-                          handlePlayPause(mix.id, mix.file_url || mix.audioUrl)
-                        }
-                      >
-                        {currentlyPlaying === mix.id && isPlaying ? (
-                          <Pause className="h-4 w-4 text-white" />
-                        ) : (
-                          <Play className="h-4 w-4 text-white" />
-                        )}
-                      </Button>
-                    </div>
-
-                    {/* Mix Info */}
-                    <div className="flex-1">
-                      <h3 className={textStyles.subheading.large}>
-                        {mix.title}
-                      </h3>
-                      <p
-                        className={`${textStyles.body.regular} text-muted-foreground`}
-                      >
-                        by {mix.artist}
-                      </p>
-
-                      {/* Metadata Row */}
-                      <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1" />
-                          {formatDuration(mix.duration)}
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {mix.created_at
-                            ? formatDateShort(mix.created_at)
-                            : mix.uploadDate}
-                        </div>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-10 w-10 rounded-full bg-white/20 border-white/30 hover:bg-white/30 backdrop-blur-sm"
+                          onClick={() =>
+                            handlePlayPause(
+                              mix.id,
+                              mix.file_url || mix.audioUrl
+                            )
+                          }
+                        >
+                          {currentlyPlaying === mix.id && isPlaying ? (
+                            <Pause className="h-5 w-5 text-white" />
+                          ) : (
+                            <Play className="h-5 w-5 text-white ml-0.5" />
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Right Side - Tags and Actions */}
-                  <div className="flex items-center space-x-2">
-                    {getGenreBadge(mix.genre)}
-                    {getStatusBadge(mix.status)}
+                  {/* Mix Information */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3
+                          className={`${textStyles.subheading.large} truncate`}
+                        >
+                          {mix.title}
+                        </h3>
+                        <p
+                          className={`${textStyles.body.regular} text-muted-foreground truncate`}
+                        >
+                          by {mix.artist}
+                        </p>
+                      </div>
 
+                      {/* Status Badge */}
+                      <div className="ml-4 flex-shrink-0">
+                        {getStatusBadge(mix.status)}
+                      </div>
+                    </div>
+
+                    {/* Metadata */}
+                    <div className="flex items-center space-x-6 text-sm text-muted-foreground">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="h-4 w-4" />
+                        <span>{formatDuration(mix.duration)}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          {mix.created_at
+                            ? formatDateShort(mix.created_at)
+                            : mix.uploadDate}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center space-x-3">
+                    {/* Genre Badge */}
+                    <div className="flex-shrink-0">
+                      {getGenreBadge(mix.genre)}
+                    </div>
+
+                    {/* Download Button */}
                     <Button
                       variant="outline"
                       size="sm"
+                      className="bg-brand-green/10 border-brand-green/30 text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-300"
                       onClick={() => handleDownload(mix.title, mix.file_url)}
                     >
-                      <Download className="h-4 w-4 mr-1" />
+                      <Download className="h-4 w-4 mr-2" />
                       Download
                     </Button>
 
+                    {/* More Options */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0"
+                          className="h-9 w-9 p-0 hover:bg-muted/50"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
                         align="end"
-                        className="bg-card border-border"
+                        className="bg-card border-border shadow-lg"
                       >
                         <DropdownMenuItem
                           onClick={() => handleDelete(mix.id, mix.title)}
-                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                          className="text-red-500 hover:bg-red-50 hover:text-red-600 cursor-pointer"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
+                          Delete Mix
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

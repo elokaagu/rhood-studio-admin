@@ -20,7 +20,6 @@ import {
   Clock,
   Eye,
   User,
-  Users,
 } from "lucide-react";
 
 function ApplicationsContent() {
@@ -94,7 +93,6 @@ function ApplicationsContent() {
                 ? formatDate(app.created_at)
                 : "Unknown",
               status: app.status || "pending",
-              experience: "Unknown",
               portfolio: "Unknown",
               message: app.message || "",
             };
@@ -137,7 +135,6 @@ function ApplicationsContent() {
                 ? formatDate(response.submitted_at)
                 : "Unknown",
               status: response.status || "pending",
-              experience: response.response_data?.experience || "Unknown",
               portfolio:
                 response.response_data?.portfolio ||
                 response.response_data?.soundcloud ||
@@ -581,10 +578,6 @@ function ApplicationsContent() {
                       <div className="flex items-center">
                         <MapPin className="h-4 w-4 mr-1" />
                         {application.applicant.location}
-                      </div>
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-1" />
-                        {application.experience}
                       </div>
                     </div>
 

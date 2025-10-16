@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { textStyles } from "@/lib/typography";
+import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -97,16 +98,17 @@ export default function MixesPage() {
     setMixes([
       {
         id: 1,
-        title: "Underground Techno Mix #1",
-        artist: "Alex Thompson",
-        duration: "58:23",
-        uploadDate: "2024-08-10",
-        plays: 1247,
-        rating: 4.8,
-        appliedFor: "Underground Warehouse Rave",
-        genre: "Techno",
-        status: "approved",
+        title: "Soulection 702",
+        artist: "Eloka Agu",
+        duration: "22:59",
+        uploadDate: "2024-10-05",
+        plays: 0,
+        rating: 0.0,
+        appliedFor: "N/A",
+        genre: "R&B",
+        status: "pending",
         audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+        image_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=center", // Mix artwork
       },
       {
         id: 2,
@@ -120,6 +122,7 @@ export default function MixesPage() {
         genre: "House",
         status: "pending",
         audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+        image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=400&fit=crop&crop=center",
       },
       {
         id: 3,
@@ -133,6 +136,7 @@ export default function MixesPage() {
         genre: "Drum & Bass",
         status: "approved",
         audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+        image_url: "https://images.unsplash.com/photo-1571266028243-e68e8c6c5e0b?w=400&h=400&fit=crop&crop=center",
       },
       {
         id: 4,
@@ -146,6 +150,7 @@ export default function MixesPage() {
         genre: "Deep House",
         status: "rejected",
         audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Demo audio file
+        image_url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&h=400&fit=crop&crop=center",
       },
     ]);
 
@@ -187,6 +192,30 @@ export default function MixesPage() {
         {genre}
       </Badge>
     );
+  };
+
+  // Format duration to proper MM:SS or HH:MM:SS format
+  const formatDuration = (duration: string) => {
+    if (!duration) return "Unknown";
+    
+    // If duration is already in MM:SS or HH:MM:SS format, return as is
+    if (duration.includes(":")) {
+      return duration;
+    }
+    
+    // If duration is in seconds, convert to MM:SS or HH:MM:SS
+    const seconds = parseInt(duration);
+    if (isNaN(seconds)) return duration;
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
   };
 
   const handlePlayPause = (mixId: number, audioUrl: string) => {
@@ -803,21 +832,41 @@ export default function MixesPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4 flex-1">
-                    {/* Play Button */}
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-12 w-12 rounded-full bg-secondary border-border hover:bg-accent"
-                      onClick={() =>
-                        handlePlayPause(mix.id, mix.file_url || mix.audioUrl)
-                      }
-                    >
-                      {currentlyPlaying === mix.id && isPlaying ? (
-                        <Pause className="h-4 w-4 text-foreground" />
+                    {/* Mix Artwork */}
+                    <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-secondary">
+                      {mix.image_url ? (
+                        <Image
+                          src={mix.image_url}
+                          alt={`${mix.title} artwork`}
+                          fill
+                          className="object-cover"
+                          sizes="48px"
+                          placeholder="blur"
+                          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
+                          loading="lazy"
+                          unoptimized={true}
+                        />
                       ) : (
-                        <Play className="h-4 w-4 text-foreground" />
+                        <div className="flex items-center justify-center h-full">
+                          <Music className="h-6 w-6 text-muted-foreground" />
+                        </div>
                       )}
-                    </Button>
+                      {/* Play Button Overlay */}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="absolute inset-0 h-full w-full rounded-lg bg-black/20 border-none hover:bg-black/30"
+                        onClick={() =>
+                          handlePlayPause(mix.id, mix.file_url || mix.audioUrl)
+                        }
+                      >
+                        {currentlyPlaying === mix.id && isPlaying ? (
+                          <Pause className="h-4 w-4 text-white" />
+                        ) : (
+                          <Play className="h-4 w-4 text-white" />
+                        )}
+                      </Button>
+                    </div>
 
                     {/* Mix Info */}
                     <div className="flex-1">
@@ -834,7 +883,7 @@ export default function MixesPage() {
                       <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
                         <div className="flex items-center">
                           <Clock className="h-4 w-4 mr-1" />
-                          {mix.duration || "Unknown"}
+                          {formatDuration(mix.duration)}
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />
@@ -842,21 +891,7 @@ export default function MixesPage() {
                             ? new Date(mix.created_at).toLocaleDateString()
                             : mix.uploadDate}
                         </div>
-                        <div className="flex items-center">
-                          <Eye className="h-4 w-4 mr-1" />
-                          {mix.plays || 0} plays
-                        </div>
-                        <div className="flex items-center">
-                          <Star className="h-4 w-4 mr-1" />
-                          {mix.rating || 0.0}
-                        </div>
                       </div>
-
-                      {/* Applied For */}
-                      <p className={`${textStyles.body.small} mt-2`}>
-                        Applied for:{" "}
-                        {mix.applied_for || mix.appliedFor || "N/A"}
-                      </p>
                     </div>
                   </div>
 

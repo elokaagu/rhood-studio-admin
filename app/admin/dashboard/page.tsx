@@ -100,26 +100,8 @@ export default function DashboardPage() {
     },
   ]);
 
-  const [upcomingEvents, setUpcomingEvents] = useState([
-    {
-      title: "Underground Warehouse Rave",
-      date: "Tomorrow",
-      time: "8:00 PM",
-      genre: "Techno",
-    },
-    {
-      title: "Rooftop Summer Sessions",
-      date: "Aug 20",
-      time: "6:00 PM",
-      genre: "House",
-    },
-    {
-      title: "Club Residency Audition",
-      date: "Aug 25",
-      time: "9:00 PM",
-      genre: "Drum & Bass",
-    },
-  ]);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
 
   useEffect(() => {
     const fetchRecentActivity = async () => {
@@ -214,15 +196,125 @@ export default function DashboardPage() {
     fetchRecentActivity();
   }, []);
 
-  // Update main loading state when both stats and activity are loaded
+  // Fetch upcoming events from opportunities table
   useEffect(() => {
-    if (statsLoaded && activityLoaded) {
+    const fetchUpcomingEvents = async () => {
+      try {
+        // Fetch opportunities with event dates in the future
+        const { data: opportunities, error } = await supabase
+          .from("opportunities")
+          .select("title, event_date, genre, location")
+          .eq("is_active", true)
+          .not("event_date", "is", null)
+          .gte("event_date", new Date().toISOString())
+          .order("event_date", { ascending: true })
+          .limit(3);
+
+        if (error) {
+          console.error("Error fetching upcoming events:", error);
+          // Fallback to demo data if database error
+          setUpcomingEvents([
+            {
+              title: "Underground Warehouse Rave",
+              date: "Tomorrow",
+              time: "8:00 PM",
+              genre: "Techno",
+            },
+            {
+              title: "Rooftop Summer Sessions",
+              date: "Aug 20",
+              time: "6:00 PM",
+              genre: "House",
+            },
+            {
+              title: "Club Residency Audition",
+              date: "Aug 25",
+              time: "9:00 PM",
+              genre: "Drum & Bass",
+            },
+          ]);
+          setEventsLoaded(true);
+          return;
+        }
+
+        if (opportunities && opportunities.length > 0) {
+          // Transform opportunities data to match the expected format
+          const transformedEvents = opportunities.map((opp: any) => {
+            const eventDate = new Date(opp.event_date);
+            const now = new Date();
+            const diffTime = eventDate.getTime() - now.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            let dateDisplay = "";
+            if (diffDays === 1) {
+              dateDisplay = "Tomorrow";
+            } else if (diffDays === 0) {
+              dateDisplay = "Today";
+            } else {
+              dateDisplay = eventDate.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+              });
+            }
+
+            return {
+              title: opp.title,
+              date: dateDisplay,
+              time: eventDate.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+              }),
+              genre: opp.genre || "General",
+              location: opp.location,
+            };
+          });
+
+          setUpcomingEvents(transformedEvents);
+        } else {
+          // No upcoming events found
+          setUpcomingEvents([]);
+        }
+        setEventsLoaded(true);
+      } catch (error) {
+        console.error("Error fetching upcoming events:", error);
+        // Fallback to demo data
+        setUpcomingEvents([
+          {
+            title: "Underground Warehouse Rave",
+            date: "Tomorrow",
+            time: "8:00 PM",
+            genre: "Techno",
+          },
+          {
+            title: "Rooftop Summer Sessions",
+            date: "Aug 20",
+            time: "6:00 PM",
+            genre: "House",
+          },
+          {
+            title: "Club Residency Audition",
+            date: "Aug 25",
+            time: "9:00 PM",
+            genre: "Drum & Bass",
+          },
+        ]);
+        setEventsLoaded(true);
+      }
+    };
+
+    fetchUpcomingEvents();
+  }, []);
+
+  // Update main loading state when all data is loaded
+  useEffect(() => {
+    if (statsLoaded && activityLoaded && eventsLoaded) {
       // Add a small delay for smooth transition
       setTimeout(() => {
         setIsLoading(false);
       }, 300);
     }
-  }, [statsLoaded, activityLoaded]);
+  }, [statsLoaded, activityLoaded, eventsLoaded]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -401,28 +493,40 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="space-y-4">
-                  {upcomingEvents.map((event, index) => (
-                    <Card key={index} className="bg-card border-border">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className={textStyles.body.regular}>
-                              {event.title}
-                            </p>
-                            <p className={`${textStyles.body.small} mt-2`}>
-                              {event.date} - {event.time}
-                            </p>
+                  {upcomingEvents.length > 0 ? (
+                    upcomingEvents.map((event, index) => (
+                      <Card key={index} className="bg-card border-border">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className={textStyles.body.regular}>
+                                {event.title}
+                              </p>
+                              <p className={`${textStyles.body.small} mt-2`}>
+                                {event.date} - {event.time}
+                              </p>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase ml-3"
+                            >
+                              {event.genre}
+                            </Badge>
                           </div>
-                          <Badge
-                            variant="outline"
-                            className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase ml-3"
-                          >
-                            {event.genre}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="text-4xl mb-4">📅</div>
+                      <p className={`${textStyles.body.regular} text-muted-foreground`}>
+                        No upcoming events
+                      </p>
+                      <p className={`${textStyles.body.small} text-muted-foreground mt-2`}>
+                        Create opportunities to see upcoming events here
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

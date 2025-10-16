@@ -98,23 +98,26 @@ export default function CommunitiesPage() {
       // Transform the data to include creator information
       const transformedCommunities =
         data?.map((community) => {
-          console.log('Community data:', community.name, {
+          console.log("Community data:", community.name, {
             id: community.id,
             image_url: community.image_url,
             has_image: !!community.image_url,
-            image_type: typeof community.image_url
+            image_type: typeof community.image_url,
           });
           return {
             ...community,
             creator_name: community.creator
               ? `${community.creator.first_name} ${community.creator.last_name}`
-              : "Unknown",
+              : "Admin",
             creator_avatar: community.creator?.profile_image_url || null,
           };
         }) || [];
 
-      console.log('Fetched communities count:', transformedCommunities.length);
-      console.log('Community IDs:', transformedCommunities.map(c => c.id));
+      console.log("Fetched communities count:", transformedCommunities.length);
+      console.log(
+        "Community IDs:",
+        transformedCommunities.map((c) => c.id)
+      );
       setCommunities(transformedCommunities);
     } catch (error) {
       console.error("Error:", error);
@@ -181,7 +184,7 @@ export default function CommunitiesPage() {
       // Close dialog and reset state
       setDeleteDialogOpen(false);
       setCommunityToDelete(null);
-      
+
       // Verify deletion by checking if community still exists
       const { data: verifyData, error: verifyError } = await supabase
         .from("communities")
@@ -189,7 +192,7 @@ export default function CommunitiesPage() {
         .eq("id", communityToDelete.id)
         .single();
 
-      if (verifyError && verifyError.code === 'PGRST116') {
+      if (verifyError && verifyError.code === "PGRST116") {
         // Community not found - deletion successful
         console.log("Deletion verified: Community no longer exists");
         await fetchCommunities();
@@ -427,7 +430,9 @@ export default function CommunitiesPage() {
                             priority={true}
                             unoptimized={true}
                             onError={() => {
-                              setImageErrors(prev => new Set(prev).add(community.id));
+                              setImageErrors((prev) =>
+                                new Set(prev).add(community.id)
+                              );
                             }}
                             onLoad={() => {
                               // Image loaded successfully
@@ -535,10 +540,7 @@ export default function CommunitiesPage() {
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() =>
-                              openDeleteDialog(
-                                community.id,
-                                community.name
-                              )
+                              openDeleteDialog(community.id, community.name)
                             }
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
@@ -572,11 +574,12 @@ export default function CommunitiesPage() {
               <span className="font-helvetica-bold text-brand-white">
                 &quot;{communityToDelete?.name}&quot;
               </span>
-              ? This action cannot be undone and will permanently remove the community and all its messages.
+              ? This action cannot be undone and will permanently remove the
+              community and all its messages.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="space-x-3">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               className="border-border/50 text-brand-white hover:bg-muted/50 hover:border-brand-green/50 font-helvetica-regular helvetica-base transition-all duration-300"
               onClick={() => setDeleteDialogOpen(false)}
             >

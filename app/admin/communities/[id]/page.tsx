@@ -131,7 +131,7 @@ export default function CommunityDetailsPage({
         ...data,
         creator_name: data.creator
           ? `${data.creator.first_name} ${data.creator.last_name}`
-          : "Unknown",
+          : "Admin",
         creator_avatar: data.creator?.profile_image_url || null,
       };
 
@@ -178,12 +178,15 @@ export default function CommunityDetailsPage({
           code: error.code,
           message: error.message,
           details: error.details,
-          hint: error.hint
+          hint: error.hint,
         });
         return;
       }
 
-      console.log(`Found ${data?.length || 0} messages for community ${communityId}:`, data);
+      console.log(
+        `Found ${data?.length || 0} messages for community ${communityId}:`,
+        data
+      );
 
       const transformedMessages =
         data?.map((message) => ({
@@ -274,7 +277,7 @@ export default function CommunityDetailsPage({
           .from("user_profiles")
           .select("id")
           .limit(1);
-        
+
         if (users && users.length > 0) {
           senderId = users[0].id;
         }
@@ -289,7 +292,12 @@ export default function CommunityDetailsPage({
         return;
       }
 
-      console.log("Sending message with sender_id:", senderId, "to community:", communityId);
+      console.log(
+        "Sending message with sender_id:",
+        senderId,
+        "to community:",
+        communityId
+      );
 
       const { error } = await supabase.from("messages").insert([
         {
@@ -305,7 +313,7 @@ export default function CommunityDetailsPage({
           code: error.code,
           message: error.message,
           details: error.details,
-          hint: error.hint
+          hint: error.hint,
         });
         toast({
           title: "Error",
@@ -736,11 +744,12 @@ export default function CommunityDetailsPage({
               <span className="font-helvetica-bold text-brand-white">
                 &quot;{community?.name}&quot;
               </span>
-              ? This action cannot be undone and will permanently remove the community and all its messages.
+              ? This action cannot be undone and will permanently remove the
+              community and all its messages.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="space-x-3">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               className="border-border/50 text-brand-white hover:bg-muted/50 hover:border-brand-green/50 font-helvetica-regular helvetica-base transition-all duration-300"
               onClick={() => setDeleteDialogOpen(false)}
             >

@@ -59,11 +59,6 @@ const sidebarItems = [
     icon: FileText,
   },
   {
-    title: "Briefs",
-    url: "/admin/forms",
-    icon: FileText,
-  },
-  {
     title: "Mixes",
     url: "/admin/mixes",
     icon: Music,

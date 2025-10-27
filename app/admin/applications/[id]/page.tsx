@@ -31,6 +31,7 @@ export default function ApplicationDetailsPage() {
   const { toast } = useToast();
   const [application, setApplication] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userMix, setUserMix] = useState<any>(null);
 
   // Handle application approval
   const handleApprove = async () => {
@@ -148,6 +149,26 @@ export default function ApplicationDetailsPage() {
           throw error;
         }
       } else if (data) {
+        // Fetch user's mix
+        let userMixData = null;
+        if (data.user_id) {
+          try {
+            const { data: mixData, error: mixError } = await supabase
+              .from("mixes")
+              .select("*")
+              .eq("uploaded_by", data.user_id)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .single();
+
+            if (!mixError && mixData) {
+              userMixData = mixData;
+            }
+          } catch (mixErr) {
+            console.warn("Could not fetch user mix:", mixErr);
+          }
+        }
+
         // Transform the data to match the expected format
         const transformedApplication = {
           id: data.id,
@@ -168,9 +189,11 @@ export default function ApplicationDetailsPage() {
             : "Unknown",
           status: data.status || "pending",
           coverLetter: data.message || "No cover letter provided",
+          userId: data.user_id,
         };
 
         setApplication(transformedApplication);
+        setUserMix(userMixData);
         setIsLoading(false);
         return; // Exit early if successful
       }
@@ -547,13 +570,14 @@ export default function ApplicationDetailsPage() {
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => {
-                  if (application.applicant.soundcloud) {
-                    window.open(application.applicant.soundcloud, "_blank");
+                  if (userMix) {
+                    // Navigate to the mix page to listen to the uploaded mix
+                    router.push(`/admin/mixes`);
                   } else {
                     toast({
-                      title: "No SoundCloud Available",
+                      title: "No Mix Available",
                       description:
-                        "This user hasn't provided a SoundCloud link.",
+                        "This user hasn't uploaded any mixes yet.",
                       variant: "destructive",
                     });
                   }

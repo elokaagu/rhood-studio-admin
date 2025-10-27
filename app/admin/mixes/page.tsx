@@ -99,12 +99,38 @@ export default function MixesPage() {
         const transformedMixes = (data || []).map((mix: any) => {
           // Get Supabase Storage URL if it's a storage path
           let imageUrl = mix.image_url;
-          if (imageUrl && !imageUrl.startsWith('http')) {
-            // It's a storage path, get the public URL
-            const { data: urlData } = supabase.storage
-              .from('mixes')
-              .getPublicUrl(imageUrl);
-            imageUrl = urlData.publicUrl;
+          
+          // If image_url exists in database, use it
+          if (!imageUrl && mix.file_url) {
+            // Try to construct image URL from file_url path
+            // If file is in a user folder, try to find artwork in same folder
+            const filePath = mix.file_url;
+            // Check if it's a storage URL and extract the path
+            const storageUrlMatch = filePath.match(/storage\/v1\/object\/public\/([^?]+)/);
+            if (storageUrlMatch) {
+              const fullPath = storageUrlMatch[1];
+              // Get the directory of the file
+              const pathParts = fullPath.split('/');
+              if (pathParts.length > 1) {
+                const directory = pathParts.slice(0, -1).join('/');
+                const fileName = pathParts[pathParts.length - 1];
+                // Try to find artwork with similar naming pattern
+                const baseName = fileName.replace(/\.(mp3|wav|m4a)$/i, '');
+                // This is a fallback - actual image URLs should be in database
+              }
+            }
+          }
+
+          if (imageUrl && !imageUrl.startsWith("http")) {
+            // It's a storage path, try to get the public URL
+            // Check if it's already a full path or just a filename
+            if (imageUrl.includes('/')) {
+              // It's a path, try to get public URL from the correct bucket
+              const { data: urlData } = supabase.storage
+                .from("mixes")
+                .getPublicUrl(imageUrl);
+              imageUrl = urlData.publicUrl;
+            }
           }
 
           return {
@@ -115,7 +141,7 @@ export default function MixesPage() {
               : mix.uploadDate,
             audioUrl: mix.file_url || mix.audioUrl,
             appliedFor: mix.applied_for || mix.appliedFor,
-            imageUrl: imageUrl, // Map to full URL
+            imageUrl: imageUrl, // Map to full URL or use existing URL
             // Add default values for missing fields
             plays: mix.plays || 0,
             rating: mix.rating || 0.0,

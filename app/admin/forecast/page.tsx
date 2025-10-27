@@ -88,29 +88,51 @@ export default function ForecastPage() {
           if (member.created_at) {
             const date = new Date(member.created_at);
             const monthNames = [
-              "January", "February", "March", "April", "May", "June",
-              "July", "August", "September", "October", "November", "December"
+              "January",
+              "February",
+              "March",
+              "April",
+              "May",
+              "June",
+              "July",
+              "August",
+              "September",
+              "October",
+              "November",
+              "December",
             ];
-            const month = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+            const month = `${
+              monthNames[date.getMonth()]
+            } ${date.getFullYear()}`;
             monthlyMap.set(month, (monthlyMap.get(month) || 0) + 1);
           }
         });
         const monthlyArray = Array.from(monthlyMap.entries())
           .map(([month, count]) => {
             // Convert back to date for sorting
-            const [monthName, year] = month.split(' ');
+            const [monthName, year] = month.split(" ");
             const monthNames = [
-              "January", "February", "March", "April", "May", "June",
-              "July", "August", "September", "October", "November", "December"
+              "January",
+              "February",
+              "March",
+              "April",
+              "May",
+              "June",
+              "July",
+              "August",
+              "September",
+              "October",
+              "November",
+              "December",
             ];
             const monthIndex = monthNames.indexOf(monthName);
             return {
               data: { month, signups: count, applications: 0 },
-              sortOrder: new Date(parseInt(year), monthIndex, 1).getTime()
+              sortOrder: new Date(parseInt(year), monthIndex, 1).getTime(),
             };
           })
           .sort((a, b) => a.sortOrder - b.sortOrder)
-          .map(item => item.data)
+          .map((item) => item.data)
           .slice(-6); // Last 6 months
         setMonthlySignups(monthlyArray);
       }
@@ -240,36 +262,45 @@ export default function ForecastPage() {
 
     try {
       setIsGeneratingPDF(true);
-      
+
       const canvas = await html2canvas(contentRef.current, {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#000000',
+        backgroundColor: "#0a0a0a",
+        width: contentRef.current.scrollWidth,
+        height: contentRef.current.scrollHeight,
       });
 
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('l', 'mm', 'a4'); // landscape A4
+      const imgData = canvas.toDataURL("image/png", 1.0);
+      const pdf = new jsPDF("p", "mm", "a4"); // portrait A4 for better fit
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
       
-      const imgWidth = 297; // A4 landscape width
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
       
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const scaledWidth = imgWidth * ratio;
+      const scaledHeight = imgHeight * ratio;
+
+      let heightLeft = scaledHeight;
       let position = 0;
 
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= 210;
+      pdf.addImage(imgData, "PNG", 0, position, scaledWidth, scaledHeight);
+      heightLeft -= pdfHeight;
 
       while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
+        position = heightLeft - scaledHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= 210;
+        pdf.addImage(imgData, "PNG", 0, position, scaledWidth, scaledHeight);
+        heightLeft -= pdfHeight;
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split("T")[0];
       pdf.save(`RHOOD_Forecast_${today}.pdf`);
-      
+
       toast({
         title: "PDF Downloaded",
         description: "Forecast report has been downloaded successfully.",

@@ -799,7 +799,7 @@ export default function MembersPage() {
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />
-                          Joined {formatDate(member.joinedDate)}
+                          Joined {member.joinedDate}
                         </div>
                         <div className="flex items-center">
                           <Music className="h-4 w-4 mr-1" />

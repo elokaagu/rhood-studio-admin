@@ -104,6 +104,7 @@ export default function MixesPage() {
             : mix.uploadDate,
           audioUrl: mix.file_url || mix.audioUrl,
           appliedFor: mix.applied_for || mix.appliedFor,
+          imageUrl: mix.image_url, // Explicitly map image_url
           // Add default values for missing fields
           plays: mix.plays || 0,
           rating: mix.rating || 0.0,
@@ -914,9 +915,9 @@ export default function MixesPage() {
                   {/* Mix Artwork with Play Button */}
                   <div className="relative group">
                     <div className="relative h-20 w-20 rounded-xl overflow-hidden bg-gradient-to-br from-secondary to-muted shadow-lg">
-                      {mix.image_url ? (
+                      {(mix.image_url || mix.imageUrl) ? (
                         <Image
-                          src={mix.image_url}
+                          src={mix.image_url || mix.imageUrl}
                           alt={`${mix.title} artwork`}
                           fill
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -925,6 +926,9 @@ export default function MixesPage() {
                           blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                           loading="lazy"
                           unoptimized={true}
+                          onError={(e) => {
+                            console.error("Image load error:", mix.image_url || mix.imageUrl);
+                          }}
                         />
                       ) : (
                         <div className="flex items-center justify-center h-full bg-gradient-to-br from-brand-green/20 to-brand-green/10">

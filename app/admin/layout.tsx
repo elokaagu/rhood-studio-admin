@@ -37,6 +37,7 @@ import {
   LogOut,
   User,
   MessageSquare,
+  BarChart3,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -72,6 +73,11 @@ const sidebarItems = [
     title: "Communities",
     url: "/admin/communities",
     icon: MessageSquare,
+  },
+  {
+    title: "Forecast",
+    url: "/admin/forecast",
+    icon: BarChart3,
   },
 ];
 

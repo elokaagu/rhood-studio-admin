@@ -915,7 +915,7 @@ export default function MixesPage() {
                   {/* Mix Artwork with Play Button */}
                   <div className="relative group">
                     <div className="relative h-20 w-20 rounded-xl overflow-hidden bg-gradient-to-br from-secondary to-muted shadow-lg">
-                      {(mix.image_url || mix.imageUrl) ? (
+                      {mix.image_url || mix.imageUrl ? (
                         <Image
                           src={mix.image_url || mix.imageUrl}
                           alt={`${mix.title} artwork`}
@@ -927,7 +927,10 @@ export default function MixesPage() {
                           loading="lazy"
                           unoptimized={true}
                           onError={(e) => {
-                            console.error("Image load error:", mix.image_url || mix.imageUrl);
+                            console.error(
+                              "Image load error:",
+                              mix.image_url || mix.imageUrl
+                            );
                           }}
                         />
                       ) : (

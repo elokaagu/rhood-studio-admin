@@ -576,8 +576,7 @@ export default function ApplicationDetailsPage() {
                   } else {
                     toast({
                       title: "No Mix Available",
-                      description:
-                        "This user hasn't uploaded any mixes yet.",
+                      description: "This user hasn't uploaded any mixes yet.",
                       variant: "destructive",
                     });
                   }

@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   TrendingUp,
   TrendingDown,
@@ -19,6 +22,7 @@ import {
   ArrowUp,
   Activity,
   Briefcase,
+  Download,
 } from "lucide-react";
 
 interface MonthlyData {
@@ -47,7 +51,9 @@ interface TopUser {
 
 export default function ForecastPage() {
   const { toast } = useToast();
+  const contentRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [monthlySignups, setMonthlySignups] = useState<MonthlyData[]>([]);
   const [brandApplications, setBrandApplications] = useState(0);
   const [countryData, setCountryData] = useState<CountryData[]>([]);
@@ -214,16 +220,86 @@ export default function ForecastPage() {
     );
   }
 
+  const downloadPDF = async () => {
+    if (!contentRef.current) return;
+
+    try {
+      setIsGeneratingPDF(true);
+      
+      const canvas = await html2canvas(contentRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#000000',
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('l', 'mm', 'a4'); // landscape A4
+      
+      const imgWidth = 297; // A4 landscape width
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= 210;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= 210;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      pdf.save(`RHOOD_Forecast_${today}.pdf`);
+      
+      toast({
+        title: "PDF Downloaded",
+        description: "Forecast report has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "PDF Generation Failed",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div ref={contentRef} className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
-          FORECAST
-        </h1>
-        <p className={textStyles.body.regular}>
-          Analytics and insights for R/HOOD
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+            FORECAST
+          </h1>
+          <p className={textStyles.body.regular}>
+            Analytics and insights for R/HOOD
+          </p>
+        </div>
+        <Button
+          onClick={downloadPDF}
+          disabled={isGeneratingPDF}
+          className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+        >
+          {isGeneratingPDF ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-black mr-2"></div>
+              Generating...
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Key Metrics */}

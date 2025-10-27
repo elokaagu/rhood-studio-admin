@@ -97,42 +97,6 @@ export default function MixesPage() {
       } else {
         // Transform the data to ensure consistent format
         const transformedMixes = (data || []).map((mix: any) => {
-          // Get Supabase Storage URL if it's a storage path
-          let imageUrl = mix.image_url;
-          
-          // If image_url exists in database, use it
-          if (!imageUrl && mix.file_url) {
-            // Try to construct image URL from file_url path
-            // If file is in a user folder, try to find artwork in same folder
-            const filePath = mix.file_url;
-            // Check if it's a storage URL and extract the path
-            const storageUrlMatch = filePath.match(/storage\/v1\/object\/public\/([^?]+)/);
-            if (storageUrlMatch) {
-              const fullPath = storageUrlMatch[1];
-              // Get the directory of the file
-              const pathParts = fullPath.split('/');
-              if (pathParts.length > 1) {
-                const directory = pathParts.slice(0, -1).join('/');
-                const fileName = pathParts[pathParts.length - 1];
-                // Try to find artwork with similar naming pattern
-                const baseName = fileName.replace(/\.(mp3|wav|m4a)$/i, '');
-                // This is a fallback - actual image URLs should be in database
-              }
-            }
-          }
-
-          if (imageUrl && !imageUrl.startsWith("http")) {
-            // It's a storage path, try to get the public URL
-            // Check if it's already a full path or just a filename
-            if (imageUrl.includes('/')) {
-              // It's a path, try to get public URL from the correct bucket
-              const { data: urlData } = supabase.storage
-                .from("mixes")
-                .getPublicUrl(imageUrl);
-              imageUrl = urlData.publicUrl;
-            }
-          }
-
           return {
             ...mix,
             // Ensure consistent field names
@@ -141,7 +105,7 @@ export default function MixesPage() {
               : mix.uploadDate,
             audioUrl: mix.file_url || mix.audioUrl,
             appliedFor: mix.applied_for || mix.appliedFor,
-            imageUrl: imageUrl, // Map to full URL or use existing URL
+            imageUrl: mix.image_url, // Use the image_url directly from database
             // Add default values for missing fields
             plays: mix.plays || 0,
             rating: mix.rating || 0.0,
@@ -466,34 +430,54 @@ export default function MixesPage() {
         throw tableCheckError;
       }
 
-      // Upload audio file to Supabase Storage
+      // First, create the mix record in the database to get its ID
+      const { data: mixData, error: insertError } = await supabase
+        .from("mixes")
+        .insert({
+          title: uploadFormData.title,
+          artist: uploadFormData.artist,
+          genre: uploadFormData.genre,
+          description: uploadFormData.description || null,
+          applied_for: uploadFormData.appliedFor || null,
+          status: uploadFormData.status,
+          file_url: "pending", // Temporary value, will update after upload
+          file_name: selectedFile.name,
+          file_size: selectedFile.size,
+          image_url: null, // Will update after upload
+        })
+        .select()
+        .single();
+
+      if (insertError || !mixData) {
+        throw insertError || new Error("Failed to create mix record");
+      }
+
+      const mixId = mixData.id;
+      
+      // Upload audio file to Supabase Storage using mix ID
       const fileExt = selectedFile.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(2)}.${fileExt}`;
-      const filePath = `mixes/${fileName}`;
+      const audioPath = `${mixId}/audio.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("mixes")
-        .upload(filePath, selectedFile);
+        .upload(audioPath, selectedFile);
 
       if (uploadError) {
+        // If upload fails, delete the mix record
+        await supabase.from("mixes").delete().eq("id", mixId);
         throw uploadError;
       }
 
       // Get the public URL for the uploaded audio file
       const {
         data: { publicUrl },
-      } = supabase.storage.from("mixes").getPublicUrl(filePath);
+      } = supabase.storage.from("mixes").getPublicUrl(audioPath);
 
-      // Upload image file if provided
+      // Upload image file if provided, using mix ID
       let imageUrl = null;
       if (selectedImage) {
         const imageExt = selectedImage.name.split(".").pop();
-        const imageFileName = `${Date.now()}-${Math.random()
-          .toString(36)
-          .substring(2)}.${imageExt}`;
-        const imagePath = `mixes/artwork/${imageFileName}`;
+        const imagePath = `${mixId}/artwork.${imageExt}`;
 
         const { error: imageUploadError } = await supabase.storage
           .from("mixes")
@@ -504,7 +488,7 @@ export default function MixesPage() {
           toast({
             title: "Image Upload Warning",
             description:
-              "Audio uploaded but image failed. You can add artwork later.",
+              "Mix uploaded but image failed. You can add artwork later.",
             variant: "destructive",
           });
         } else {
@@ -516,21 +500,14 @@ export default function MixesPage() {
         }
       }
 
-      // Save mix metadata to database
-      const { error: dbError } = await supabase.from("mixes").insert({
-        title: uploadFormData.title,
-        artist: uploadFormData.artist,
-        genre: uploadFormData.genre,
-        description: uploadFormData.description || null,
-        applied_for: uploadFormData.appliedFor || null,
-        status: uploadFormData.status,
-        file_url: publicUrl,
-        file_name: selectedFile.name,
-        file_size: selectedFile.size,
-        image_url: imageUrl,
-        // Note: duration would need to be extracted from audio file metadata
-        // For now, we'll leave it null and it can be updated later
-      });
+      // Update mix record with the actual file URLs
+      const { error: dbError } = await supabase
+        .from("mixes")
+        .update({
+          file_url: publicUrl,
+          image_url: imageUrl,
+        })
+        .eq("id", mixId);
 
       if (dbError) {
         throw dbError;

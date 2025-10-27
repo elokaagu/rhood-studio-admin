@@ -88,7 +88,7 @@ export default function ForecastPage() {
           }
         });
         const monthlyArray = Array.from(monthlyMap.entries())
-          .map(([month, count]) => ({ month, signups: count }))
+          .map(([month, count]) => ({ month, signups: count, applications: 0 }))
           .sort((a, b) => a.month.localeCompare(b.month))
           .slice(-6); // Last 6 months
         setMonthlySignups(monthlyArray);

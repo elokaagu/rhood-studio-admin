@@ -9,6 +9,7 @@ The R/HOOD Studio platform uses PostgreSQL via Supabase as its primary database.
 ### **Core Tables**
 
 #### **1. user_profiles**
+
 Stores DJ member information and profiles.
 
 ```sql
@@ -30,6 +31,7 @@ CREATE TABLE user_profiles (
 ```
 
 **Indexes:**
+
 ```sql
 CREATE INDEX idx_user_profiles_email ON user_profiles(email);
 CREATE INDEX idx_user_profiles_dj_name ON user_profiles(dj_name);
@@ -38,6 +40,7 @@ CREATE INDEX idx_user_profiles_created_at ON user_profiles(created_at);
 ```
 
 #### **2. opportunities**
+
 Manages DJ gig opportunities and events.
 
 ```sql
@@ -58,6 +61,7 @@ CREATE TABLE opportunities (
 ```
 
 **Indexes:**
+
 ```sql
 CREATE INDEX idx_opportunities_event_date ON opportunities(event_date);
 CREATE INDEX idx_opportunities_is_active ON opportunities(is_active);
@@ -66,6 +70,7 @@ CREATE INDEX idx_opportunities_created_at ON opportunities(created_at);
 ```
 
 #### **3. applications**
+
 Tracks DJ applications for opportunities.
 
 ```sql
@@ -81,6 +86,7 @@ CREATE TABLE applications (
 ```
 
 **Indexes:**
+
 ```sql
 CREATE INDEX idx_applications_user_id ON applications(user_id);
 CREATE INDEX idx_applications_opportunity_id ON applications(opportunity_id);
@@ -89,6 +95,7 @@ CREATE INDEX idx_applications_created_at ON applications(created_at);
 ```
 
 #### **4. mixes**
+
 Manages DJ mix submissions and files.
 
 ```sql
@@ -111,6 +118,7 @@ CREATE TABLE mixes (
 ```
 
 **Indexes:**
+
 ```sql
 CREATE INDEX idx_mixes_artist ON mixes(artist);
 CREATE INDEX idx_mixes_genre ON mixes(genre);
@@ -119,6 +127,7 @@ CREATE INDEX idx_mixes_created_at ON mixes(created_at);
 ```
 
 #### **5. communities**
+
 Manages DJ communities and groups.
 
 ```sql
@@ -133,12 +142,14 @@ CREATE TABLE communities (
 ```
 
 **Indexes:**
+
 ```sql
 CREATE INDEX idx_communities_creator_id ON communities(creator_id);
 CREATE INDEX idx_communities_created_at ON communities(created_at);
 ```
 
 #### **6. community_members**
+
 Tracks community membership.
 
 ```sql
@@ -152,6 +163,7 @@ CREATE TABLE community_members (
 ```
 
 **Indexes:**
+
 ```sql
 CREATE INDEX idx_community_members_community_id ON community_members(community_id);
 CREATE INDEX idx_community_members_user_id ON community_members(user_id);
@@ -159,6 +171,7 @@ CREATE INDEX idx_community_members_joined_at ON community_members(joined_at);
 ```
 
 #### **7. messages**
+
 Stores community chat messages.
 
 ```sql
@@ -173,6 +186,7 @@ CREATE TABLE messages (
 ```
 
 **Indexes:**
+
 ```sql
 CREATE INDEX idx_messages_community_id ON messages(community_id);
 CREATE INDEX idx_messages_sender_id ON messages(sender_id);
@@ -182,6 +196,7 @@ CREATE INDEX idx_messages_created_at ON messages(created_at);
 ### **AI Features Tables**
 
 #### **8. ai_matching_sessions**
+
 Tracks AI-powered DJ-opportunity matching sessions.
 
 ```sql
@@ -196,6 +211,7 @@ CREATE TABLE ai_matching_sessions (
 ```
 
 **Indexes:**
+
 ```sql
 CREATE INDEX idx_ai_matching_sessions_user_id ON ai_matching_sessions(user_id);
 CREATE INDEX idx_ai_matching_sessions_opportunity_id ON ai_matching_sessions(opportunity_id);
@@ -203,6 +219,7 @@ CREATE INDEX idx_ai_matching_sessions_matching_score ON ai_matching_sessions(mat
 ```
 
 #### **9. ai_matching_feedback**
+
 Stores user feedback on AI matching results.
 
 ```sql
@@ -217,6 +234,7 @@ CREATE TABLE ai_matching_feedback (
 ```
 
 **Indexes:**
+
 ```sql
 CREATE INDEX idx_ai_matching_feedback_session_id ON ai_matching_feedback(session_id);
 CREATE INDEX idx_ai_matching_feedback_user_id ON ai_matching_feedback(user_id);
@@ -226,6 +244,7 @@ CREATE INDEX idx_ai_matching_feedback_rating ON ai_matching_feedback(rating);
 ### **Application Forms Tables**
 
 #### **10. application_forms**
+
 Manages dynamic application forms.
 
 ```sql
@@ -241,6 +260,7 @@ CREATE TABLE application_forms (
 ```
 
 #### **11. application_form_fields**
+
 Defines form field configurations.
 
 ```sql
@@ -261,6 +281,7 @@ CREATE TABLE application_form_fields (
 ```
 
 #### **12. application_form_responses**
+
 Stores form submission responses.
 
 ```sql
@@ -331,44 +352,44 @@ END;
 $$ language 'plpgsql';
 
 -- Apply trigger to all tables with updated_at column
-CREATE TRIGGER update_user_profiles_updated_at 
-  BEFORE UPDATE ON user_profiles 
-  FOR EACH ROW 
+CREATE TRIGGER update_user_profiles_updated_at
+  BEFORE UPDATE ON user_profiles
+  FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_opportunities_updated_at 
-  BEFORE UPDATE ON opportunities 
-  FOR EACH ROW 
+CREATE TRIGGER update_opportunities_updated_at
+  BEFORE UPDATE ON opportunities
+  FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_applications_updated_at 
-  BEFORE UPDATE ON applications 
-  FOR EACH ROW 
+CREATE TRIGGER update_applications_updated_at
+  BEFORE UPDATE ON applications
+  FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_mixes_updated_at 
-  BEFORE UPDATE ON mixes 
-  FOR EACH ROW 
+CREATE TRIGGER update_mixes_updated_at
+  BEFORE UPDATE ON mixes
+  FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_communities_updated_at 
-  BEFORE UPDATE ON communities 
-  FOR EACH ROW 
+CREATE TRIGGER update_communities_updated_at
+  BEFORE UPDATE ON communities
+  FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_application_forms_updated_at 
-  BEFORE UPDATE ON application_forms 
-  FOR EACH ROW 
+CREATE TRIGGER update_application_forms_updated_at
+  BEFORE UPDATE ON application_forms
+  FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_application_form_fields_updated_at 
-  BEFORE UPDATE ON application_form_fields 
-  FOR EACH ROW 
+CREATE TRIGGER update_application_form_fields_updated_at
+  BEFORE UPDATE ON application_form_fields
+  FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_application_form_responses_updated_at 
-  BEFORE UPDATE ON application_form_responses 
-  FOR EACH ROW 
+CREATE TRIGGER update_application_form_responses_updated_at
+  BEFORE UPDATE ON application_form_responses
+  FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 ```
 
@@ -378,7 +399,7 @@ CREATE TRIGGER update_application_form_responses_updated_at
 
 ```sql
 -- Create storage buckets
-INSERT INTO storage.buckets (id, name, public) VALUES 
+INSERT INTO storage.buckets (id, name, public) VALUES
 ('mixes', 'mixes', true),
 ('profile-images', 'profile-images', true),
 ('opportunity-images', 'opportunity-images', true);
@@ -455,7 +476,7 @@ ANALYZE;
 VACUUM ANALYZE;
 
 -- 3. Check for unused indexes
-SELECT 
+SELECT
   schemaname,
   tablename,
   indexname,
@@ -465,7 +486,7 @@ FROM pg_stat_user_indexes
 WHERE idx_tup_read = 0;
 
 -- 4. Monitor table sizes
-SELECT 
+SELECT
   schemaname,
   tablename,
   pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
@@ -473,7 +494,7 @@ FROM pg_tables
 ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 
 -- 5. Check for long-running queries
-SELECT 
+SELECT
   pid,
   now() - pg_stat_activity.query_start AS duration,
   query
@@ -485,7 +506,7 @@ WHERE (now() - pg_stat_activity.query_start) > interval '5 minutes';
 
 ```sql
 -- Query performance analysis
-SELECT 
+SELECT
   query,
   calls,
   total_time,
@@ -497,7 +518,7 @@ ORDER BY total_time DESC
 LIMIT 10;
 
 -- Table access patterns
-SELECT 
+SELECT
   schemaname,
   tablename,
   seq_scan,
@@ -571,16 +592,16 @@ echo "Database restored from: $BACKUP_FILE"
 BEGIN;
 
 -- Add new column
-ALTER TABLE user_profiles 
+ALTER TABLE user_profiles
 ADD COLUMN IF NOT EXISTS phone_number TEXT;
 
 -- Create index for new column
-CREATE INDEX IF NOT EXISTS idx_user_profiles_phone_number 
+CREATE INDEX IF NOT EXISTS idx_user_profiles_phone_number
 ON user_profiles(phone_number);
 
 -- Update existing records with default values
-UPDATE user_profiles 
-SET phone_number = 'Not provided' 
+UPDATE user_profiles
+SET phone_number = 'Not provided'
 WHERE phone_number IS NULL;
 
 -- Commit transaction
@@ -597,22 +618,22 @@ COMMIT;
 BEGIN;
 
 -- Example: Update status values
-UPDATE applications 
-SET status = 'under_review' 
-WHERE status = 'pending' 
+UPDATE applications
+SET status = 'under_review'
+WHERE status = 'pending'
 AND created_at < '2024-01-01';
 
 -- Example: Migrate data from one table to another
 INSERT INTO ai_matching_sessions (user_id, opportunity_id, matching_score)
-SELECT 
+SELECT
   user_id,
   opportunity_id,
   0.5 -- Default score
-FROM applications 
+FROM applications
 WHERE status = 'approved'
 AND NOT EXISTS (
-  SELECT 1 FROM ai_matching_sessions 
-  WHERE user_id = applications.user_id 
+  SELECT 1 FROM ai_matching_sessions
+  WHERE user_id = applications.user_id
   AND opportunity_id = applications.opportunity_id
 );
 
@@ -646,10 +667,10 @@ SELECT * FROM pg_stat_activity;
 SELECT pg_size_pretty(pg_database_size(current_database()));
 
 -- Check table sizes
-SELECT 
+SELECT
   tablename,
   pg_size_pretty(pg_total_relation_size(tablename::regclass)) as size
-FROM pg_tables 
+FROM pg_tables
 WHERE schemaname = 'public'
 ORDER BY pg_total_relation_size(tablename::regclass) DESC;
 ```
@@ -662,7 +683,7 @@ SET log_statement = 'all';
 SET log_min_duration_statement = 1000; -- Log queries taking > 1 second
 
 -- Check slow queries
-SELECT 
+SELECT
   query,
   calls,
   total_time,
@@ -673,7 +694,7 @@ WHERE mean_time > 1000 -- Queries taking > 1 second on average
 ORDER BY mean_time DESC;
 
 -- Check table bloat
-SELECT 
+SELECT
   schemaname,
   tablename,
   n_dead_tup,

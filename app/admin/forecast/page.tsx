@@ -79,7 +79,9 @@ export default function ForecastPage() {
         const monthlyMap = new Map<string, number>();
         membersData.forEach((member) => {
           const date = new Date(member.created_at);
-          const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+          const month = `${date.getFullYear()}-${String(
+            date.getMonth() + 1
+          ).padStart(2, "0")}`;
           monthlyMap.set(month, (monthlyMap.get(month) || 0) + 1);
         });
         const monthlyArray = Array.from(monthlyMap.entries())
@@ -162,16 +164,22 @@ export default function ForecastPage() {
 
             return {
               id: member.id,
-              name: member.dj_name || `${member.first_name} ${member.last_name}`,
+              name:
+                member.dj_name || `${member.first_name} ${member.last_name}`,
               rating,
               gigs: gigsCount || 0,
-              status: rating > 3 ? "active" : rating > 1 ? "upcoming" : "inactive",
+              status:
+                rating > 3 ? "active" : rating > 1 ? "upcoming" : "inactive",
             };
           })
         );
 
-        const sortedByGigs = [...usersWithStats].sort((a, b) => b.gigs - a.gigs);
-        const sortedByRating = [...usersWithStats].sort((a, b) => b.rating - a.rating);
+        const sortedByGigs = [...usersWithStats].sort(
+          (a, b) => b.gigs - a.gigs
+        );
+        const sortedByRating = [...usersWithStats].sort(
+          (a, b) => b.rating - a.rating
+        );
         const sortedByRecent = [...usersWithStats].filter((u) => u.gigs === 0);
 
         setTopUsers({
@@ -238,7 +246,9 @@ export default function ForecastPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Brand Applications</p>
+                <p className="text-sm text-muted-foreground">
+                  Brand Applications
+                </p>
                 <p className="text-2xl font-bold text-foreground">
                   {brandApplications}
                 </p>
@@ -255,7 +265,9 @@ export default function ForecastPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Daily Active Users</p>
+                <p className="text-sm text-muted-foreground">
+                  Daily Active Users
+                </p>
                 <p className="text-2xl font-bold text-foreground">
                   {dailyActiveUsers}
                 </p>
@@ -272,7 +284,9 @@ export default function ForecastPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg Minutes/User</p>
+                <p className="text-sm text-muted-foreground">
+                  Avg Minutes/User
+                </p>
                 <p className="text-2xl font-bold text-foreground">
                   {minutesPerUser}
                 </p>
@@ -297,7 +311,10 @@ export default function ForecastPage() {
           <CardContent>
             <div className="space-y-3">
               {monthlySignups.map((data) => (
-                <div key={data.month} className="flex items-center justify-between">
+                <div
+                  key={data.month}
+                  className="flex items-center justify-between"
+                >
                   <span className={textStyles.body.regular}>{data.month}</span>
                   <div className="flex items-center space-x-2">
                     <div className="w-32 bg-muted rounded-full h-2">
@@ -306,7 +323,9 @@ export default function ForecastPage() {
                         style={{
                           width: `${
                             (data.signups /
-                              Math.max(...monthlySignups.map((m) => m.signups))) *
+                              Math.max(
+                                ...monthlySignups.map((m) => m.signups)
+                              )) *
                             100
                           }%`,
                         }}
@@ -332,7 +351,10 @@ export default function ForecastPage() {
           <CardContent>
             <div className="space-y-3">
               {countryData.slice(0, 5).map((data, index) => (
-                <div key={data.country} className="flex items-center justify-between">
+                <div
+                  key={data.country}
+                  className="flex items-center justify-between"
+                >
                   <div className="flex items-center space-x-2">
                     <Badge
                       variant="outline"
@@ -473,4 +495,3 @@ export default function ForecastPage() {
     </div>
   );
 }
-

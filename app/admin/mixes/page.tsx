@@ -453,7 +453,7 @@ export default function MixesPage() {
       }
 
       const mixId = mixData.id;
-      
+
       // Upload audio file to Supabase Storage using mix ID
       const fileExt = selectedFile.name.split(".").pop();
       const audioPath = `${mixId}/audio.${fileExt}`;

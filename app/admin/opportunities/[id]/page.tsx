@@ -77,6 +77,21 @@ export default function OpportunityDetailsPage() {
           throw error;
         }
       } else if (data) {
+        // Fetch actual applicants count from applications table
+        let applicantCount = 0;
+        try {
+          const { count, error: countError } = await supabase
+            .from("applications")
+            .select("*", { count: "exact", head: true })
+            .eq("opportunity_id", opportunityId as string);
+
+          if (!countError && count !== null) {
+            applicantCount = count;
+          }
+        } catch (countErr) {
+          console.warn("Could not fetch applicants count:", countErr);
+        }
+
         // Transform the data to match the expected format
         const transformedOpportunity = {
           id: data.id,
@@ -84,7 +99,7 @@ export default function OpportunityDetailsPage() {
           location: data.location,
           date: data.event_date ? formatDate(data.event_date) : "Unknown",
           pay: data.payment ? `£${data.payment}` : "N/A",
-          applicants: 0, // This would need to be calculated from applications
+          applicants: applicantCount,
           status: data.is_active ? "active" : "draft",
           genre: data.genre,
           description: data.description,
@@ -490,16 +505,6 @@ export default function OpportunityDetailsPage() {
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Opportunity
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() =>
-                  router.push(`/admin/opportunities/${opportunity.id}/schedule`)
-                }
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule Event
               </Button>
 
               <DropdownMenu>

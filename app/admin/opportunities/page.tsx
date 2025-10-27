@@ -58,7 +58,37 @@ export default function OpportunitiesPage() {
         throw error;
       }
 
-      setOpportunities(data || []);
+      // Fetch applicants count for each opportunity
+      if (data && data.length > 0) {
+        const opportunitiesWithApplicants = await Promise.all(
+          data.map(async (opportunity) => {
+            try {
+              const { count, error: countError } = await supabase
+                .from("applications")
+                .select("*", { count: "exact", head: true })
+                .eq("opportunity_id", opportunity.id);
+
+              return {
+                ...opportunity,
+                applicants: countError ? 0 : count || 0,
+              };
+            } catch (err) {
+              console.warn(
+                `Could not fetch applicants count for opportunity ${opportunity.id}:`,
+                err
+              );
+              return {
+                ...opportunity,
+                applicants: 0,
+              };
+            }
+          })
+        );
+
+        setOpportunities(opportunitiesWithApplicants);
+      } else {
+        setOpportunities([]);
+      }
     } catch (error) {
       console.error("Error fetching opportunities:", error);
       toast({

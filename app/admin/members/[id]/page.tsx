@@ -64,6 +64,40 @@ export default function MemberDetailsPage() {
       }
 
       if (data) {
+        // Calculate gigs from applications table
+        let gigsCount = 0;
+        try {
+          const { count, error: countError } = await supabase
+            .from("applications")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", data.id);
+
+          if (!countError && count !== null) {
+            gigsCount = count;
+          }
+        } catch (gigsErr) {
+          console.warn("Could not fetch gigs count:", gigsErr);
+        }
+
+        // Calculate rating from ai_matching_feedback table
+        let rating = 0.0;
+        try {
+          const { data: feedbackData, error: ratingError } = await supabase
+            .from("ai_matching_feedback")
+            .select("rating")
+            .eq("user_id", data.id);
+
+          if (!ratingError && feedbackData && feedbackData.length > 0) {
+            const totalRating = feedbackData.reduce(
+              (sum, feedback) => sum + (feedback.rating || 0),
+              0
+            );
+            rating = Math.round((totalRating / feedbackData.length) * 10) / 10;
+          }
+        } catch (ratingErr) {
+          console.warn("Could not fetch rating:", ratingErr);
+        }
+
         // Transform the data to match the expected format
         const transformedMember = {
           id: data.id,
@@ -79,10 +113,11 @@ export default function MemberDetailsPage() {
             : "Unknown",
           genres: data.genres || [],
           status: "active", // Default to active since is_active field doesn't exist in schema
-          gigs: 0, // This would need to be calculated from applications
+          gigs: gigsCount,
           bio: data.bio || "No bio available",
           phone: "No phone", // Phone field doesn't exist in database schema
           profileImageUrl: data.profile_image_url, // Add profile image URL
+          rating: rating,
           socialLinks: {
             instagram: data.instagram || "",
             soundcloud: data.soundcloud || "",
@@ -113,6 +148,7 @@ export default function MemberDetailsPage() {
         genres: ["HOUSE", "DRUM & BASS"],
         status: "active",
         gigs: 0,
+        rating: 0.0,
         bio: "Passionate DJ and producer with 5+ years of experience in electronic music.",
         phone: "+1 (555) 123-4567",
         socialLinks: {
@@ -129,6 +165,7 @@ export default function MemberDetailsPage() {
         genres: ["TECHNO"],
         status: "active",
         gigs: 0,
+        rating: 0.0,
         bio: "Techno enthusiast and underground scene advocate.",
         phone: "+1 (555) 987-6543",
         socialLinks: {
@@ -144,6 +181,7 @@ export default function MemberDetailsPage() {
         genres: ["TECHNO", "TECH HOUSE"],
         status: "active",
         gigs: 0,
+        rating: 0.0,
         bio: "Miami-based DJ specializing in tech house and techno.",
         phone: "+1 (555) 456-7890",
         socialLinks: {
@@ -430,7 +468,7 @@ export default function MemberDetailsPage() {
                       {member.name}
                       <Star className="h-4 w-4 ml-2 text-yellow-400" />
                       <span className="text-sm text-muted-foreground ml-1">
-                        0
+                        {member.rating || 0}
                       </span>
                     </CardTitle>
                     <p className={textStyles.body.regular}>{member.email}</p>
@@ -606,7 +644,9 @@ export default function MemberDetailsPage() {
                   <Star className="h-4 w-4 mr-2 text-muted-foreground" />
                   <span className={textStyles.body.regular}>Rating</span>
                 </div>
-                <span className={textStyles.subheading.small}>0.0</span>
+                <span className={textStyles.subheading.small}>
+                  {member.rating || 0.0}
+                </span>
               </div>
             </CardContent>
           </Card>

@@ -63,6 +63,7 @@ export default function ForecastPage() {
 
   useEffect(() => {
     fetchAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAnalytics = async () => {
@@ -78,11 +79,13 @@ export default function ForecastPage() {
       if (membersData) {
         const monthlyMap = new Map<string, number>();
         membersData.forEach((member) => {
-          const date = new Date(member.created_at);
-          const month = `${date.getFullYear()}-${String(
-            date.getMonth() + 1
-          ).padStart(2, "0")}`;
-          monthlyMap.set(month, (monthlyMap.get(month) || 0) + 1);
+          if (member.created_at) {
+            const date = new Date(member.created_at);
+            const month = `${date.getFullYear()}-${String(
+              date.getMonth() + 1
+            ).padStart(2, "0")}`;
+            monthlyMap.set(month, (monthlyMap.get(month) || 0) + 1);
+          }
         });
         const monthlyArray = Array.from(monthlyMap.entries())
           .map(([month, count]) => ({ month, signups: count }))

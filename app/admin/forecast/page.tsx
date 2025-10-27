@@ -87,15 +87,30 @@ export default function ForecastPage() {
         membersData.forEach((member) => {
           if (member.created_at) {
             const date = new Date(member.created_at);
-            const month = `${date.getFullYear()}-${String(
-              date.getMonth() + 1
-            ).padStart(2, "0")}`;
+            const monthNames = [
+              "January", "February", "March", "April", "May", "June",
+              "July", "August", "September", "October", "November", "December"
+            ];
+            const month = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
             monthlyMap.set(month, (monthlyMap.get(month) || 0) + 1);
           }
         });
         const monthlyArray = Array.from(monthlyMap.entries())
-          .map(([month, count]) => ({ month, signups: count, applications: 0 }))
-          .sort((a, b) => a.month.localeCompare(b.month))
+          .map(([month, count]) => {
+            // Convert back to date for sorting
+            const [monthName, year] = month.split(' ');
+            const monthNames = [
+              "January", "February", "March", "April", "May", "June",
+              "July", "August", "September", "October", "November", "December"
+            ];
+            const monthIndex = monthNames.indexOf(monthName);
+            return {
+              data: { month, signups: count, applications: 0 },
+              sortOrder: new Date(parseInt(year), monthIndex, 1).getTime()
+            };
+          })
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map(item => item.data)
           .slice(-6); // Last 6 months
         setMonthlySignups(monthlyArray);
       }

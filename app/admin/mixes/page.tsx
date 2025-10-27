@@ -96,19 +96,31 @@ export default function MixesPage() {
         setMixes([]);
       } else {
         // Transform the data to ensure consistent format
-        const transformedMixes = (data || []).map((mix: any) => ({
-          ...mix,
-          // Ensure consistent field names
-          uploadDate: mix.created_at
-            ? formatDateShort(mix.created_at)
-            : mix.uploadDate,
-          audioUrl: mix.file_url || mix.audioUrl,
-          appliedFor: mix.applied_for || mix.appliedFor,
-          imageUrl: mix.image_url, // Explicitly map image_url
-          // Add default values for missing fields
-          plays: mix.plays || 0,
-          rating: mix.rating || 0.0,
-        }));
+        const transformedMixes = (data || []).map((mix: any) => {
+          // Get Supabase Storage URL if it's a storage path
+          let imageUrl = mix.image_url;
+          if (imageUrl && !imageUrl.startsWith('http')) {
+            // It's a storage path, get the public URL
+            const { data: urlData } = supabase.storage
+              .from('mixes')
+              .getPublicUrl(imageUrl);
+            imageUrl = urlData.publicUrl;
+          }
+
+          return {
+            ...mix,
+            // Ensure consistent field names
+            uploadDate: mix.created_at
+              ? formatDateShort(mix.created_at)
+              : mix.uploadDate,
+            audioUrl: mix.file_url || mix.audioUrl,
+            appliedFor: mix.applied_for || mix.appliedFor,
+            imageUrl: imageUrl, // Map to full URL
+            // Add default values for missing fields
+            plays: mix.plays || 0,
+            rating: mix.rating || 0.0,
+          };
+        });
 
         setMixes(transformedMixes);
       }

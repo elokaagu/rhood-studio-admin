@@ -263,45 +263,42 @@ export default function ForecastPage() {
     try {
       setIsGeneratingPDF(true);
 
+      const pdf = new jsPDF("l", "mm", "a4"); // landscape A4
+      const pdfWidth = pdf.internal.pageSize.getWidth(); // 297mm for landscape A4
+      const pdfHeight = pdf.internal.pageSize.getHeight(); // 210mm for landscape A4
+      
+      // Capture the entire content
       const canvas = await html2canvas(contentRef.current, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: "#0a0a0a",
-        width: contentRef.current.scrollWidth,
-        height: contentRef.current.scrollHeight,
         windowWidth: contentRef.current.scrollWidth,
         windowHeight: contentRef.current.scrollHeight,
-        allowTaint: true,
-        removeContainer: false,
-        foreignObjectRendering: true,
       });
 
-      const imgData = canvas.toDataURL("image/png", 1.0);
-      const pdf = new jsPDF("l", "mm", "a4"); // landscape A4
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      
+      const imgData = canvas.toDataURL("image/png");
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
-      
-      // Scale to fit landscape A4 page
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const scaledWidth = imgWidth * ratio;
-      const scaledHeight = imgHeight * ratio;
 
-      let heightLeft = scaledHeight;
-      let position = 0;
+      // Calculate scaling to fit width
+      const widthRatio = pdfWidth / imgWidth;
+      const scaledHeight = imgHeight * widthRatio;
 
-      pdf.addImage(imgData, "PNG", 0, position, scaledWidth, scaledHeight);
-      heightLeft -= pdfHeight;
+      // Add content scaled to fit page width
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, scaledHeight);
 
-      while (heightLeft >= 0) {
-        position = heightLeft - scaledHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, scaledWidth, scaledHeight);
-        heightLeft -= pdfHeight;
+      // If scaled height exceeds page height, add another page
+      if (scaledHeight > pdfHeight) {
+        const remainingHeight = scaledHeight - pdfHeight;
+        const pageCount = Math.ceil(remainingHeight / pdfHeight);
+        
+        for (let i = 0; i < pageCount; i++) {
+          pdf.addPage();
+          // Position the remaining content
+          const yOffset = -(pdfHeight + (i * pdfHeight));
+          pdf.addImage(imgData, "PNG", 0, yOffset, pdfWidth, scaledHeight);
+        }
       }
 
       const today = new Date().toISOString().split("T")[0];

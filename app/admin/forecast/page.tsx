@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,7 @@ interface TopUser {
 
 export default function ForecastPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const contentRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -266,7 +268,7 @@ export default function ForecastPage() {
       const pdf = new jsPDF("l", "mm", "a4"); // landscape A4
       const pdfWidth = pdf.internal.pageSize.getWidth(); // 297mm for landscape A4
       const pdfHeight = pdf.internal.pageSize.getHeight(); // 210mm for landscape A4
-      
+
       // Capture the entire content
       const canvas = await html2canvas(contentRef.current, {
         scale: 2,
@@ -292,11 +294,11 @@ export default function ForecastPage() {
       if (scaledHeight > pdfHeight) {
         const remainingHeight = scaledHeight - pdfHeight;
         const pageCount = Math.ceil(remainingHeight / pdfHeight);
-        
+
         for (let i = 0; i < pageCount; i++) {
           pdf.addPage();
           // Position the remaining content
-          const yOffset = -(pdfHeight + (i * pdfHeight));
+          const yOffset = -(pdfHeight + i * pdfHeight);
           pdf.addImage(imgData, "PNG", 0, yOffset, pdfWidth, scaledHeight);
         }
       }
@@ -524,7 +526,12 @@ export default function ForecastPage() {
                     <Badge className="bg-brand-green text-brand-black text-xs">
                       #{index + 1}
                     </Badge>
-                    <span className={textStyles.body.regular}>{user.name}</span>
+                    <button
+                      onClick={() => router.push(`/admin/members/${user.id}`)}
+                      className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer`}
+                    >
+                      {user.name}
+                    </button>
                   </div>
                   <Badge
                     variant="outline"
@@ -554,7 +561,12 @@ export default function ForecastPage() {
                 >
                   <div className="flex items-center space-x-2">
                     <Star className="h-4 w-4 text-yellow-400" />
-                    <span className={textStyles.body.regular}>{user.name}</span>
+                    <button
+                      onClick={() => router.push(`/admin/members/${user.id}`)}
+                      className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer`}
+                    >
+                      {user.name}
+                    </button>
                   </div>
                   <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-400">
                     {user.rating.toFixed(1)}
@@ -579,7 +591,12 @@ export default function ForecastPage() {
                   key={user.id}
                   className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
                 >
-                  <span className={textStyles.body.regular}>{user.name}</span>
+                  <button
+                    onClick={() => router.push(`/admin/members/${user.id}`)}
+                    className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer`}
+                  >
+                    {user.name}
+                  </button>
                   <Badge
                     variant="outline"
                     className="border-brand-green text-brand-green bg-transparent"
@@ -607,7 +624,12 @@ export default function ForecastPage() {
                   key={user.id}
                   className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
                 >
-                  <span className={textStyles.body.regular}>{user.name}</span>
+                  <button
+                    onClick={() => router.push(`/admin/members/${user.id}`)}
+                    className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer`}
+                  >
+                    {user.name}
+                  </button>
                   <Badge
                     variant="outline"
                     className="border-gray-400 text-gray-400 bg-transparent"

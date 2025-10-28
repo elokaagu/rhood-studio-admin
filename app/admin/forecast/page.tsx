@@ -270,10 +270,15 @@ export default function ForecastPage() {
         backgroundColor: "#0a0a0a",
         width: contentRef.current.scrollWidth,
         height: contentRef.current.scrollHeight,
+        windowWidth: contentRef.current.scrollWidth,
+        windowHeight: contentRef.current.scrollHeight,
+        allowTaint: true,
+        removeContainer: false,
+        foreignObjectRendering: true,
       });
 
       const imgData = canvas.toDataURL("image/png", 1.0);
-      const pdf = new jsPDF("p", "mm", "a4"); // portrait A4 for better fit
+      const pdf = new jsPDF("l", "mm", "a4"); // landscape A4
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
@@ -281,6 +286,7 @@ export default function ForecastPage() {
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       
+      // Scale to fit landscape A4 page
       const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
       const scaledWidth = imgWidth * ratio;
       const scaledHeight = imgHeight * ratio;

@@ -801,10 +801,6 @@ export default function MembersPage() {
                           <Calendar className="h-4 w-4 mr-1" />
                           Joined {member.joinedDate}
                         </div>
-                        <div className="flex items-center">
-                          <Music className="h-4 w-4 mr-1" />
-                          {member.gigs} gigs
-                        </div>
                       </div>
                     </div>
                   </div>

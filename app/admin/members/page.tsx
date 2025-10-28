@@ -63,6 +63,9 @@ export default function MembersPage() {
     id: string;
     name: string;
   } | null>(null);
+  const [messageModalOpen, setMessageModalOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [messageContent, setMessageContent] = useState("");
 
   // Get sort order based on current sort option
   const getSortOrder = () => {
@@ -359,11 +362,28 @@ export default function MembersPage() {
     setIsInviteModalOpen(false);
   };
 
-  const handleMessageMember = (memberName: string, memberEmail: string) => {
-    // In a real app, this would open a messaging interface
-    console.log(`Opening message interface for ${memberName} (${memberEmail})`);
-    // For now, we'll open the default email client
-    window.location.href = `mailto:${memberEmail}`;
+  const handleMessageMember = (member: any) => {
+    setSelectedMember(member);
+    setMessageContent("");
+    setMessageModalOpen(true);
+  };
+
+  const handleSendMessage = () => {
+    if (!messageContent.trim() || !selectedMember) return;
+
+    // Open mailto link with the message
+    const subject = encodeURIComponent(`Message from R/HOOD Admin`);
+    const body = encodeURIComponent(messageContent);
+    window.location.href = `mailto:${selectedMember.email}?subject=${subject}&body=${body}`;
+    
+    toast({
+      title: "Message Sent",
+      description: `Opening email client to send message to ${selectedMember.name}`,
+    });
+
+    setMessageModalOpen(false);
+    setMessageContent("");
+    setSelectedMember(null);
   };
 
   const handleDeleteMember = async (memberId: string, memberName: string) => {
@@ -824,9 +844,7 @@ export default function MembersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        handleMessageMember(member.name, member.email)
-                      }
+                      onClick={() => handleMessageMember(member)}
                     >
                       <Mail className="h-4 w-4 mr-1" />
                       Message
@@ -894,6 +912,59 @@ export default function MembersPage() {
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Message Modal */}
+      <Dialog open={messageModalOpen} onOpenChange={setMessageModalOpen}>
+        <DialogContent className="bg-brand-black border-brand-green/20 text-foreground max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-brand-green font-bold flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Message Member
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {selectedMember && `Sending message to ${selectedMember.name} (${selectedMember.email})`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <Label htmlFor="message-text" className={textStyles.body.regular}>
+              Message
+            </Label>
+            <Textarea
+              id="message-text"
+              placeholder="Enter your message..."
+              value={messageContent}
+              onChange={(e) => setMessageContent(e.target.value)}
+              className="bg-secondary border-border text-foreground min-h-[150px] mt-2"
+            />
+          </div>
+
+          <DialogFooter className="flex space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setMessageModalOpen(false);
+                setMessageContent("");
+                setSelectedMember(null);
+              }}
+              className="border-border text-foreground hover:bg-secondary"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSendMessage}
+              className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+              disabled={!messageContent.trim()}
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Send Message
             </Button>
           </DialogFooter>
         </DialogContent>

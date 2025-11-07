@@ -65,22 +65,22 @@ export default function DashboardPage() {
           {
             title: "Active Opportunities",
             value: opportunitiesCount?.toString() || "0",
-            change: "Live data",
+            change: "",
           },
           {
             title: "Pending Applications",
             value: applicationsCount?.toString() || "0",
-            change: "Live data",
+            change: "",
           },
           {
             title: "Total Members",
             value: membersCount?.toString() || "0",
-            change: "Live data",
+            change: "",
           },
           {
             title: "AI Matching Sessions",
             value: aiSessionsCount?.toString() || "0",
-            change: "Live data",
+            change: "",
           },
         ]);
         setStatsLoaded(true);

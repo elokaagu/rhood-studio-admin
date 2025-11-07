@@ -17,22 +17,18 @@ export default function DashboardPage() {
     {
       title: "Active Opportunities",
       value: "0",
-      change: "Loading...",
     },
     {
       title: "Pending Applications",
       value: "0",
-      change: "Loading...",
     },
     {
       title: "Total Members",
       value: "0",
-      change: "Loading...",
     },
     {
       title: "AI Matching Sessions",
       value: "0",
-      change: "Loading...",
     },
   ]);
 
@@ -65,22 +61,18 @@ export default function DashboardPage() {
           {
             title: "Active Opportunities",
             value: opportunitiesCount?.toString() || "0",
-            change: "",
           },
           {
             title: "Pending Applications",
             value: applicationsCount?.toString() || "0",
-            change: "",
           },
           {
             title: "Total Members",
             value: membersCount?.toString() || "0",
-            change: "",
           },
           {
             title: "AI Matching Sessions",
             value: aiSessionsCount?.toString() || "0",
-            change: "",
           },
         ]);
         setStatsLoaded(true);
@@ -428,18 +420,17 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat, index) => (
               <Card key={index} className="bg-card border-border">
-                <CardHeader className="pb-3">
+                <CardHeader className="pb-2">
                   <CardTitle className={textStyles.subheading.small}>
                     {stat.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className={textStyles.subheading.large}>
+                  <div
+                    className={`${textStyles.subheading.large} leading-none`}
+                  >
                     {stat.value}
                   </div>
-                  <p className={`${textStyles.body.small} mt-2`}>
-                    {stat.change}
-                  </p>
                 </CardContent>
               </Card>
             ))}

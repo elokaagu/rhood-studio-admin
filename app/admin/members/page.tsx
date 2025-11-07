@@ -375,7 +375,7 @@ export default function MembersPage() {
     const subject = encodeURIComponent(`Message from R/HOOD Admin`);
     const body = encodeURIComponent(messageContent);
     window.location.href = `mailto:${selectedMember.email}?subject=${subject}&body=${body}`;
-    
+
     toast({
       title: "Message Sent",
       description: `Opening email client to send message to ${selectedMember.name}`,
@@ -926,7 +926,8 @@ export default function MembersPage() {
               Message Member
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              {selectedMember && `Sending message to ${selectedMember.name} (${selectedMember.email})`}
+              {selectedMember &&
+                `Sending message to ${selectedMember.name} (${selectedMember.email})`}
             </DialogDescription>
           </DialogHeader>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,8 +8,6 @@ import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import {
   TrendingUp,
   TrendingDown,
@@ -53,9 +51,8 @@ interface TopUser {
 export default function ForecastPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const contentRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isGeneratingCSV, setIsGeneratingCSV] = useState(false);
   const [monthlySignups, setMonthlySignups] = useState<MonthlyData[]>([]);
   const [brandApplications, setBrandApplications] = useState(0);
   const [countryData, setCountryData] = useState<CountryData[]>([]);
@@ -259,71 +256,124 @@ export default function ForecastPage() {
     );
   }
 
-  const downloadPDF = async () => {
-    if (!contentRef.current) return;
-
+  const downloadCSV = () => {
     try {
-      setIsGeneratingPDF(true);
+      setIsGeneratingCSV(true);
 
-      const pdf = new jsPDF("l", "mm", "a4"); // landscape A4
-      const pdfWidth = pdf.internal.pageSize.getWidth(); // 297mm for landscape A4
-      const pdfHeight = pdf.internal.pageSize.getHeight(); // 210mm for landscape A4
+      const rows: string[][] = [];
+      const escape = (value: string): string =>
+        `"${value.replace(/"/g, '""')}"`;
 
-      // Capture the entire content
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#0a0a0a",
-        windowWidth: contentRef.current.scrollWidth,
-        windowHeight: contentRef.current.scrollHeight,
+      const addRow = (...values: (string | number)[]) =>
+        rows.push(values.map((value) => String(value ?? "")));
+      const addBlankRow = () => rows.push([]);
+
+      // Overview metrics
+      addRow("Overview", "Brand Applications", brandApplications);
+      addRow("Overview", "Daily Active Users", dailyActiveUsers);
+      addRow("Overview", "Average Minutes Per User", minutesPerUser);
+      addBlankRow();
+
+      // Monthly signups
+      addRow("Monthly Signups", "Month", "Signups");
+      monthlySignups.forEach((data) =>
+        addRow("Monthly Signups", data.month, data.signups)
+      );
+      addBlankRow();
+
+      // Top locations
+      addRow("Top Locations", "Location", "Members");
+      countryData.forEach((data) =>
+        addRow("Top Locations", data.country, data.count)
+      );
+      addBlankRow();
+
+      // Age data
+      addRow("Age Distribution", "Age Range", "Members");
+      ageData.forEach((data) =>
+        addRow("Age Distribution", data.ageRange, data.count)
+      );
+      addBlankRow();
+
+      // Top users sections
+      const userSections = [
+        {
+          title: "Most Active Users",
+          data: topUsers.mostActive,
+          valueLabel: "Gigs",
+          valueFormatter: (user: TopUser) => `${user.gigs}`,
+        },
+        {
+          title: "Highest Rated Users",
+          data: topUsers.highestRating,
+          valueLabel: "Rating",
+          valueFormatter: (user: TopUser) => user.rating.toFixed(1),
+        },
+        {
+          title: "Up and Coming Users",
+          data: topUsers.upAndComing,
+          valueLabel: "Status",
+          valueFormatter: () => "New",
+        },
+        {
+          title: "Least Active Users",
+          data: topUsers.leastActive,
+          valueLabel: "Gigs",
+          valueFormatter: (user: TopUser) => `${user.gigs}`,
+        },
+      ];
+
+      userSections.forEach(({ title, data, valueLabel, valueFormatter }) => {
+        addRow(title, "User", valueLabel);
+        data.forEach((user, index) =>
+          addRow(
+            title,
+            `${index + 1}. ${user.name}`,
+            valueFormatter(user as TopUser)
+          )
+        );
+        addBlankRow();
       });
 
-      const imgData = canvas.toDataURL("image/png");
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
+      const csvContent = rows
+        .map((row) =>
+          row.length === 0
+            ? ""
+            : row.map((value) => escape(value)).join(",")
+        )
+        .join("\n");
 
-      // Calculate scaling to fit width
-      const widthRatio = pdfWidth / imgWidth;
-      const scaledHeight = imgHeight * widthRatio;
-
-      // Add content scaled to fit page width
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, scaledHeight);
-
-      // If scaled height exceeds page height, add another page
-      if (scaledHeight > pdfHeight) {
-        const remainingHeight = scaledHeight - pdfHeight;
-        const pageCount = Math.ceil(remainingHeight / pdfHeight);
-
-        for (let i = 0; i < pageCount; i++) {
-          pdf.addPage();
-          // Position the remaining content
-          const yOffset = -(pdfHeight + i * pdfHeight);
-          pdf.addImage(imgData, "PNG", 0, yOffset, pdfWidth, scaledHeight);
-        }
-      }
-
+      const blob = new Blob(["\uFEFF" + csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
       const today = new Date().toISOString().split("T")[0];
-      pdf.save(`RHOOD_Forecast_${today}.pdf`);
+      link.href = url;
+      link.setAttribute("download", `RHOOD_Forecast_${today}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
       toast({
-        title: "PDF Downloaded",
-        description: "Forecast report has been downloaded successfully.",
+        title: "CSV Downloaded",
+        description: "Forecast analytics have been downloaded successfully.",
       });
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error("Error generating CSV:", error);
       toast({
-        title: "PDF Generation Failed",
-        description: "Failed to generate PDF. Please try again.",
+        title: "CSV Generation Failed",
+        description: "Failed to generate CSV. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsGeneratingPDF(false);
+      setIsGeneratingCSV(false);
     }
   };
 
   return (
-    <div ref={contentRef} className="space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -335,11 +385,11 @@ export default function ForecastPage() {
           </p>
         </div>
         <Button
-          onClick={downloadPDF}
-          disabled={isGeneratingPDF}
+          onClick={downloadCSV}
+          disabled={isGeneratingCSV}
           className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
         >
-          {isGeneratingPDF ? (
+          {isGeneratingCSV ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-black mr-2"></div>
               Generating...
@@ -347,7 +397,7 @@ export default function ForecastPage() {
           ) : (
             <>
               <Download className="h-4 w-4 mr-2" />
-              Download PDF
+              Download CSV
             </>
           )}
         </Button>

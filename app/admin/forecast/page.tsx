@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 interface MonthlyData {
+  monthKey: string;
   month: string;
   signups: number;
   applications: number;
@@ -54,6 +55,7 @@ export default function ForecastPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingCSV, setIsGeneratingCSV] = useState(false);
   const [monthlySignups, setMonthlySignups] = useState<MonthlyData[]>([]);
+  const [currentMonthSignups, setCurrentMonthSignups] = useState(0);
   const [brandApplications, setBrandApplications] = useState(0);
   const [countryData, setCountryData] = useState<CountryData[]>([]);
   const [ageData, setAgeData] = useState<AgeData[]>([]);
@@ -82,58 +84,85 @@ export default function ForecastPage() {
         .order("created_at", { ascending: false });
 
       if (membersData) {
-        const monthlyMap = new Map<string, number>();
+        const monthNames = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+
+        const monthlyMap = new Map<
+          string,
+          { count: number; sortOrder: number }
+        >();
+        const now = new Date();
+        const currentMonthKey = `${now.getFullYear()}-${String(
+          now.getMonth() + 1
+        ).padStart(2, "0")}`;
+
         membersData.forEach((member) => {
-          if (member.created_at) {
-            const date = new Date(member.created_at);
-            const monthNames = [
-              "January",
-              "February",
-              "March",
-              "April",
-              "May",
-              "June",
-              "July",
-              "August",
-              "September",
-              "October",
-              "November",
-              "December",
-            ];
-            const month = `${
-              monthNames[date.getMonth()]
-            } ${date.getFullYear()}`;
-            monthlyMap.set(month, (monthlyMap.get(month) || 0) + 1);
+          if (!member.created_at) return;
+          const date = new Date(member.created_at);
+          const monthKey = `${date.getFullYear()}-${String(
+            date.getMonth() + 1
+          ).padStart(2, "0")}`;
+          const sortOrder = new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            1
+          ).getTime();
+
+          if (!monthlyMap.has(monthKey)) {
+            monthlyMap.set(monthKey, { count: 0, sortOrder });
           }
+
+          monthlyMap.get(monthKey)!.count += 1;
         });
+
+        // Ensure current month is present even if zero
+        if (!monthlyMap.has(currentMonthKey)) {
+          const currentSortOrder = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            1
+          ).getTime();
+          monthlyMap.set(currentMonthKey, { count: 0, sortOrder: currentSortOrder });
+        }
+
         const monthlyArray = Array.from(monthlyMap.entries())
-          .map(([month, count]) => {
-            // Convert back to date for sorting
-            const [monthName, year] = month.split(" ");
-            const monthNames = [
-              "January",
-              "February",
-              "March",
-              "April",
-              "May",
-              "June",
-              "July",
-              "August",
-              "September",
-              "October",
-              "November",
-              "December",
-            ];
-            const monthIndex = monthNames.indexOf(monthName);
+          .map(([monthKey, { count, sortOrder }]) => {
+            const [yearStr, monthStr] = monthKey.split("-");
+            const year = parseInt(yearStr, 10);
+            const monthIndex = parseInt(monthStr, 10) - 1;
+            const label = `${monthNames[monthIndex]} ${year}`;
+
             return {
-              data: { month, signups: count, applications: 0 },
-              sortOrder: new Date(parseInt(year), monthIndex, 1).getTime(),
+              monthKey,
+              month: label,
+              signups: count,
+              applications: 0,
+              sortOrder,
             };
           })
-          .sort((a, b) => a.sortOrder - b.sortOrder)
-          .map((item) => item.data)
-          .slice(-6); // Last 6 months
-        setMonthlySignups(monthlyArray);
+          .sort((a, b) => a.sortOrder - b.sortOrder);
+
+        const trimmedMonthlyArray = monthlyArray.slice(-6);
+        setMonthlySignups(
+          trimmedMonthlyArray.map(({ sortOrder, ...rest }) => rest)
+        );
+
+        const currentMonthEntry = monthlyArray.find(
+          (entry) => entry.monthKey === currentMonthKey
+        );
+        setCurrentMonthSignups(currentMonthEntry?.signups ?? 0);
       }
 
       // Fetch brand applications (opportunities created)
@@ -411,7 +440,7 @@ export default function ForecastPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Monthly Signups</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {monthlySignups[monthlySignups.length - 1]?.signups || 0}
+                  {currentMonthSignups}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">This month</p>
               </div>

@@ -75,8 +75,8 @@ const sidebarItems = [
     icon: MessageSquare,
   },
   {
-    title: "Forecast",
-    url: "/admin/forecast",
+    title: "Analytics",
+    url: "/admin/analytics",
     icon: BarChart3,
   },
 ];

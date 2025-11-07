@@ -96,21 +96,97 @@ export default function MixesPage() {
         setMixes([]);
       } else {
         // Transform the data to ensure consistent format
-        const transformedMixes = (data || []).map((mix: any) => {
-          return {
-            ...mix,
-            // Ensure consistent field names
-            uploadDate: mix.created_at
-              ? formatDateShort(mix.created_at)
-              : mix.uploadDate,
-            audioUrl: mix.file_url || mix.audioUrl,
-            appliedFor: mix.applied_for || mix.appliedFor,
-            imageUrl: mix.image_url, // Use the image_url directly from database
-            // Add default values for missing fields
-            plays: mix.plays || 0,
-            rating: mix.rating || 0.0,
-          };
-        });
+        const transformedMixes = await Promise.all(
+          (data || []).map(async (mix: any) => {
+            let imageUrl = mix.image_url;
+
+            const resolveArtworkUrl = async () => {
+              try {
+                // First: look for artwork in /mixes/{mix.id}/
+                if (mix.id) {
+                  const { data: files, error: listError } = await supabase.storage
+                    .from("mixes")
+                    .list(`${mix.id}`, {
+                      search: "artwork",
+                    });
+
+                  if (!listError && files && files.length > 0) {
+                    const artworkFile = files.find((file) =>
+                      file.name.toLowerCase().startsWith("artwork")
+                    );
+                    if (artworkFile) {
+                      const {
+                        data: { publicUrl },
+                      } = supabase.storage
+                        .from("mixes")
+                        .getPublicUrl(`${mix.id}/${artworkFile.name}`);
+                      return publicUrl;
+                    }
+                  }
+                }
+
+                // Legacy fallback: derive folder from file_url
+                if (mix.file_url?.includes("/storage/v1/object/public/mixes/")) {
+                  const pathMatch = mix.file_url.match(
+                    /storage\/v1\/object\/public\/mixes\/(.+)\/[^/]+$/
+                  );
+                  const folderPath = pathMatch ? pathMatch[1] : undefined;
+                  if (folderPath) {
+                    const { data: files, error: legacyListError } =
+                      await supabase.storage.from("mixes").list(folderPath, {
+                        search: "artwork",
+                      });
+
+                    if (!legacyListError && files && files.length > 0) {
+                      const artworkFile = files.find((file) =>
+                        file.name.toLowerCase().startsWith("artwork")
+                      );
+                      if (artworkFile) {
+                        const {
+                          data: { publicUrl },
+                        } = supabase.storage
+                          .from("mixes")
+                          .getPublicUrl(`${folderPath}/${artworkFile.name}`);
+                        return publicUrl;
+                      }
+                    }
+                  }
+                }
+              } catch (artworkError) {
+                console.warn(
+                  "Could not resolve artwork for mix",
+                  mix.id,
+                  artworkError
+                );
+              }
+
+              return null;
+            };
+
+            if (!imageUrl) {
+              imageUrl = await resolveArtworkUrl();
+
+              if (imageUrl) {
+                await supabase
+                  .from("mixes")
+                  .update({ image_url: imageUrl })
+                  .eq("id", mix.id);
+              }
+            }
+
+            return {
+              ...mix,
+              uploadDate: mix.created_at
+                ? formatDateShort(mix.created_at)
+                : mix.uploadDate,
+              audioUrl: mix.file_url || mix.audioUrl,
+              appliedFor: mix.applied_for || mix.appliedFor,
+              imageUrl,
+              plays: mix.plays || 0,
+              rating: mix.rating || 0.0,
+            };
+          })
+        );
 
         setMixes(transformedMixes);
       }

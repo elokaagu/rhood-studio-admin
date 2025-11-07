@@ -27,7 +27,7 @@ export default function DashboardPage() {
       value: "0",
     },
     {
-      title: "Mixes Uploaded (This Month)",
+      title: "New Mixes",
       value: "0",
     },
   ]);
@@ -76,7 +76,7 @@ export default function DashboardPage() {
             value: membersCount?.toString() || "0",
           },
           {
-            title: "Mixes Uploaded (This Month)",
+            title: "New Mixes",
             value: mixesThisMonthCount?.toString() || "0",
           },
         ]);

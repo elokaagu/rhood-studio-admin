@@ -27,7 +27,7 @@ export default function DashboardPage() {
       value: "0",
     },
     {
-      title: "AI Matching Sessions",
+      title: "Mixes Uploaded (This Month)",
       value: "0",
     },
   ]);
@@ -52,10 +52,15 @@ export default function DashboardPage() {
           .from("user_profiles")
           .select("*", { count: "exact", head: true });
 
-        // Fetch AI matching sessions count
-        const { count: aiSessionsCount } = await supabase
-          .from("ai_matching_sessions")
-          .select("*", { count: "exact", head: true });
+        // Fetch mixes uploaded this month
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        monthStart.setHours(0, 0, 0, 0);
+
+        const { count: mixesThisMonthCount } = await supabase
+          .from("mixes")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", monthStart.toISOString());
 
         setStats([
           {
@@ -71,8 +76,8 @@ export default function DashboardPage() {
             value: membersCount?.toString() || "0",
           },
           {
-            title: "AI Matching Sessions",
-            value: aiSessionsCount?.toString() || "0",
+            title: "Mixes Uploaded (This Month)",
+            value: mixesThisMonthCount?.toString() || "0",
           },
         ]);
         setStatsLoaded(true);

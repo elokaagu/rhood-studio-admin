@@ -76,6 +76,7 @@ export default function MixesPage() {
     id: number;
     title: string;
   } | null>(null);
+  const [isRefreshingArtwork, setIsRefreshingArtwork] = useState(false);
 
   // Fetch mixes from database
   const fetchMixes = async () => {
@@ -201,6 +202,36 @@ export default function MixesPage() {
       setMixes([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRefreshArtwork = async () => {
+    setIsRefreshingArtwork(true);
+    try {
+      const { error } = await supabase
+        .from("mixes")
+        .update({ image_url: null })
+        .neq("image_url", null);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Artwork Reset",
+        description: "Cleared stored artwork URLs. Reloading fresh images...",
+      });
+
+      await fetchMixes();
+    } catch (refreshError) {
+      console.error("Error refreshing artwork:", refreshError);
+      toast({
+        title: "Artwork Refresh Failed",
+        description: "Unable to reset artwork. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshingArtwork(false);
     }
   };
 
@@ -640,22 +671,23 @@ export default function MixesPage() {
             Review and manage submitted DJ mixes
           </p>
         </div>
-        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-brand-green text-brand-black hover:bg-brand-green/90">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Mix
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className={textStyles.headline.card}>
-                UPLOAD NEW MIX
-              </DialogTitle>
-              <DialogDescription className={textStyles.body.regular}>
-                Upload a new DJ mix with metadata
-              </DialogDescription>
-            </DialogHeader>
+        <div className="flex items-center space-x-3">
+          <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-brand-green text-brand-black hover:bg-brand-green/90">
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Mix
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className={textStyles.headline.card}>
+                  UPLOAD NEW MIX
+                </DialogTitle>
+                <DialogDescription className={textStyles.body.regular}>
+                  Upload a new DJ mix with metadata
+                </DialogDescription>
+              </DialogHeader>
 
             <form onSubmit={handleUploadSubmit} className="space-y-6">
               {/* File Upload */}
@@ -940,7 +972,15 @@ export default function MixesPage() {
               </div>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+          <Button
+            variant="outline"
+            onClick={handleRefreshArtwork}
+            disabled={isRefreshingArtwork}
+          >
+            {isRefreshingArtwork ? "Refreshing..." : "Refresh Artwork"}
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filter Bar */}

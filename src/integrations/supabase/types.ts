@@ -639,6 +639,7 @@ export type Database = {
           file_url: string;
           file_name: string;
           file_size: number;
+          image_url: string | null;
           duration: string | null;
           plays: number | null;
           rating: number | null;
@@ -657,6 +658,7 @@ export type Database = {
           file_url: string;
           file_name: string;
           file_size: number;
+          image_url?: string | null;
           duration?: string | null;
           plays?: number | null;
           rating?: number | null;
@@ -675,6 +677,7 @@ export type Database = {
           file_url?: string;
           file_name?: string;
           file_size?: number;
+          image_url?: string | null;
           duration?: string | null;
           plays?: number | null;
           rating?: number | null;

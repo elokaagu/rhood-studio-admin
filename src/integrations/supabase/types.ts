@@ -485,6 +485,54 @@ export type Database = {
           }
         ];
       };
+      community_posts: {
+        Row: {
+          author_id: string | null;
+          community_id: string | null;
+          content: string;
+          created_at: string | null;
+          id: string;
+          is_pinned: boolean | null;
+          media_url: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          author_id?: string | null;
+          community_id?: string | null;
+          content: string;
+          created_at?: string | null;
+          id?: string;
+          is_pinned?: boolean | null;
+          media_url?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          author_id?: string | null;
+          community_id?: string | null;
+          content?: string;
+          created_at?: string | null;
+          id?: string;
+          is_pinned?: boolean | null;
+          media_url?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "user_profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "community_posts_community_id_fkey";
+            columns: ["community_id"];
+            isOneToOne: false;
+            referencedRelation: "communities";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       messages: {
         Row: {
           content: string;

@@ -62,82 +62,19 @@ export default function CreateOpportunityPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      // Check if opportunities table exists first
-      const { error: tableCheckError } = await supabase
-        .from("opportunities")
-        .select("id")
-        .limit(1);
-
-      if (tableCheckError) {
-        if (
-          tableCheckError.message?.includes("relation") &&
-          tableCheckError.message?.includes("does not exist")
-        ) {
-          toast({
-            title: "Database Setup Required",
-            description:
-              "Opportunities table doesn't exist. Please create it in Supabase dashboard first.",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw tableCheckError;
-      }
-
-      // Combine date and time into event_date
-      const eventDate =
-        formData.date && formData.time
-          ? new Date(`${formData.date}T${formData.time}`).toISOString()
-          : formData.date
-          ? new Date(formData.date).toISOString()
-          : null;
-
-      // Parse payment amount
-      const paymentAmount = formData.pay
-        ? parseFloat(formData.pay.replace(/[£,]/g, ""))
-        : null;
-
-      const { error } = await supabase.from("opportunities").insert({
-        title: formData.title,
-        description: formData.description,
-        location: formData.location,
-        event_date: eventDate,
-        payment: paymentAmount,
-        genre: selectedGenres[0] || formData.genre, // Use first selected genre or form genre
-        skill_level: formData.requirements,
-        organizer_name: "R/HOOD Studio", // Default organizer
-        is_active: true,
-        image_url: formData.imageUrl || null,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Success",
-        description: "Opportunity created successfully!",
-      });
-
-      router.push("/admin/opportunities");
-    } catch (error) {
-      console.error("Error creating opportunity:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create opportunity. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    await handleCreateOrDraft({ publishImmediately: true });
   };
 
   const handleSaveDraft = async () => {
-    setIsSubmitting(true);
+    await handleCreateOrDraft({ publishImmediately: false });
+  };
 
+  const handleCreateOrDraft = async ({
+    publishImmediately,
+  }: {
+    publishImmediately: boolean;
+  }) => {
+    setIsSubmitting(true);
     try {
       // Check if opportunities table exists first
       const { error: tableCheckError } = await supabase
@@ -161,6 +98,42 @@ export default function CreateOpportunityPage() {
         throw tableCheckError;
       }
 
+      // Ensure the user is authenticated
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        console.error("Authentication required:", authError);
+        toast({
+          title: "Authentication Required",
+          description: "You must be logged in to create an opportunity.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Fetch organizer profile to use a friendly name
+      const { data: profile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("first_name, last_name, dj_name")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError) {
+        console.warn("Unable to fetch organizer profile:", profileError);
+      }
+
+      const organizerName =
+        profile?.dj_name?.trim() ||
+        [profile?.first_name, profile?.last_name]
+          .map((part) => (part ? part.trim() : ""))
+          .filter(Boolean)
+          .join(" ") ||
+        user.email?.split("@")[0] ||
+        "R/HOOD Organizer";
+
       const eventDate =
         formData.date && formData.time
           ? new Date(`${formData.date}T${formData.time}`).toISOString()
@@ -172,34 +145,50 @@ export default function CreateOpportunityPage() {
         ? parseFloat(formData.pay.replace(/[£,]/g, ""))
         : null;
 
+      const genreValue =
+        selectedGenres.length > 0
+          ? selectedGenres.join(", ")
+          : formData.genre || null;
+
       const { error } = await supabase.from("opportunities").insert({
-        title: formData.title,
-        description: formData.description,
-        location: formData.location,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        location: formData.location.trim(),
         event_date: eventDate,
         payment: paymentAmount,
-        genre: selectedGenres[0] || formData.genre,
-        skill_level: formData.requirements,
-        organizer_name: "R/HOOD Studio",
-        is_active: false, // Draft is not active
+        genre: genreValue,
+        skill_level: formData.requirements || null,
+        organizer_id: user.id,
+        organizer_name: organizerName,
+        is_active: publishImmediately && formData.status !== "draft",
         image_url: formData.imageUrl || null,
       });
 
       if (error) {
+        console.error("Supabase insert error:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
         throw error;
       }
 
       toast({
-        title: "Draft Saved",
-        description: "Opportunity saved as draft successfully!",
+        title: publishImmediately ? "Success" : "Draft Saved",
+        description: publishImmediately
+          ? "Opportunity created successfully!"
+          : "Opportunity saved as draft successfully!",
       });
 
       router.push("/admin/opportunities");
-    } catch (error) {
-      console.error("Error saving draft:", error);
+    } catch (error: any) {
+      console.error("Error creating opportunity:", error);
       toast({
-        title: "Error",
-        description: "Failed to save draft. Please try again.",
+        title: "Opportunity Not Saved",
+        description:
+          error?.message ||
+          "Failed to save the opportunity. Please review the form and try again.",
         variant: "destructive",
       });
     } finally {
@@ -268,7 +257,9 @@ export default function CreateOpportunityPage() {
             <ImageUpload
               label="Event Image"
               value={formData.imageUrl}
-              onChange={(url) => setFormData({ ...formData, imageUrl: url || "" })}
+              onChange={(url) =>
+                setFormData({ ...formData, imageUrl: url || "" })
+              }
               required={false}
               maxSize={5}
               acceptedFormats={["image/jpeg", "image/png", "image/webp"]}

@@ -112,3 +112,53 @@ export const formatRelativeDate = (
     return dateString.toString();
   }
 };
+
+/**
+ * Format a date/time string into "HH:MM" 24-hour format.
+ * @param dateString - Date string or Date object
+ * @returns Formatted time string
+ */
+export const formatTime = (dateString: string | Date | null): string => {
+  if (!dateString) return "TBC";
+
+  try {
+    const date =
+      typeof dateString === "string" ? new Date(dateString) : dateString;
+
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      return "TBC";
+    }
+
+    return date.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } catch (error) {
+    console.error("Error formatting time:", error);
+    return "TBC";
+  }
+};
+
+/**
+ * Format a start and end time into a concise range string.
+ * @param start - Start time string or Date
+ * @param end - End time string or Date
+ * @returns Time range string (e.g., "20:00 – 22:30")
+ */
+export const formatTimeRange = (
+  start: string | Date | null,
+  end: string | Date | null
+): string => {
+  const startFormatted = formatTime(start);
+  const endFormatted = end ? formatTime(end) : null;
+
+  const startIsTbc = startFormatted === "TBC";
+  const endIsTbc = !endFormatted || endFormatted === "TBC";
+
+  if (startIsTbc && endIsTbc) return "TBC";
+  if (startIsTbc) return endFormatted || "TBC";
+  if (endIsTbc) return startFormatted;
+
+  return `${startFormatted} – ${endFormatted}`;
+};

@@ -621,10 +621,12 @@ export type Database = {
           created_at: string | null;
           description: string;
           event_date: string | null;
+          event_end_time: string | null;
           genre: string | null;
           id: string;
           image_url: string | null;
           is_active: boolean | null;
+          is_archived: boolean | null;
           location: string;
           organizer_id: string | null;
           organizer_name: string;
@@ -637,10 +639,12 @@ export type Database = {
           created_at?: string | null;
           description: string;
           event_date?: string | null;
+          event_end_time?: string | null;
           genre?: string | null;
           id?: string;
           image_url?: string | null;
           is_active?: boolean | null;
+          is_archived?: boolean | null;
           location: string;
           organizer_id?: string | null;
           organizer_name: string;
@@ -653,10 +657,12 @@ export type Database = {
           created_at?: string | null;
           description?: string;
           event_date?: string | null;
+          event_end_time?: string | null;
           genre?: string | null;
           id?: string;
           image_url?: string | null;
           is_active?: boolean | null;
+          is_archived?: boolean | null;
           location?: string;
           organizer_id?: string | null;
           organizer_name?: string;

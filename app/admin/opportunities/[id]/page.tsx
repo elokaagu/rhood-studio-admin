@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate } from "@/lib/date-utils";
+import { formatDate, formatTimeRange } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
 import {
@@ -34,6 +34,9 @@ import {
   Clock,
   CheckCircle,
   MoreVertical,
+  Archive,
+  RotateCcw,
+  Loader2,
 } from "lucide-react";
 
 export default function OpportunityDetailsPage() {
@@ -48,6 +51,7 @@ export default function OpportunityDetailsPage() {
     id: string;
     title: string;
   } | null>(null);
+  const [archiveLoading, setArchiveLoading] = useState(false);
 
   // Fetch opportunity from database
   const fetchOpportunity = async () => {
@@ -77,38 +81,70 @@ export default function OpportunityDetailsPage() {
           throw error;
         }
       } else if (data) {
-        // Fetch actual applicants count from applications table
-        let applicantCount = 0;
-        try {
-          const { count, error: countError } = await supabase
-            .from("applications")
-            .select("*", { count: "exact", head: true })
-            .eq("opportunity_id", opportunityId as string);
+        const now = new Date();
+        const eventEndCandidate = data.event_end_time
+          ? new Date(data.event_end_time)
+          : data.event_date
+          ? new Date(data.event_date)
+          : null;
+        let archivedFlag = data.is_archived ?? false;
 
-          if (!countError && count !== null) {
-            applicantCount = count;
+        if (
+          eventEndCandidate &&
+          !isNaN(eventEndCandidate.getTime()) &&
+          eventEndCandidate.getTime() < now.getTime() &&
+          !archivedFlag
+        ) {
+          const { error: autoArchiveError } = await supabase
+            .from("opportunities")
+            .update({ is_archived: true, is_active: false })
+            .eq("id", opportunityId as string);
+
+          if (!autoArchiveError) {
+            archivedFlag = true;
+          } else {
+            console.error(
+              "Failed to auto-archive expired opportunity:",
+              autoArchiveError
+            );
           }
-        } catch (countErr) {
-          console.warn("Could not fetch applicants count:", countErr);
         }
 
-        // Transform the data to match the expected format
-        const transformedOpportunity = {
-          id: data.id,
+        // Parse the event_date to separate date and time
+        const eventDate = data.event_date ? new Date(data.event_date) : null;
+        const dateStr = eventDate ? eventDate.toISOString().split("T")[0] : "";
+        const timeStr = eventDate
+          ? eventDate.toTimeString().split(" ")[0].substring(0, 5)
+          : "";
+        const eventEnd = data.event_end_time
+          ? new Date(data.event_end_time)
+          : null;
+        const endTimeStr = eventEnd
+          ? eventEnd.toTimeString().split(" ")[0].substring(0, 5)
+          : "";
+
+        setOpportunity({
+          id:
+            typeof data.id === "number" ? data.id.toString() : (data.id as string),
           title: data.title,
           location: data.location,
           date: data.event_date ? formatDate(data.event_date) : "Unknown",
+          timeRange: formatTimeRange(data.event_date, data.event_end_time),
           pay: data.payment ? `£${data.payment}` : "N/A",
           applicants: applicantCount,
-          status: data.is_active ? "active" : "draft",
+          status: archivedFlag
+            ? "archived"
+            : data.is_active
+            ? "active"
+            : data.status || "draft",
           genre: data.genre,
           description: data.description,
           requirements: data.skill_level,
           additionalInfo: "", // This field might need to be added to the database
           image_url: data.image_url,
-        };
+          is_archived: archivedFlag,
+        });
 
-        setOpportunity(transformedOpportunity);
         setIsLoading(false);
         return; // Exit early if successful
       }
@@ -129,6 +165,7 @@ export default function OpportunityDetailsPage() {
         title: "Underground Warehouse Rave",
         location: "East London",
         date: "2024-08-15",
+        timeRange: "22:00 – 01:00",
         pay: "£300",
         applicants: 12,
         status: "active",
@@ -137,12 +174,14 @@ export default function OpportunityDetailsPage() {
           "High-energy underground techno event in a converted warehouse space.",
         requirements: "Professional DJ equipment, 3+ years experience",
         additionalInfo: "Contact: events@warehouse.com",
+        is_archived: false,
       },
       {
         id: 2,
         title: "Rooftop Summer Sessions",
         location: "Shoreditch",
         date: "2024-08-20",
+        timeRange: "18:00 – 22:00",
         pay: "£450",
         applicants: 8,
         status: "active",
@@ -150,12 +189,14 @@ export default function OpportunityDetailsPage() {
         description: "Sunset house music sessions with panoramic city views.",
         requirements: "House music experience, own equipment preferred",
         additionalInfo: "Venue provides sound system",
+        is_archived: false,
       },
       {
         id: 3,
         title: "Club Residency Audition",
         location: "Camden",
         date: "2024-08-25",
+        timeRange: "TBC",
         pay: "£200 + Residency",
         applicants: 15,
         status: "completed",
@@ -164,6 +205,7 @@ export default function OpportunityDetailsPage() {
         description: "Weekly residency opportunity at premier London club.",
         requirements: "Drum & Bass expertise, club experience",
         additionalInfo: "Selected candidate will receive ongoing residency",
+        is_archived: false,
       },
     ];
 
@@ -224,6 +266,69 @@ export default function OpportunityDetailsPage() {
     }
   };
 
+  const handleArchiveToggle = async (
+    shouldArchive: boolean,
+    options: { silent?: boolean } = {}
+  ) => {
+    if (!opportunity) return;
+
+    setArchiveLoading(true);
+
+    try {
+      const nextIsActive = shouldArchive ? false : opportunity.status === "active";
+
+      const { error } = await supabase
+        .from("opportunities")
+        .update({
+          is_archived: shouldArchive,
+          is_active: nextIsActive,
+        })
+        .eq("id", opportunityId as string);
+
+      if (error) {
+        throw error;
+      }
+
+      setOpportunity((previous: any) =>
+        previous
+          ? {
+              ...previous,
+              is_archived: shouldArchive,
+              status: shouldArchive
+                ? "archived"
+                : nextIsActive
+                ? "active"
+                : previous.status === "archived"
+                ? "draft"
+                : previous.status,
+            }
+          : previous
+      );
+
+      if (!options.silent) {
+        toast({
+          title: shouldArchive
+            ? "Opportunity archived"
+            : "Opportunity reopened",
+          description: shouldArchive
+            ? "This opportunity is now hidden from the app while remaining in the Studio."
+            : "This opportunity is visible to talent in the app again.",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating archive status:", error);
+      if (!options.silent) {
+        toast({
+          title: "Update failed",
+          description: "Unable to update opportunity visibility. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setArchiveLoading(false);
+    }
+  };
+
   const cancelDelete = () => {
     setDeleteModalOpen(false);
     setOpportunityToDelete(null);
@@ -261,6 +366,16 @@ export default function OpportunityDetailsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case "archived":
+        return (
+          <Badge
+            variant="outline"
+            className="border-muted-foreground/40 text-muted-foreground bg-transparent text-xs"
+          >
+            <Archive className="h-3 w-3 mr-1" />
+            Archived
+          </Badge>
+        );
       case "active":
         return (
           <Badge
@@ -356,13 +471,17 @@ export default function OpportunityDetailsPage() {
                     {opportunity.title}
                   </CardTitle>
                   <div className="flex items-center space-x-2 mt-2">
-                    {getStatusBadge(opportunity.status)}
-                    <Badge
-                      variant="outline"
-                      className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
-                    >
-                      {opportunity.genre}
-                    </Badge>
+                    {getStatusBadge(
+                      opportunity.is_archived ? "archived" : opportunity.status
+                    )}
+                    {opportunity.genre && (
+                      <Badge
+                        variant="outline"
+                        className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                      >
+                        {opportunity.genre}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
@@ -386,10 +505,14 @@ export default function OpportunityDetailsPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4 mr-2" />
                   {opportunity.date}
+                </div>
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4 mr-2" />
+                  {opportunity.timeRange || "TBC"}
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4 mr-2" />
@@ -493,10 +616,37 @@ export default function OpportunityDetailsPage() {
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Opportunity
               </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                disabled={archiveLoading}
+                onClick={() => handleArchiveToggle(!opportunity.is_archived)}
+              >
+                {archiveLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : opportunity.is_archived ? (
+                  <>
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reopen in App
+                  </>
+                ) : (
+                  <>
+                    <Archive className="h-4 w-4 mr-2" />
+                    Mark as Filled (Archive)
+                  </>
+                )}
+              </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={archiveLoading}
+                  >
                     <MoreVertical className="h-4 w-4 mr-2" />
                     More Actions
                   </Button>
@@ -508,6 +658,7 @@ export default function OpportunityDetailsPage() {
                   <DropdownMenuItem
                     onClick={handleDelete}
                     className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                    disabled={archiveLoading}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete Opportunity

@@ -29,6 +29,7 @@ import {
   Clock,
   CheckCircle,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 export default function EditOpportunityPage() {
   const params = useParams();
@@ -58,6 +59,12 @@ export default function EditOpportunityPage() {
         const timeStr = eventDate
           ? eventDate.toTimeString().split(" ")[0].substring(0, 5)
           : "";
+        const eventEnd = data.event_end_time
+          ? new Date(data.event_end_time)
+          : null;
+        const endTimeStr = eventEnd
+          ? eventEnd.toTimeString().split(" ")[0].substring(0, 5)
+          : "";
 
         setFormData({
           title: data.title || "",
@@ -65,12 +72,14 @@ export default function EditOpportunityPage() {
           location: data.location || "",
           date: dateStr,
           time: timeStr,
+          endTime: endTimeStr,
           pay: data.payment ? data.payment.toString() : "",
           genre: data.genre || "",
           requirements: data.skill_level || "",
           additionalInfo: "",
           status: data.is_active ? "active" : "draft",
           imageUrl: data.image_url || "",
+          archived: data.is_archived ?? false,
         });
       }
     } catch (error) {
@@ -87,6 +96,7 @@ export default function EditOpportunityPage() {
           title: "Underground Warehouse Rave",
           location: "East London",
           date: "2024-08-15",
+          endTime: "",
           pay: "£300",
           applicants: 12,
           status: "active",
@@ -101,6 +111,7 @@ export default function EditOpportunityPage() {
           title: "Rooftop Summer Sessions",
           location: "Shoreditch",
           date: "2024-08-20",
+          endTime: "",
           pay: "£450",
           applicants: 8,
           status: "active",
@@ -114,6 +125,7 @@ export default function EditOpportunityPage() {
           title: "Club Residency Audition",
           location: "Camden",
           date: "2024-08-25",
+          endTime: "",
           pay: "£200 + Residency",
           applicants: 15,
           status: "completed",
@@ -135,12 +147,14 @@ export default function EditOpportunityPage() {
         location: opportunity?.location || "",
         date: opportunity?.date || "",
         time: "",
+        endTime: opportunity?.endTime || "",
         pay: opportunity?.pay || "",
         genre: opportunity?.genre || "",
         requirements: opportunity?.requirements || "",
         additionalInfo: opportunity?.additionalInfo || "",
         status: opportunity?.status || "draft",
         imageUrl: "",
+        archived: opportunity?.is_archived ?? false,
       });
     } finally {
       setIsLoading(false);
@@ -158,12 +172,14 @@ export default function EditOpportunityPage() {
     location: "",
     date: "",
     time: "",
+    endTime: "",
     pay: "",
     genre: "",
     requirements: "",
     additionalInfo: "",
     status: "draft",
     imageUrl: "",
+    archived: false,
   });
 
   const genres = [
@@ -185,13 +201,35 @@ export default function EditOpportunityPage() {
     setIsSubmitting(true);
 
     try {
-      // Combine date and time into event_date
-      const eventDate =
-        formData.date && formData.time
-          ? new Date(`${formData.date}T${formData.time}`).toISOString()
-          : formData.date
-          ? new Date(formData.date).toISOString()
-          : null;
+      if (!formData.date || !formData.time || !formData.endTime) {
+        toast({
+          title: "Missing Schedule",
+          description: "Please provide a date, start time, and finish time.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const eventStart = new Date(`${formData.date}T${formData.time}`);
+      const eventEnd = new Date(`${formData.date}T${formData.endTime}`);
+
+      if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+        toast({
+          title: "Invalid Time",
+          description: "Please enter a valid start and finish time.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (eventEnd <= eventStart) {
+        toast({
+          title: "Invalid Schedule",
+          description: "Finish time must be after the start time.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Parse payment amount
       const paymentAmount = formData.pay
@@ -204,11 +242,13 @@ export default function EditOpportunityPage() {
           title: formData.title,
           description: formData.description,
           location: formData.location,
-          event_date: eventDate,
+          event_date: eventStart.toISOString(),
+          event_end_time: eventEnd.toISOString(),
           payment: paymentAmount,
           genre: formData.genre,
           skill_level: formData.requirements,
-          is_active: formData.status === "active",
+          is_active: formData.status === "active" && !formData.archived,
+          is_archived: formData.archived,
           image_url: formData.imageUrl || null,
         })
         .eq("id", opportunityId as string);
@@ -239,12 +279,35 @@ export default function EditOpportunityPage() {
     setIsSubmitting(true);
 
     try {
-      const eventDate =
-        formData.date && formData.time
-          ? new Date(`${formData.date}T${formData.time}`).toISOString()
-          : formData.date
-          ? new Date(formData.date).toISOString()
-          : null;
+      if (!formData.date || !formData.time || !formData.endTime) {
+        toast({
+          title: "Missing Schedule",
+          description: "Please provide a date, start time, and finish time.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const eventStart = new Date(`${formData.date}T${formData.time}`);
+      const eventEnd = new Date(`${formData.date}T${formData.endTime}`);
+
+      if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+        toast({
+          title: "Invalid Time",
+          description: "Please enter a valid start and finish time.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (eventEnd <= eventStart) {
+        toast({
+          title: "Invalid Schedule",
+          description: "Finish time must be after the start time.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const paymentAmount = formData.pay
         ? parseFloat(formData.pay.replace(/[£,]/g, ""))
@@ -256,11 +319,13 @@ export default function EditOpportunityPage() {
           title: formData.title,
           description: formData.description,
           location: formData.location,
-          event_date: eventDate,
+          event_date: eventStart.toISOString(),
+          event_end_time: eventEnd.toISOString(),
           payment: paymentAmount,
           genre: formData.genre,
           skill_level: formData.requirements,
           is_active: false, // Draft is not active
+          is_archived: formData.archived,
           image_url: formData.imageUrl || null,
         })
         .eq("id", opportunityId as string);
@@ -414,7 +479,7 @@ export default function EditOpportunityPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="date" className={textStyles.body.regular}>
                   <Calendar className="h-4 w-4 mr-2" />
@@ -433,32 +498,64 @@ export default function EditOpportunityPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="genre" className={textStyles.body.regular}>
-                  <Music className="h-4 w-4 mr-2" />
-                  Genre
+                <Label htmlFor="time" className={textStyles.body.regular}>
+                  Start Time
                 </Label>
-                <Select
-                  value={formData.genre}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, genre: value })
+                <Input
+                  id="time"
+                  type="time"
+                  value={formData.time}
+                  onChange={(e) =>
+                    setFormData({ ...formData, time: e.target.value })
                   }
-                >
-                  <SelectTrigger className="bg-secondary border-border text-foreground">
-                    <SelectValue placeholder="Select genre" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border">
-                    {genres.map((genre) => (
-                      <SelectItem
-                        key={genre}
-                        value={genre}
-                        className="text-foreground hover:bg-accent"
-                      >
-                        {genre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  className="bg-secondary border-border text-foreground"
+                  required
+                />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endTime" className={textStyles.body.regular}>
+                  Finish Time
+                </Label>
+                <Input
+                  id="endTime"
+                  type="time"
+                  value={formData.endTime}
+                  onChange={(e) =>
+                    setFormData({ ...formData, endTime: e.target.value })
+                  }
+                  className="bg-secondary border-border text-foreground"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="genre" className={textStyles.body.regular}>
+                <Music className="h-4 w-4 mr-2" />
+                Genre
+              </Label>
+              <Select
+                value={formData.genre}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, genre: value })
+                }
+              >
+                <SelectTrigger className="bg-secondary border-border text-foreground">
+                  <SelectValue placeholder="Select genre" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  {genres.map((genre) => (
+                    <SelectItem
+                      key={genre}
+                      value={genre}
+                      className="text-foreground hover:bg-accent"
+                    >
+                      {genre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -544,6 +641,23 @@ export default function EditOpportunityPage() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex items-start justify-between border border-border rounded-lg p-4 bg-secondary/30">
+              <div className="space-y-1">
+                <p className={textStyles.body.regular}>Archive opportunity</p>
+                <p className="text-sm text-muted-foreground">
+                  Archived opportunities stay visible in the Studio but are
+                  removed from the app.
+                </p>
+              </div>
+              <Switch
+                checked={formData.archived}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, archived: checked })
+                }
+                aria-label="Toggle archive status"
+              />
             </div>
           </CardContent>
         </Card>

@@ -14,6 +14,13 @@ export interface PushNotificationData {
   data?: Record<string, any>;
 }
 
+export interface ApplicationDecisionEmailPayload {
+  email: string;
+  applicantName?: string | null;
+  status: "approved" | "rejected";
+  opportunityTitle: string;
+}
+
 /**
  * Creates an in-app notification in the database
  */
@@ -98,37 +105,48 @@ export async function sendPushNotification(
       ...pushData,
     });
 
-    // Example Firebase FCM implementation:
-    /*
-    const fcmToken = await getUserFCMToken(userId);
-    if (fcmToken) {
-      const message = {
-        token: fcmToken,
-        notification: {
-          title: pushData.title,
-          body: pushData.body,
-        },
-        data: pushData.data || {},
-      };
-      
-      const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `key=${process.env.FIREBASE_SERVER_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(message),
-      });
-      
-      return await response.json();
-    }
-    */
-
     return { success: true, message: "Push notification logged" };
   } catch (error) {
     console.error("Failed to send push notification:", error);
     // Don't throw error here as push notifications are not critical
     return { success: false, error };
+  }
+}
+
+/**
+ * Requests an application decision email via the internal API route
+ */
+export async function triggerApplicationDecisionEmail(
+  payload: ApplicationDecisionEmailPayload
+) {
+  if (!payload.email) return;
+
+  try {
+    if (typeof window === "undefined") {
+      console.warn(
+        "triggerApplicationDecisionEmail should be executed from the client runtime; skipping request."
+      );
+      return;
+    }
+
+    const response = await fetch("/api/notifications/application-decision", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        "Application decision email request failed:",
+        response.status,
+        errorText
+      );
+    }
+  } catch (error) {
+    console.error("Error triggering application decision email:", error);
   }
 }
 

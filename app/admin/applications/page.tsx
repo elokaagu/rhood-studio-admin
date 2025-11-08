@@ -10,7 +10,7 @@ import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
-import { createApplicationStatusNotification } from "@/lib/notifications";
+import { createApplicationStatusNotification, triggerApplicationDecisionEmail } from "@/lib/notifications";
 import {
   Calendar,
   MapPin,
@@ -280,7 +280,7 @@ function ApplicationsContent() {
           `
           *,
           opportunities(title),
-          user_profiles(dj_name)
+          user_profiles(dj_name, first_name, last_name, email)
         `
         )
         .eq("id", applicationId)
@@ -328,19 +328,41 @@ function ApplicationsContent() {
 
       console.log("Application updated successfully:", updatedData);
 
+      const opportunityTitle =
+        (applicationData as any)?.opportunities?.title ||
+        (applicationData as any)?.application_forms?.title ||
+        "Opportunity";
+
       // Create notification for the user
       if (
         (applicationData as any)?.user_id &&
-        (applicationData as any)?.opportunities?.title
+        opportunityTitle
       ) {
         try {
           await createApplicationStatusNotification(
             (applicationData as any).user_id,
             applicationId,
             "approved",
-            (applicationData as any).opportunities.title
+            opportunityTitle
           );
           console.log("Notification created successfully");
+
+          const profile = (applicationData as any).user_profiles;
+          if (profile?.email) {
+            const fullName =
+              profile.dj_name ||
+              [profile.first_name, profile.last_name]
+                .filter(Boolean)
+                .join(" ") ||
+              null;
+
+            await triggerApplicationDecisionEmail({
+              email: profile.email,
+              applicantName: fullName,
+              status: "approved",
+              opportunityTitle,
+            });
+          }
         } catch (notificationError) {
           console.error("Error creating notification:", notificationError);
           // Don't throw here - the approval succeeded, notification is secondary
@@ -386,7 +408,7 @@ function ApplicationsContent() {
           `
           *,
           opportunities(title),
-          user_profiles(dj_name)
+          user_profiles(dj_name, first_name, last_name, email)
         `
         )
         .eq("id", applicationId)
@@ -434,19 +456,41 @@ function ApplicationsContent() {
 
       console.log("Application updated successfully:", updatedData);
 
+      const opportunityTitle =
+        (applicationData as any)?.opportunities?.title ||
+        (applicationData as any)?.application_forms?.title ||
+        "Opportunity";
+
       // Create notification for the user
       if (
         (applicationData as any)?.user_id &&
-        (applicationData as any)?.opportunities?.title
+        opportunityTitle
       ) {
         try {
           await createApplicationStatusNotification(
             (applicationData as any).user_id,
             applicationId,
             "rejected",
-            (applicationData as any).opportunities.title
+            opportunityTitle
           );
           console.log("Notification created successfully");
+
+          const profile = (applicationData as any).user_profiles;
+          if (profile?.email) {
+            const fullName =
+              profile.dj_name ||
+              [profile.first_name, profile.last_name]
+                .filter(Boolean)
+                .join(" ") ||
+              null;
+
+            await triggerApplicationDecisionEmail({
+              email: profile.email,
+              applicantName: fullName,
+              status: "rejected",
+              opportunityTitle,
+            });
+          }
         } catch (notificationError) {
           console.error("Error creating notification:", notificationError);
           // Don't throw here - the rejection succeeded, notification is secondary

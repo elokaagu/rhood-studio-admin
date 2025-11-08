@@ -30,6 +30,7 @@ export default function CreateOpportunityPage() {
     location: "",
     date: "",
     time: "",
+    endTime: "",
     pay: "",
     genre: "",
     requirements: "",
@@ -76,6 +77,36 @@ export default function CreateOpportunityPage() {
   }) => {
     setIsSubmitting(true);
     try {
+      if (!formData.date || !formData.time || !formData.endTime) {
+        toast({
+          title: "Missing Schedule",
+          description: "Please provide a date, start time, and finish time.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const eventStart = new Date(`${formData.date}T${formData.time}`);
+      const eventEnd = new Date(`${formData.date}T${formData.endTime}`);
+
+      if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+        toast({
+          title: "Invalid Time",
+          description: "Please enter a valid start and finish time.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (eventEnd <= eventStart) {
+        toast({
+          title: "Invalid Schedule",
+          description: "Finish time must be after the start time.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Check if opportunities table exists first
       const { error: tableCheckError } = await supabase
         .from("opportunities")
@@ -154,13 +185,16 @@ export default function CreateOpportunityPage() {
         title: formData.title.trim(),
         description: formData.description.trim(),
         location: formData.location.trim(),
-        event_date: eventDate,
+        event_date: eventStart.toISOString(),
+        event_end_time: eventEnd.toISOString(),
         payment: paymentAmount,
         genre: genreValue,
         skill_level: formData.requirements || null,
         organizer_id: user.id,
         organizer_name: organizerName,
-        is_active: publishImmediately && formData.status !== "draft",
+        is_active:
+          publishImmediately && formData.status === "active" ? true : false,
+        is_archived: false,
         image_url: formData.imageUrl || null,
       });
 
@@ -312,7 +346,7 @@ export default function CreateOpportunityPage() {
             <CardTitle className="text-foreground">Event Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label
                   htmlFor="date"
@@ -335,7 +369,7 @@ export default function CreateOpportunityPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="time" className="text-foreground">
-                  Time
+                  Start Time
                 </Label>
                 <Input
                   id="time"
@@ -345,6 +379,23 @@ export default function CreateOpportunityPage() {
                     setFormData({ ...formData, time: e.target.value })
                   }
                   className="bg-secondary border-border text-foreground"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endTime" className="text-foreground">
+                  Finish Time
+                </Label>
+                <Input
+                  id="endTime"
+                  type="time"
+                  value={formData.endTime}
+                  onChange={(e) =>
+                    setFormData({ ...formData, endTime: e.target.value })
+                  }
+                  className="bg-secondary border-border text-foreground"
+                  required
                 />
               </div>
             </div>

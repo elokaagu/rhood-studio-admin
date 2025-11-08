@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate } from "@/lib/date-utils";
+import { formatDate, formatTimeRange } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
 import {
@@ -34,6 +34,8 @@ import {
   Clock,
   CheckCircle,
   MoreVertical,
+  Archive,
+  RotateCcw,
 } from "lucide-react";
 
 export default function OpportunitiesPage() {
@@ -42,9 +44,10 @@ export default function OpportunitiesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [opportunityToDelete, setOpportunityToDelete] = useState<{
-    id: number;
+    id: string;
     title: string;
   } | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   // Fetch opportunities from database
   const fetchOpportunities = async () => {
@@ -85,7 +88,75 @@ export default function OpportunitiesPage() {
           })
         );
 
-        setOpportunities(opportunitiesWithApplicants);
+        const now = new Date();
+        const expiredIds: string[] = [];
+
+        let normalized = opportunitiesWithApplicants.map((opportunity) => {
+          const normalizedId =
+            typeof opportunity.id === "number"
+              ? opportunity.id.toString()
+              : (opportunity.id as string);
+          const endDate = opportunity.event_end_time
+            ? new Date(opportunity.event_end_time)
+            : opportunity.event_date
+            ? new Date(opportunity.event_date)
+            : null;
+          const isArchived = opportunity.is_archived ?? false;
+          const derivedStatus = opportunity.status
+            ? opportunity.status
+            : opportunity.is_active
+            ? "active"
+            : "draft";
+
+          if (
+            endDate &&
+            !isNaN(endDate.getTime()) &&
+            endDate.getTime() < now.getTime() &&
+            !isArchived
+          ) {
+            expiredIds.push(normalizedId);
+          }
+
+          return {
+            ...opportunity,
+            id: normalizedId,
+            is_archived: isArchived,
+            status: isArchived ? "archived" : derivedStatus,
+          };
+        });
+
+        if (expiredIds.length > 0) {
+          const { error: archiveError } = await supabase
+            .from("opportunities")
+            .update({ is_archived: true, is_active: false })
+            .in("id", expiredIds);
+
+          if (archiveError) {
+            console.error(
+              "Failed to auto-archive expired opportunities:",
+              archiveError
+            );
+          } else {
+            normalized = normalized.map((opportunity) =>
+              expiredIds.includes(opportunity.id)
+                ? {
+                    ...opportunity,
+                    is_archived: true,
+                    is_active: false,
+                    status: "archived",
+                  }
+                : opportunity
+            );
+            toast({
+              title: "Opportunities archived",
+              description: `${expiredIds.length} expired opportunity${
+                expiredIds.length === 1 ? "" : "ies"
+              } moved out of the app automatically.`,
+            });
+          }
+        }
+
+        setOpportunities(normalized);
       } else {
         setOpportunities([]);
       }
@@ -99,39 +170,45 @@ export default function OpportunitiesPage() {
       // Fallback to demo data
       setOpportunities([
         {
-          id: 1,
+          id: "1",
           title: "Underground Warehouse Rave",
           location: "East London",
           date: "2024-08-15",
+          event_end_time: null,
           pay: "£300",
           applicants: 12,
           status: "active",
           genre: "Techno",
           description:
             "High-energy underground techno event in a converted warehouse space.",
+          is_archived: false,
         },
         {
-          id: 2,
+          id: "2",
           title: "Rooftop Summer Sessions",
           location: "Shoreditch",
           date: "2024-08-20",
+          event_end_time: null,
           pay: "£450",
           applicants: 8,
           status: "active",
           genre: "House",
           description: "Sunset house music sessions with panoramic city views.",
+          is_archived: false,
         },
         {
-          id: 3,
+          id: "3",
           title: "Club Residency Audition",
           location: "Camden",
           date: "2024-08-25",
+          event_end_time: null,
           pay: "£200 + Residency",
           applicants: 15,
           status: "completed",
           genre: "Drum & Bass",
           selected: "Alex Thompson",
           description: "Weekly residency opportunity at premier London club.",
+          is_archived: false,
         },
       ]);
     } finally {
@@ -145,7 +222,7 @@ export default function OpportunitiesPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = async (
-    opportunityId: number,
+    opportunityId: string,
     opportunityTitle: string
   ) => {
     setOpportunityToDelete({ id: opportunityId, title: opportunityTitle });
@@ -160,7 +237,7 @@ export default function OpportunitiesPage() {
       const { error } = await supabase
         .from("opportunities")
         .delete()
-        .eq("id", opportunityToDelete.id.toString());
+        .eq("id", opportunityToDelete.id);
 
       if (error) {
         throw error;
@@ -193,8 +270,82 @@ export default function OpportunitiesPage() {
     setOpportunityToDelete(null);
   };
 
+  const toggleArchive = async (
+    opportunityId: string,
+    opportunityTitle: string,
+    shouldArchive: boolean
+  ) => {
+    setActionLoadingId(opportunityId);
+
+    try {
+      const currentOpportunity = opportunities.find(
+        (opp) => opp.id === opportunityId
+      );
+      const nextIsActive = shouldArchive
+        ? false
+        : currentOpportunity?.status === "active";
+
+      const { error } = await supabase
+        .from("opportunities")
+        .update({
+          is_archived: shouldArchive,
+          is_active: nextIsActive,
+        })
+        .eq("id", opportunityId);
+
+      if (error) {
+        throw error;
+      }
+
+      setOpportunities((previous) =>
+        previous.map((opp) =>
+          opp.id === opportunityId
+            ? {
+                ...opp,
+                is_archived: shouldArchive,
+                is_active: nextIsActive,
+                status: shouldArchive
+                  ? "archived"
+                  : nextIsActive
+                  ? "active"
+                  : opp.status === "archived"
+                  ? "draft"
+                  : opp.status,
+              }
+            : opp
+        )
+      );
+
+      toast({
+        title: shouldArchive ? "Opportunity archived" : "Opportunity reopened",
+        description: shouldArchive
+          ? `"${opportunityTitle}" is no longer visible in the app.`
+          : `"${opportunityTitle}" has been restored for talent in the app.`,
+      });
+    } catch (error) {
+      console.error("Error updating archive status:", error);
+      toast({
+        title: "Update failed",
+        description: "Unable to update opportunity visibility. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case "archived":
+        return (
+          <Badge
+            variant="outline"
+            className="border-muted-foreground/40 text-muted-foreground bg-transparent text-xs"
+          >
+            <Archive className="h-3 w-3 mr-1" />
+            Archived
+          </Badge>
+        );
       case "active":
         return (
           <Badge
@@ -259,7 +410,7 @@ export default function OpportunitiesPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -267,8 +418,9 @@ export default function OpportunitiesPage() {
                 <p className="text-sm text-muted-foreground">Active</p>
                 <p className="text-2xl font-bold text-foreground">
                   {
-                    opportunities.filter((opp) => opp.status === "active")
-                      .length
+                    opportunities.filter(
+                      (opp) => opp.status === "active" && !opp.is_archived
+                    ).length
                   }
                 </p>
               </div>
@@ -304,13 +456,29 @@ export default function OpportunitiesPage() {
                   {
                     opportunities.filter(
                       (opp) =>
-                        opp.status === "completed" || opp.status === "closed"
+                        !opp.is_archived &&
+                        (opp.status === "completed" || opp.status === "closed")
                     ).length
                   }
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
                 <Calendar className="h-4 w-4 text-brand-green" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Archived</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {opportunities.filter((opp) => opp.is_archived).length}
+                </p>
+              </div>
+              <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
+                <Archive className="h-4 w-4 text-brand-green" />
               </div>
             </div>
           </CardContent>
@@ -331,7 +499,12 @@ export default function OpportunitiesPage() {
           </div>
         ) : (
           opportunities.map((opportunity) => (
-            <Card key={opportunity.id} className="bg-card border-border">
+            <Card
+              key={opportunity.id}
+              className={`bg-card border-border ${
+                opportunity.is_archived ? "opacity-75" : ""
+              }`}
+            >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between gap-6">
                   {/* Image Section */}
@@ -366,6 +539,13 @@ export default function OpportunitiesPage() {
                           : opportunity.date}
                       </div>
                       <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {formatTimeRange(
+                          opportunity.event_date,
+                          opportunity.event_end_time
+                        )}
+                      </div>
+                      <div className="flex items-center">
                         <MapPin className="h-4 w-4 mr-1" />
                         {opportunity.location}
                       </div>
@@ -394,14 +574,20 @@ export default function OpportunitiesPage() {
 
                   <div className="flex items-center space-x-2">
                     {getStatusBadge(
-                      opportunity.is_active ? "active" : opportunity.status
+                      opportunity.is_archived
+                        ? "archived"
+                        : opportunity.is_active
+                        ? "active"
+                        : opportunity.status
                     )}
-                    <Badge
-                      variant="outline"
-                      className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
-                    >
-                      {opportunity.genre}
-                    </Badge>
+                    {opportunity.genre && (
+                      <Badge
+                        variant="outline"
+                        className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                      >
+                        {opportunity.genre}
+                      </Badge>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -419,6 +605,7 @@ export default function OpportunitiesPage() {
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
+                          disabled={actionLoadingId === opportunity.id}
                         >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
@@ -429,9 +616,27 @@ export default function OpportunitiesPage() {
                       >
                         <DropdownMenuItem
                           onClick={() =>
+                            toggleArchive(
+                              opportunity.id,
+                              opportunity.title,
+                              !opportunity.is_archived
+                            )
+                          }
+                          disabled={actionLoadingId === opportunity.id}
+                        >
+                          {opportunity.is_archived ? (
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                          ) : (
+                            <Archive className="h-4 w-4 mr-2" />
+                          )}
+                          {opportunity.is_archived ? "Reopen" : "Archive"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
                             handleDelete(opportunity.id, opportunity.title)
                           }
                           className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                          disabled={actionLoadingId === opportunity.id}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete

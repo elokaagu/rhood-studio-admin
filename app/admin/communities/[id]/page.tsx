@@ -56,10 +56,12 @@ interface Message {
   id: string;
   content: string;
   created_at: string | null;
-  sender_id: string | null;
+  community_id?: string | null;
+  author_id: string | null;
   sender_name?: string;
   sender_avatar?: string | null;
   is_pinned?: boolean;
+  media_url?: string | null;
 }
 
 interface Member {
@@ -157,11 +159,11 @@ export default function CommunityDetailsPage({
 
     try {
       const { data, error } = await supabase
-        .from("messages")
+        .from("community_posts")
         .select(
           `
           *,
-          sender:user_profiles!messages_sender_id_fkey(
+          author:user_profiles!community_posts_author_id_fkey(
             id,
             first_name,
             last_name,
@@ -189,13 +191,23 @@ export default function CommunityDetailsPage({
       );
 
       const transformedMessages =
-        data?.map((message) => ({
-          ...message,
-          sender_name: message.sender
-            ? `${message.sender.first_name} ${message.sender.last_name}`
-            : "Unknown",
-          sender_avatar: message.sender?.profile_image_url || null,
-        })) || [];
+        data?.map((message) => {
+          const author = (message as unknown as { author?: { first_name?: string; last_name?: string; profile_image_url?: string } }).author;
+
+          return {
+            id: message.id,
+            content: message.content,
+            created_at: message.created_at,
+            community_id: message.community_id,
+            author_id: message.author_id,
+            is_pinned: (message as { is_pinned?: boolean }).is_pinned,
+            media_url: (message as { media_url?: string | null }).media_url,
+            sender_name: author
+              ? `${author.first_name ?? ""} ${author.last_name ?? ""}`.trim() || "Unknown"
+              : "Unknown",
+            sender_avatar: author?.profile_image_url || null,
+          } satisfies Message;
+        }) || [];
 
       console.log("Transformed messages:", transformedMessages);
       setMessages(transformedMessages);
@@ -293,16 +305,16 @@ export default function CommunityDetailsPage({
       }
 
       console.log(
-        "Sending message with sender_id:",
+        "Sending message with author_id:",
         senderId,
         "to community:",
         communityId
       );
 
-      const { error } = await supabase.from("messages").insert([
+      const { error } = await supabase.from("community_posts").insert([
         {
           content: newMessage.trim(),
-          sender_id: senderId,
+          author_id: senderId,
           community_id: communityId,
         },
       ]);
@@ -440,6 +452,32 @@ export default function CommunityDetailsPage({
       loadData();
     }
   }, [communityId, fetchCommunity, fetchMessages, fetchMembers]);
+
+  useEffect(() => {
+    if (!communityId) return;
+
+    const channel = supabase
+      .channel(`community-posts-${communityId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_posts",
+          filter: `community_id=eq.${communityId}`,
+        },
+        () => {
+          fetchMessages();
+        }
+      )
+      .subscribe((status) => {
+        console.log("Subscribed to community_posts changes:", status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [communityId, fetchMessages]);
 
   if (loading) {
     return (

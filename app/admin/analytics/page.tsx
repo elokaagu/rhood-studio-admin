@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { textStyles } from "@/lib/typography";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +28,11 @@ import {
   Activity,
   Briefcase,
   Download,
+  FileSpreadsheet,
+  FileText,
+  Loader2,
 } from "lucide-react";
+import { jsPDF } from "jspdf";
 
 interface MonthlyData {
   monthKey: string;
@@ -49,11 +59,12 @@ interface TopUser {
   status: string;
 }
 
-export default function ForecastPage() {
+export default function AnalyticsPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingCSV, setIsGeneratingCSV] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [monthlySignups, setMonthlySignups] = useState<MonthlyData[]>([]);
   const [currentMonthSignups, setCurrentMonthSignups] = useState(0);
   const [brandApplications, setBrandApplications] = useState(0);
@@ -285,6 +296,16 @@ export default function ForecastPage() {
     );
   }
 
+  const hexToRgb = (hex: string): [number, number, number] => {
+    const normalized = hex.replace("#", "");
+    if (normalized.length !== 6) return [0, 0, 0];
+    const bigint = parseInt(normalized, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return [r, g, b];
+  };
+
   const downloadCSV = () => {
     try {
       setIsGeneratingCSV(true);
@@ -379,7 +400,7 @@ export default function ForecastPage() {
       const link = document.createElement("a");
       const today = new Date().toISOString().split("T")[0];
       link.href = url;
-      link.setAttribute("download", `RHOOD_Forecast_${today}.csv`);
+      link.setAttribute("download", `RHOOD_Analytics_${today}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -387,7 +408,7 @@ export default function ForecastPage() {
 
       toast({
         title: "CSV Downloaded",
-        description: "Forecast analytics have been downloaded successfully.",
+        description: "Analytics data has been downloaded successfully.",
       });
     } catch (error) {
       console.error("Error generating CSV:", error);
@@ -401,35 +422,356 @@ export default function ForecastPage() {
     }
   };
 
+  const downloadPDF = () => {
+    try {
+      setIsGeneratingPDF(true);
+
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "pt",
+        format: "a4",
+      });
+
+      const margin = 48;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      const brandBlack = hexToRgb("#1D1D1B");
+      const accentGreen = hexToRgb("#5F6604");
+      const accentTint = hexToRgb("#EEF2C7");
+      const textMuted = [92, 92, 92] as [number, number, number];
+
+      const drawHeader = (subtitle: string) => {
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, pageHeight, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(26);
+        doc.setTextColor(...brandBlack);
+        doc.text("R/HOOD Studio Analytics", margin, margin);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(12);
+        doc.setTextColor(...textMuted);
+        doc.text(subtitle, margin, margin + 20);
+        doc.setFillColor(...accentGreen);
+        doc.rect(margin, margin + 28, pageWidth - margin * 2, 3, "F");
+      };
+
+      const ensureSpace = (
+        docInstance: jsPDF,
+        cursor: { y: number },
+        required: number,
+        subtitle: string
+      ) => {
+        if (cursor.y + required <= pageHeight - margin) return;
+        docInstance.addPage();
+        drawHeader(subtitle);
+        cursor.y = margin + 70;
+      };
+
+      const cursor = { y: margin + 70 };
+      const generatedAt = new Date().toLocaleString(undefined, {
+        dateStyle: "long",
+        timeStyle: "short",
+      });
+      drawHeader(`Generated ${generatedAt}`);
+
+      // Key metrics grid
+      const metrics = [
+        { label: "Monthly Signups", value: currentMonthSignups },
+        { label: "Brand Applications", value: brandApplications },
+        { label: "Daily Active Users", value: dailyActiveUsers },
+        { label: "Avg Minutes Per User", value: minutesPerUser },
+      ];
+
+      const columnGap = 24;
+      const cardWidth = (pageWidth - margin * 2 - columnGap) / 2;
+      const cardHeight = 72;
+
+      doc.setLineWidth(1);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(...brandBlack);
+      doc.text("Key Metrics", margin, cursor.y);
+      cursor.y += 24;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+
+      metrics.forEach((metric, index) => {
+        const row = Math.floor(index / 2);
+        const col = index % 2;
+        const x = margin + col * (cardWidth + columnGap);
+        const y = cursor.y + row * (cardHeight + 12);
+
+        doc.setFillColor(...accentTint);
+        doc.roundedRect(x, y, cardWidth, cardHeight, 8, 8, "F");
+        doc.setDrawColor(...accentGreen);
+        doc.roundedRect(x, y, cardWidth, cardHeight, 8, 8, "S");
+
+        doc.setTextColor(...textMuted);
+        doc.text(metric.label.toUpperCase(), x + 16, y + 22);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(24);
+        doc.setTextColor(...brandBlack);
+        doc.text(String(metric.value), x + 16, y + 48);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(12);
+      });
+
+      cursor.y += Math.ceil(metrics.length / 2) * (cardHeight + 12) + 20;
+
+      // Monthly signups table
+      ensureSpace(doc, cursor, 200, `Generated ${generatedAt}`);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(...brandBlack);
+      doc.text("Monthly Signups (Last 6 Months)", margin, cursor.y);
+      cursor.y += 18;
+
+      const tableRowHeight = 26;
+      const tableWidth = pageWidth - margin * 2;
+
+      doc.setFillColor(...accentGreen);
+      doc.rect(margin, cursor.y, tableWidth, tableRowHeight, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(255, 255, 255);
+      doc.text("Month", margin + 12, cursor.y + 17);
+      doc.text("Signups", margin + tableWidth - 12, cursor.y + 17, {
+        align: "right",
+      });
+      cursor.y += tableRowHeight;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      monthlySignups.forEach((entry, index) => {
+        if (index % 2 === 0) {
+          doc.setFillColor(...accentTint);
+          doc.rect(margin, cursor.y, tableWidth, tableRowHeight, "F");
+        }
+        doc.setTextColor(...brandBlack);
+        doc.text(entry.month, margin + 12, cursor.y + 17);
+        doc.text(String(entry.signups), margin + tableWidth - 12, cursor.y + 17, {
+          align: "right",
+        });
+        cursor.y += tableRowHeight;
+      });
+
+      cursor.y += 24;
+
+      // Top locations list
+      ensureSpace(doc, cursor, 200, `Generated ${generatedAt}`);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(...brandBlack);
+      doc.text("Top Locations", margin, cursor.y);
+      cursor.y += 18;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.setTextColor(...textMuted);
+      const locations = countryData.slice(0, 10);
+      if (locations.length === 0) {
+        doc.text("No location data available.", margin, cursor.y + 12);
+        cursor.y += 24;
+      } else {
+        locations.forEach((location, index) => {
+          ensureSpace(doc, cursor, tableRowHeight + 10, `Generated ${generatedAt}`);
+          doc.setTextColor(...brandBlack);
+          doc.text(
+            `${index + 1}. ${location.country}`,
+            margin + 12,
+            cursor.y + 16
+          );
+          doc.setTextColor(...textMuted);
+          doc.text(
+            `${location.count} members`,
+            margin + tableWidth / 2,
+            cursor.y + 16
+          );
+          cursor.y += tableRowHeight;
+        });
+      }
+
+      // Engagement leaders page
+      doc.addPage();
+      drawHeader("Engagement & Ratings Overview");
+      cursor.y = margin + 70;
+
+      const userSections = [
+        {
+          title: "Most Active Users",
+          subtitle: "Top members based on gig applications.",
+          rows: topUsers.mostActive.map((user, index) => ({
+            rank: index + 1,
+            label: user.name,
+            value: `${user.gigs} gigs`,
+          })),
+        },
+        {
+          title: "Highest Rated Users",
+          subtitle: "Average feedback ratings from AI matching sessions.",
+          rows: topUsers.highestRating.map((user, index) => ({
+            rank: index + 1,
+            label: user.name,
+            value: `${user.rating.toFixed(1)} ★`,
+          })),
+        },
+        {
+          title: "Up and Coming",
+          subtitle: "Members without gig history yet but active recently.",
+          rows: topUsers.upAndComing.map((user, index) => ({
+            rank: index + 1,
+            label: user.name,
+            value: "New",
+          })),
+        },
+        {
+          title: "Least Active Users",
+          subtitle: "Members with minimal gig activity.",
+          rows: topUsers.leastActive.map((user, index) => ({
+            rank: index + 1,
+            label: user.name,
+            value: `${user.gigs} gigs`,
+          })),
+        },
+      ];
+
+      userSections.forEach((section) => {
+        const requiredHeight =
+          70 + Math.max(section.rows.length, 1) * (tableRowHeight + 4);
+        ensureSpace(doc, cursor, requiredHeight, "Engagement & Ratings Overview");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.setTextColor(...brandBlack);
+        doc.text(section.title, margin, cursor.y);
+        cursor.y += 16;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        doc.setTextColor(...textMuted);
+        doc.text(section.subtitle, margin, cursor.y);
+        cursor.y += 20;
+
+        doc.setFillColor(...accentGreen);
+        doc.rect(margin, cursor.y, tableWidth, tableRowHeight, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(255, 255, 255);
+        doc.text("#", margin + 12, cursor.y + 17);
+        doc.text("User", margin + 48, cursor.y + 17);
+        doc.text("Metric", margin + tableWidth - 12, cursor.y + 17, {
+          align: "right",
+        });
+        cursor.y += tableRowHeight;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(12);
+        if (section.rows.length === 0) {
+          doc.setFillColor(...accentTint);
+          doc.rect(margin, cursor.y, tableWidth, tableRowHeight, "F");
+          doc.setTextColor(...brandBlack);
+          doc.text("No data available", margin + 12, cursor.y + 17);
+          cursor.y += tableRowHeight + 16;
+          return;
+        }
+
+        section.rows.forEach((row, index) => {
+          ensureSpace(doc, cursor, tableRowHeight + 12, "Engagement & Ratings Overview");
+          if (index % 2 === 0) {
+            doc.setFillColor(...accentTint);
+            doc.rect(margin, cursor.y, tableWidth, tableRowHeight, "F");
+          }
+          doc.setTextColor(...brandBlack);
+          doc.text(String(row.rank), margin + 12, cursor.y + 17);
+          doc.text(row.label, margin + 48, cursor.y + 17);
+          doc.text(row.value, margin + tableWidth - 12, cursor.y + 17, {
+            align: "right",
+          });
+          cursor.y += tableRowHeight;
+        });
+
+        cursor.y += 28;
+      });
+
+      const today = new Date().toISOString().split("T")[0];
+      doc.save(`RHOOD_Analytics_${today}.pdf`);
+
+      toast({
+        title: "PDF Downloaded",
+        description: "A styled analytics report has been generated successfully.",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "PDF Generation Failed",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const isBusy = isGeneratingCSV || isGeneratingPDF;
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
-            FORECAST
+            ANALYTICS
           </h1>
           <p className={textStyles.body.regular}>
             Analytics and insights for R/HOOD
           </p>
         </div>
-        <Button
-          onClick={downloadCSV}
-          disabled={isGeneratingCSV}
-          className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
-        >
-          {isGeneratingCSV ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-black mr-2"></div>
-              Generating...
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4 mr-2" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              disabled={isBusy}
+              className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+            >
+              {isBusy ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Preparing...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Data
+                </>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[200px]">
+            <DropdownMenuItem
+              onSelect={() => {
+                if (!isGeneratingPDF) {
+                  downloadCSV();
+                }
+              }}
+              disabled={isGeneratingCSV}
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
               Download CSV
-            </>
-          )}
-        </Button>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                if (!isGeneratingCSV) {
+                  downloadPDF();
+                }
+              }}
+              disabled={isGeneratingPDF}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Download PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Key Metrics */}

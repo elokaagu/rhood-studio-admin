@@ -52,6 +52,72 @@ import {
   MoreVertical,
 } from "lucide-react";
 
+const formatSecondsToTimestamp = (seconds: number) => {
+  if (!isFinite(seconds) || seconds <= 0) {
+    return null;
+  }
+
+  const totalSeconds = Math.round(seconds);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainingSeconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+};
+
+const getAudioDurationFromUrl = (url: string) =>
+  new Promise<string | null>((resolve) => {
+    if (!url) {
+      resolve(null);
+      return;
+    }
+
+    const audio = document.createElement("audio");
+    audio.preload = "metadata";
+    audio.crossOrigin = "anonymous";
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("error", handleError);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      audio.src = "";
+      audio.load();
+    };
+
+    const handleLoadedMetadata = () => {
+      const formatted = formatSecondsToTimestamp(audio.duration);
+      cleanup();
+      resolve(formatted || null);
+    };
+
+    const handleError = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    const startFallbackTimer = () => {
+      timeoutId = setTimeout(() => {
+        cleanup();
+        resolve(null);
+      }, 10000);
+    };
+
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("error", handleError);
+    startFallbackTimer();
+    audio.src = url;
+  });
+
 export default function MixesPage() {
   const { toast } = useToast();
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
@@ -100,21 +166,52 @@ export default function MixesPage() {
         const transformedMixes = await Promise.all(
           (data || []).map(async (mix: any) => {
             let imageUrl = mix.image_url;
+            let resolvedDuration = mix.duration;
 
             const resolveArtworkUrl = async () => {
               try {
+                const findImageFile = (
+                  files:
+                    | {
+                        name: string;
+                        id?: string;
+                        updated_at?: string;
+                        created_at?: string;
+                        last_accessed_at?: string;
+                        metadata?: any;
+                      }[]
+                    | null
+                    | undefined
+                ) => {
+                  if (!files || files.length === 0) return null;
+                  const imageExtensions = [
+                    ".jpg",
+                    ".jpeg",
+                    ".png",
+                    ".webp",
+                    ".gif",
+                  ];
+
+                  const exactArtwork = files.find((file) =>
+                    file.name.toLowerCase().startsWith("artwork")
+                  );
+                  if (exactArtwork) return exactArtwork;
+
+                  return files.find((file) =>
+                    imageExtensions.some((ext) =>
+                      file.name.toLowerCase().endsWith(ext)
+                    )
+                  );
+                };
+
                 // First: look for artwork in /mixes/{mix.id}/
                 if (mix.id) {
                   const { data: files, error: listError } = await supabase.storage
                     .from("mixes")
-                    .list(`${mix.id}`, {
-                      search: "artwork",
-                    });
+                    .list(`${mix.id}`);
 
                   if (!listError && files && files.length > 0) {
-                    const artworkFile = files.find((file) =>
-                      file.name.toLowerCase().startsWith("artwork")
-                    );
+                    const artworkFile = findImageFile(files);
                     if (artworkFile) {
                       const {
                         data: { publicUrl },
@@ -134,14 +231,10 @@ export default function MixesPage() {
                   const folderPath = pathMatch ? pathMatch[1] : undefined;
                   if (folderPath) {
                     const { data: files, error: legacyListError } =
-                      await supabase.storage.from("mixes").list(folderPath, {
-                        search: "artwork",
-                      });
+                      await supabase.storage.from("mixes").list(folderPath);
 
                     if (!legacyListError && files && files.length > 0) {
-                      const artworkFile = files.find((file) =>
-                        file.name.toLowerCase().startsWith("artwork")
-                      );
+                      const artworkFile = findImageFile(files);
                       if (artworkFile) {
                         const {
                           data: { publicUrl },
@@ -164,6 +257,28 @@ export default function MixesPage() {
               return null;
             };
 
+            const resolveDuration = async () => {
+              try {
+                const audioUrl = mix.file_url || mix.audioUrl;
+                if (!audioUrl) return null;
+                const durationString = await getAudioDurationFromUrl(audioUrl);
+                if (durationString) {
+                  await supabase
+                    .from("mixes")
+                    .update({ duration: durationString })
+                    .eq("id", mix.id);
+                }
+                return durationString;
+              } catch (durationError) {
+                console.warn(
+                  "Could not resolve duration for mix",
+                  mix.id,
+                  durationError
+                );
+                return null;
+              }
+            };
+
             if (!imageUrl) {
               imageUrl = await resolveArtworkUrl();
 
@@ -175,6 +290,10 @@ export default function MixesPage() {
               }
             }
 
+            if (!resolvedDuration) {
+              resolvedDuration = await resolveDuration();
+            }
+
             return {
               ...mix,
               uploadDate: mix.created_at
@@ -183,6 +302,7 @@ export default function MixesPage() {
               audioUrl: mix.file_url || mix.audioUrl,
               appliedFor: mix.applied_for || mix.appliedFor,
               imageUrl,
+              duration: resolvedDuration || mix.duration,
               plays: mix.plays || 0,
               rating: mix.rating || 0.0,
             };
@@ -607,12 +727,20 @@ export default function MixesPage() {
         }
       }
 
+      let formattedDuration: string | null = null;
+      try {
+        formattedDuration = await getAudioDurationFromUrl(publicUrl);
+      } catch (durationError) {
+        console.warn("Unable to determine mix duration:", durationError);
+      }
+
       // Update mix record with the actual file URLs
       const { error: dbError } = await supabase
         .from("mixes")
         .update({
           file_url: publicUrl,
           image_url: imageUrl,
+          duration: formattedDuration,
         })
         .eq("id", mixId);
 

@@ -149,7 +149,17 @@ export default function MixesPage() {
     try {
       const { data, error } = await supabase
         .from("mixes")
-        .select("*")
+        .select(
+          `
+          *,
+          uploader:user_profiles!mixes_uploaded_by_fkey(
+            id,
+            dj_name,
+            first_name,
+            last_name
+          )
+        `
+        )
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -167,6 +177,33 @@ export default function MixesPage() {
           (data || []).map(async (mix: any) => {
             let imageUrl = mix.image_url;
             let resolvedDuration = mix.duration;
+            const storedArtist: string | null =
+              typeof mix.artist === "string" ? mix.artist : null;
+            const uploader =
+              (mix as {
+                uploader?: {
+                  id: string;
+                  dj_name?: string | null;
+                  first_name?: string | null;
+                  last_name?: string | null;
+                };
+              }).uploader || null;
+
+            const fullName =
+              uploader
+                ? [uploader.first_name, uploader.last_name]
+                    .map((part) =>
+                      typeof part === "string" ? part.trim() : ""
+                    )
+                    .filter(Boolean)
+                    .join(" ")
+                : "";
+
+            const resolvedArtist =
+              (uploader?.dj_name ?? "").trim() ||
+              fullName ||
+              (storedArtist?.trim() ?? "") ||
+              "Unknown Artist";
 
             const resolveArtworkUrl = async () => {
               try {
@@ -294,8 +331,13 @@ export default function MixesPage() {
               resolvedDuration = await resolveDuration();
             }
 
+            const mixWithoutUploader = { ...mix };
+            delete (mixWithoutUploader as any).uploader;
+
             return {
-              ...mix,
+              ...mixWithoutUploader,
+              uploader,
+              artist: resolvedArtist,
               uploadDate: mix.created_at
                 ? formatDateShort(mix.created_at)
                 : mix.uploadDate,
@@ -305,6 +347,7 @@ export default function MixesPage() {
               duration: resolvedDuration || mix.duration,
               plays: mix.plays || 0,
               rating: mix.rating || 0.0,
+              originalArtist: storedArtist,
             };
           })
         );

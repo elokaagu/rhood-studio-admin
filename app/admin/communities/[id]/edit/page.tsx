@@ -7,6 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Save } from "lucide-react";
@@ -18,6 +25,7 @@ interface Community {
   name: string;
   description: string | null;
   image_url: string | null;
+  location: string;
   created_by: string | null;
   created_at: string | null;
 }
@@ -26,7 +34,20 @@ interface FormData {
   name: string;
   description: string;
   imageUrl: string | null;
+  location: string;
 }
+
+const COMMUNITY_LOCATION_OPTIONS = [
+  "Global",
+  "London",
+  "Berlin",
+  "New York",
+  "Tokyo",
+  "Paris",
+  "Amsterdam",
+  "Los Angeles",
+  "Sydney",
+];
 
 export default function EditCommunityPage({
   params,
@@ -38,6 +59,7 @@ export default function EditCommunityPage({
     name: "",
     description: "",
     imageUrl: null,
+    location: "Global",
   });
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,6 +95,7 @@ export default function EditCommunityPage({
         name: data.name || "",
         description: data.description || "",
         imageUrl: data.image_url || null,
+        location: data.location || "Global",
       });
     } catch (error) {
       console.error("Error:", error);
@@ -118,6 +141,7 @@ export default function EditCommunityPage({
           name: formData.name.trim(),
           description: formData.description.trim() || null,
           image_url: formData.imageUrl,
+          location: formData.location,
           updated_at: new Date().toISOString(),
         })
         .eq("id", communityId)
@@ -273,6 +297,32 @@ export default function EditCommunityPage({
                     className="bg-secondary border-secondary-foreground/20 focus:border-primary"
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location" className={textStyles.body.regular}>
+                    Location *
+                  </Label>
+                  <Select
+                    value={formData.location}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, location: value })
+                    }
+                  >
+                    <SelectTrigger
+                      id="location"
+                      className="bg-secondary border-secondary-foreground/20 focus:border-primary"
+                    >
+                      <SelectValue placeholder="Select community location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMMUNITY_LOCATION_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

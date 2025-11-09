@@ -72,6 +72,34 @@ export async function createApplicationStatusNotification(
     related_id: applicationId,
   };
 
+  try {
+    const { data: existingNotification, error: dedupeError } = await supabase
+      .from("notifications")
+      .select("id, created_at")
+      .eq("user_id", userId)
+      .eq("related_id", applicationId)
+      .eq("type", notificationData.type)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (dedupeError) {
+      console.warn("Notification dedupe lookup failed:", dedupeError);
+    }
+
+    if (existingNotification) {
+      console.log(
+        "Duplicate application notification skipped for",
+        userId,
+        applicationId,
+        notificationData.type
+      );
+      return existingNotification;
+    }
+  } catch (checkError) {
+    console.warn("Notification dedupe check threw:", checkError);
+  }
+
   const notification = await createNotification(notificationData);
 
   // Send push notification if available
@@ -137,16 +165,25 @@ export async function triggerApplicationDecisionEmail(
       body: JSON.stringify(payload),
     });
 
+    const responseText = await response.text();
     if (!response.ok) {
-      const errorText = await response.text();
       console.error(
         "Application decision email request failed:",
         response.status,
-        errorText
+        responseText
       );
+      return { success: false, status: response.status, body: responseText };
     }
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(responseText);
+    } catch {
+      parsed = responseText;
+    }
+    return { success: true, status: response.status, body: parsed };
   } catch (error) {
     console.error("Error triggering application decision email:", error);
+    return { success: false, error };
   }
 }
 

@@ -356,12 +356,21 @@ function ApplicationsContent() {
                 .join(" ") ||
               null;
 
-            await triggerApplicationDecisionEmail({
+            const emailResult = await triggerApplicationDecisionEmail({
               email: profile.email,
               applicantName: fullName,
               status: "approved",
               opportunityTitle,
             });
+            if (!emailResult?.success) {
+              console.warn("Failed to send approval email:", emailResult);
+              toast({
+                title: "Email Not Sent",
+                description:
+                  "Approval email could not be delivered automatically. Please double-check your email settings.",
+                variant: "destructive",
+              });
+            }
           }
         } catch (notificationError) {
           console.error("Error creating notification:", notificationError);
@@ -484,12 +493,21 @@ function ApplicationsContent() {
                 .join(" ") ||
               null;
 
-            await triggerApplicationDecisionEmail({
+            const emailResult = await triggerApplicationDecisionEmail({
               email: profile.email,
               applicantName: fullName,
               status: "rejected",
               opportunityTitle,
             });
+            if (!emailResult?.success) {
+              console.warn("Failed to send rejection email:", emailResult);
+              toast({
+                title: "Email Not Sent",
+                description:
+                  "Rejection email could not be delivered automatically. Please double-check your email settings.",
+                variant: "destructive",
+              });
+            }
           }
         } catch (notificationError) {
           console.error("Error creating notification:", notificationError);

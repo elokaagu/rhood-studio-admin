@@ -32,6 +32,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import LocationAutocomplete from "@/components/location-autocomplete";
 
+const DESCRIPTION_MAX_LENGTH = 300;
+
 export default function EditOpportunityPage() {
   const params = useParams();
   const router = useRouter();
@@ -69,7 +71,7 @@ export default function EditOpportunityPage() {
 
         setFormData({
           title: data.title || "",
-          description: data.description || "",
+          description: (data.description || "").slice(0, DESCRIPTION_MAX_LENGTH),
           location: data.location || "",
           locationPlaceId: "",
           date: dateStr,
@@ -148,7 +150,10 @@ export default function EditOpportunityPage() {
 
       setFormData({
         title: opportunity?.title || "",
-        description: opportunity?.description || "",
+        description: (opportunity?.description || "").slice(
+          0,
+          DESCRIPTION_MAX_LENGTH
+        ),
         location: opportunity?.location || "",
         locationPlaceId: "",
         date: opportunity?.date || "",
@@ -256,7 +261,9 @@ export default function EditOpportunityPage() {
         .from("opportunities")
         .update({
           title: formData.title,
-          description: formData.description,
+          description: formData.description
+            .trim()
+            .slice(0, DESCRIPTION_MAX_LENGTH),
           location: formData.location.trim(),
           event_date: eventStart.toISOString(),
           event_end_time: eventEnd.toISOString(),
@@ -342,7 +349,9 @@ export default function EditOpportunityPage() {
         .from("opportunities")
         .update({
           title: formData.title,
-          description: formData.description,
+          description: formData.description
+            .trim()
+            .slice(0, DESCRIPTION_MAX_LENGTH),
           location: formData.location.trim(),
           event_date: eventStart.toISOString(),
           event_end_time: eventEnd.toISOString(),
@@ -445,8 +454,12 @@ export default function EditOpportunityPage() {
                   setFormData({ ...formData, description: e.target.value })
                 }
                 className="bg-secondary border-border text-foreground min-h-[100px]"
+                maxLength={DESCRIPTION_MAX_LENGTH}
                 required
               />
+              <p className="text-xs text-muted-foreground text-right">
+                {formData.description.length}/{DESCRIPTION_MAX_LENGTH} characters
+              </p>
             </div>
 
             <ImageUpload

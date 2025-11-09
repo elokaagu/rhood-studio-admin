@@ -21,6 +21,8 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { Calendar, MapPin, Music, Save, X, Plus } from "lucide-react";
 import LocationAutocomplete from "@/components/location-autocomplete";
 
+const DESCRIPTION_MAX_LENGTH = 300;
+
 export default function CreateOpportunityPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -194,7 +196,7 @@ export default function CreateOpportunityPage() {
 
       const { error } = await supabase.from("opportunities").insert({
         title: formData.title.trim(),
-        description: formData.description.trim(),
+        description: formData.description.trim().slice(0, DESCRIPTION_MAX_LENGTH),
         location: formData.location.trim(),
         event_date: eventStart.toISOString(),
         event_end_time: eventEnd.toISOString(),
@@ -295,8 +297,12 @@ export default function CreateOpportunityPage() {
                   setFormData({ ...formData, description: e.target.value })
                 }
                 className="bg-secondary border-border text-foreground min-h-[100px]"
+                maxLength={DESCRIPTION_MAX_LENGTH}
                 required
               />
+              <p className="text-xs text-muted-foreground text-right">
+                {formData.description.length}/{DESCRIPTION_MAX_LENGTH} characters
+              </p>
             </div>
 
             <ImageUpload

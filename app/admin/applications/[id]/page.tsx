@@ -14,6 +14,7 @@ import { createApplicationStatusNotification } from "@/lib/notifications";
 import {
   Calendar,
   MapPin,
+  Music,
   CheckCircle,
   XCircle,
   Clock,
@@ -151,22 +152,7 @@ export default function ApplicationDetailsPage() {
       } else if (data) {
         // Fetch user's mix
         let userMixData = null;
-        if (data.user_profiles?.default_mix_id) {
-          try {
-            const { data: defaultMix, error: defaultMixError } = await supabase
-              .from("mixes")
-              .select("*")
-              .eq("id", data.user_profiles.default_mix_id)
-              .single();
-
-            if (!defaultMixError && defaultMix) {
-              userMixData = defaultMix;
-            }
-          } catch (mixErr) {
-            console.warn("Could not fetch default mix:", mixErr);
-          }
-        }
-        if (!userMixData && data.user_id) {
+        if (data.user_id) {
           try {
             const { data: mixData, error: mixError } = await supabase
               .from("mixes")
@@ -585,8 +571,10 @@ export default function ApplicationDetailsPage() {
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => {
-                  if (userMix?.playback_url) {
-                    window.open(userMix.playback_url, "_blank");
+                  const playbackUrl =
+                    userMix?.playback_url || userMix?.file_url || null;
+                  if (playbackUrl) {
+                    window.open(playbackUrl, "_blank");
                     return;
                   }
                   if (userMix?.id) {

@@ -548,7 +548,11 @@ export default function EditOpportunityPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="time" className={textStyles.body.regular}>
+                <Label
+                  htmlFor="time"
+                  className={`${textStyles.body.regular} flex items-center`}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
                   Start Time
                 </Label>
                 <Input
@@ -564,7 +568,11 @@ export default function EditOpportunityPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="endTime" className={textStyles.body.regular}>
+                <Label
+                  htmlFor="endTime"
+                  className={`${textStyles.body.regular} flex items-center`}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
                   Finish Time
                 </Label>
                 <Input

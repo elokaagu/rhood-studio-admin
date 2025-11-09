@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { Calendar, MapPin, Music, Save, X, Plus } from "lucide-react";
+import { Calendar, MapPin, Music, Save, X, Plus, Clock } from "lucide-react";
 import LocationAutocomplete from "@/components/location-autocomplete";
 
 const DESCRIPTION_MAX_LENGTH = 300;
@@ -397,7 +397,11 @@ export default function CreateOpportunityPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="time" className="text-foreground">
+                <Label
+                  htmlFor="time"
+                  className="text-foreground flex items-center"
+                >
+                  <Clock className="h-4 w-4 mr-2" />
                   Start Time
                 </Label>
                 <Input
@@ -413,7 +417,11 @@ export default function CreateOpportunityPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="endTime" className="text-foreground">
+                <Label
+                  htmlFor="endTime"
+                  className="text-foreground flex items-center"
+                >
+                  <Clock className="h-4 w-4 mr-2" />
                   Finish Time
                 </Label>
                 <Input

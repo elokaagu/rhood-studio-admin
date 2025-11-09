@@ -30,6 +30,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import LocationAutocomplete from "@/components/location-autocomplete";
 
 export default function EditOpportunityPage() {
   const params = useParams();
@@ -70,6 +71,7 @@ export default function EditOpportunityPage() {
           title: data.title || "",
           description: data.description || "",
           location: data.location || "",
+          locationPlaceId: "",
           date: dateStr,
           time: timeStr,
           endTime: endTimeStr,
@@ -148,6 +150,7 @@ export default function EditOpportunityPage() {
         title: opportunity?.title || "",
         description: opportunity?.description || "",
         location: opportunity?.location || "",
+        locationPlaceId: "",
         date: opportunity?.date || "",
         time: "",
         endTime: opportunity?.endTime || "",
@@ -173,6 +176,7 @@ export default function EditOpportunityPage() {
     title: "",
     description: "",
     location: "",
+    locationPlaceId: "",
     date: "",
     time: "",
     endTime: "",
@@ -234,6 +238,15 @@ export default function EditOpportunityPage() {
         return;
       }
 
+      if (!formData.location.trim()) {
+        toast({
+          title: "Location Required",
+          description: "Please choose a location for this opportunity.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Parse payment amount
       const paymentAmount = formData.pay
         ? parseFloat(formData.pay.replace(/[£,]/g, ""))
@@ -244,7 +257,7 @@ export default function EditOpportunityPage() {
         .update({
           title: formData.title,
           description: formData.description,
-          location: formData.location,
+          location: formData.location.trim(),
           event_date: eventStart.toISOString(),
           event_end_time: eventEnd.toISOString(),
           payment: paymentAmount,
@@ -312,6 +325,15 @@ export default function EditOpportunityPage() {
         return;
       }
 
+      if (!formData.location.trim()) {
+        toast({
+          title: "Location Required",
+          description: "Please choose a location for this opportunity.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const paymentAmount = formData.pay
         ? parseFloat(formData.pay.replace(/[£,]/g, ""))
         : null;
@@ -321,7 +343,7 @@ export default function EditOpportunityPage() {
         .update({
           title: formData.title,
           description: formData.description,
-          location: formData.location,
+          location: formData.location.trim(),
           event_date: eventStart.toISOString(),
           event_end_time: eventEnd.toISOString(),
           payment: paymentAmount,
@@ -444,14 +466,26 @@ export default function EditOpportunityPage() {
                   <MapPin className="h-4 w-4 mr-2" />
                   Location
                 </Label>
-                <Input
+              <LocationAutocomplete
                   id="location"
-                  placeholder="e.g., East London Warehouse"
+                placeholder="Search for a venue or address"
                   value={formData.location}
-                  onChange={(e) =>
-                    setFormData({ ...formData, location: e.target.value })
-                  }
-                  className="bg-secondary border-border text-foreground"
+                onValueChange={(locationValue) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    location: locationValue,
+                    locationPlaceId: "",
+                  }))
+                }
+                onLocationSelect={(selection) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    location: selection.formattedAddress ?? selection.description,
+                    locationPlaceId: selection.placeId,
+                  }))
+                }
+                className="bg-secondary border-border text-foreground"
+                country="gb"
                   required
                 />
               </div>

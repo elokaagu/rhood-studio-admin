@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Calendar, MapPin, Music, Save, X, Plus } from "lucide-react";
+import LocationAutocomplete from "@/components/location-autocomplete";
 
 export default function CreateOpportunityPage() {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function CreateOpportunityPage() {
     title: "",
     description: "",
     location: "",
+    locationPlaceId: "",
     date: "",
     time: "",
     endTime: "",
@@ -102,6 +104,15 @@ export default function CreateOpportunityPage() {
         toast({
           title: "Invalid Schedule",
           description: "Finish time must be after the start time.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!formData.location.trim()) {
+        toast({
+          title: "Location Required",
+          description: "Please choose a location for this opportunity.",
           variant: "destructive",
         });
         return;
@@ -310,14 +321,26 @@ export default function CreateOpportunityPage() {
                   <MapPin className="h-4 w-4 mr-2" />
                   Location
                 </Label>
-                <Input
+              <LocationAutocomplete
                   id="location"
-                  placeholder="e.g., East London Warehouse"
+                placeholder="Search for a venue or address"
                   value={formData.location}
-                  onChange={(e) =>
-                    setFormData({ ...formData, location: e.target.value })
-                  }
+                onValueChange={(locationValue) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    location: locationValue,
+                    locationPlaceId: "",
+                  }))
+                }
+                onLocationSelect={(selection) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    location: selection.formattedAddress ?? selection.description,
+                    locationPlaceId: selection.placeId,
+                  }))
+                }
                   className="bg-secondary border-border text-foreground"
+                country="gb"
                   required
                 />
               </div>

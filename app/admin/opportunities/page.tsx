@@ -94,16 +94,19 @@ export default function OpportunitiesPage() {
         let normalized = opportunitiesWithApplicants.map((opportunity) => {
           const normalizedId =
             typeof opportunity.id === "number"
-              ? opportunity.id.toString()
-              : (opportunity.id as string);
+              ? String(opportunity.id)
+              : typeof opportunity.id === "string"
+              ? opportunity.id
+              : String(opportunity.id ?? "");
           const endDate = opportunity.event_end_time
             ? new Date(opportunity.event_end_time)
             : opportunity.event_date
             ? new Date(opportunity.event_date)
             : null;
           const isArchived = opportunity.is_archived ?? false;
-          const derivedStatus = opportunity.status
-            ? opportunity.status
+          const rawStatus = (opportunity as { status?: string | null }).status;
+          const derivedStatus = rawStatus
+            ? rawStatus
             : opportunity.is_active
             ? "active"
             : "draft";

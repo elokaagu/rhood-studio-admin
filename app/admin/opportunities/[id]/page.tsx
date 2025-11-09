@@ -123,9 +123,38 @@ export default function OpportunityDetailsPage() {
           ? eventEnd.toTimeString().split(" ")[0].substring(0, 5)
           : "";
 
+        const normalizedId =
+          typeof data.id === "number"
+            ? String(data.id)
+            : typeof data.id === "string"
+            ? data.id
+            : String(opportunityId ?? "");
+
+        let applicantCount = 0;
+        try {
+          const { count, error: applicantError } = await supabase
+            .from("applications")
+            .select("id", { count: "exact", head: true })
+            .eq("opportunity_id", data.id);
+
+          if (applicantError) {
+            console.warn(
+              "Failed to fetch applicant count for opportunity",
+              data.id,
+              applicantError
+            );
+          } else if (typeof count === "number") {
+            applicantCount = count;
+          }
+        } catch (applicantFetchError) {
+          console.warn(
+            "Unexpected error while fetching applicant count:",
+            applicantFetchError
+          );
+        }
+
         setOpportunity({
-          id:
-            typeof data.id === "number" ? data.id.toString() : (data.id as string),
+          id: normalizedId,
           title: data.title,
           location: data.location,
           date: data.event_date ? formatDate(data.event_date) : "Unknown",
@@ -136,7 +165,7 @@ export default function OpportunityDetailsPage() {
             ? "archived"
             : data.is_active
             ? "active"
-            : data.status || "draft",
+            : ((data as { status?: string | null }).status ?? "draft"),
           genre: data.genre,
           description: data.description,
           requirements: data.skill_level,

@@ -412,6 +412,7 @@ export type Database = {
           description: string | null;
           id: string;
           image_url: string | null;
+          location: string;
           member_count: number | null;
           name: string;
           updated_at: string | null;
@@ -422,6 +423,7 @@ export type Database = {
           description?: string | null;
           id?: string;
           image_url?: string | null;
+          location?: string;
           member_count?: number | null;
           name: string;
           updated_at?: string | null;
@@ -432,6 +434,7 @@ export type Database = {
           description?: string | null;
           id?: string;
           image_url?: string | null;
+          location?: string;
           member_count?: number | null;
           name?: string;
           updated_at?: string | null;

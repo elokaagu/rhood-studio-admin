@@ -12,11 +12,32 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Save, Upload } from "lucide-react";
 import { textStyles } from "@/lib/typography";
 import { ImageUpload } from "@/components/ui/image-upload";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const COMMUNITY_LOCATION_OPTIONS = [
+  "Global",
+  "London",
+  "Manchester",
+  "Birmingham",
+  "Bristol",
+  "Berlin",
+  "Paris",
+  "New York",
+  "Los Angeles",
+  "Toronto",
+] as const;
 
 interface FormData {
   name: string;
   description: string;
   imageUrl: string | null;
+  location: (typeof COMMUNITY_LOCATION_OPTIONS)[number];
 }
 
 export default function CreateCommunityPage() {
@@ -24,6 +45,7 @@ export default function CreateCommunityPage() {
     name: "",
     description: "",
     imageUrl: null,
+    location: "Global",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -36,6 +58,15 @@ export default function CreateCommunityPage() {
       toast({
         title: "Error",
         description: "Community name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.location) {
+      toast({
+        title: "Error",
+        description: "Please choose a location for your community",
         variant: "destructive",
       });
       return;
@@ -90,6 +121,7 @@ export default function CreateCommunityPage() {
         image_url: formData.imageUrl,
         created_by: user.id,
         member_count: 0,
+        location: formData.location,
       });
 
       const { data, error } = await supabase
@@ -101,6 +133,7 @@ export default function CreateCommunityPage() {
             image_url: formData.imageUrl,
             created_by: user.id,
             member_count: 0,
+            location: formData.location,
           },
         ])
         .select()
@@ -224,6 +257,7 @@ export default function CreateCommunityPage() {
           image_url: formData.imageUrl,
           created_by: user.id,
           member_count: 0,
+          location: formData.location,
         },
       ]);
 
@@ -305,6 +339,35 @@ export default function CreateCommunityPage() {
                       className="bg-input border-border/50 focus:border-brand-green focus:ring-brand-green/20 text-brand-white placeholder:text-muted-foreground transition-all duration-300 h-12"
                       required
                     />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label
+                      htmlFor="location"
+                      className="font-helvetica-bold helvetica-base text-brand-white"
+                    >
+                      Location *
+                    </Label>
+                    <Select
+                      value={formData.location}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, location: value as FormData["location"] })
+                      }
+                    >
+                      <SelectTrigger
+                        id="location"
+                        className="bg-input border-border/50 focus:border-brand-green focus:ring-brand-green/20 text-brand-white placeholder:text-muted-foreground transition-all duration-300 h-12"
+                      >
+                        <SelectValue placeholder="Select community location" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COMMUNITY_LOCATION_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-3">

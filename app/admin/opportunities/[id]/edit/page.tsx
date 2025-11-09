@@ -100,6 +100,7 @@ export default function EditOpportunityPage() {
           pay: "£300",
           applicants: 12,
           status: "active",
+          is_archived: false,
           genre: "Techno",
           description:
             "High-energy underground techno event in a converted warehouse space.",
@@ -115,6 +116,7 @@ export default function EditOpportunityPage() {
           pay: "£450",
           applicants: 8,
           status: "active",
+          is_archived: false,
           genre: "House",
           description: "Sunset house music sessions with panoramic city views.",
           requirements: "House music experience, own equipment preferred",
@@ -129,6 +131,7 @@ export default function EditOpportunityPage() {
           pay: "£200 + Residency",
           applicants: 15,
           status: "completed",
+          is_archived: false,
           genre: "Drum & Bass",
           selected: "Alex Thompson",
           description: "Weekly residency opportunity at premier London club.",

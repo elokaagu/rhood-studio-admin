@@ -38,7 +38,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const DESCRIPTION_MAX_LENGTH = 300;
+const DESCRIPTION_MAX_LENGTH = 350;
 
 export default function CreateOpportunityPage() {
   const router = useRouter();
@@ -53,7 +53,9 @@ export default function CreateOpportunityPage() {
     description: "",
     location: "",
     locationPlaceId: "",
+    dateType: "single" as "single" | "range",
     date: "",
+    endDate: "",
     time: "",
     endTime: "",
     pay: "",
@@ -184,8 +186,35 @@ export default function CreateOpportunityPage() {
         return;
       }
 
+      // Validate date range if in range mode
+      if (formData.dateType === "range" && !formData.endDate) {
+        toast({
+          title: "Missing End Date",
+          description: "Please provide an end date for the campaign range.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (formData.dateType === "range" && formData.endDate < formData.date) {
+        toast({
+          title: "Invalid Date Range",
+          description: "End date must be on or after the start date.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const eventStart = new Date(`${formData.date}T${formData.time}`);
-      const eventEnd = new Date(`${formData.date}T${formData.endTime}`);
+      let eventEnd: Date;
+
+      if (formData.dateType === "range") {
+        // For date range, use end date with end time
+        eventEnd = new Date(`${formData.endDate}T${formData.endTime}`);
+      } else {
+        // For single date, use same date with end time
+        eventEnd = new Date(`${formData.date}T${formData.endTime}`);
+      }
 
       if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
         toast({
@@ -482,6 +511,36 @@ export default function CreateOpportunityPage() {
             <CardTitle className="text-foreground">Event Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="dateType" className="text-foreground">
+                Campaign Type
+              </Label>
+              <Select
+                value={formData.dateType}
+                onValueChange={(value: "single" | "range") =>
+                  setFormData({ ...formData, dateType: value, endDate: "" })
+                }
+              >
+                <SelectTrigger className="bg-secondary border-border text-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem
+                    value="single"
+                    className="text-foreground hover:bg-accent"
+                  >
+                    Single Date Event
+                  </SelectItem>
+                  <SelectItem
+                    value="range"
+                    className="text-foreground hover:bg-accent"
+                  >
+                    Date Range Campaign
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label
@@ -489,7 +548,7 @@ export default function CreateOpportunityPage() {
                   className="text-foreground flex items-center"
                 >
                   <Calendar className="h-4 w-4 mr-2" />
-                  Date
+                  {formData.dateType === "range" ? "Start Date" : "Date"}
                 </Label>
                 <Input
                   id="date"
@@ -502,6 +561,29 @@ export default function CreateOpportunityPage() {
                   required
                 />
               </div>
+
+              {formData.dateType === "range" && (
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="endDate"
+                    className="text-foreground flex items-center"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    End Date
+                  </Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, endDate: e.target.value })
+                    }
+                    className="bg-secondary border-border text-foreground"
+                    required={formData.dateType === "range"}
+                    min={formData.date}
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label

@@ -1,8 +1,8 @@
-# R/HOOD Studio - Complete Documentation
+# R/HOOD Portal - Complete Documentation
 
 ## 🎵 Overview
 
-R/HOOD Studio is a comprehensive music community management platform designed specifically for DJs, producers, and music industry professionals. The platform provides a centralized admin dashboard to manage opportunities, applications, members, mixes, and community interactions.
+R/HOOD Portal is a comprehensive music community management platform designed specifically for DJs, producers, and music industry professionals. The platform provides a centralized admin dashboard to manage opportunities, applications, members, mixes, and community interactions.
 
 ## 🏗️ Architecture
 
@@ -315,7 +315,7 @@ CREATE TABLE messages (
 ```bash
 # Clone repository
 git clone https://github.com/your-username/rhood-studio.git
-cd rhood-studio
+cd rhood-portal
 
 # Install dependencies
 npm install
@@ -466,4 +466,4 @@ npm run lint         # Run ESLint
 SELECT * FROM pg_policies WHERE tablename = 'table_name';
 ```
 
-This documentation provides a comprehensive overview of the R/HOOD Studio platform, its features, technical implementation, and operational procedures. For specific technical details or implementation questions, refer to the individual component documentation or contact the development team.
+This documentation provides a comprehensive overview of the R/HOOD Portal platform, its features, technical implementation, and operational procedures. For specific technical details or implementation questions, refer to the individual component documentation or contact the development team.

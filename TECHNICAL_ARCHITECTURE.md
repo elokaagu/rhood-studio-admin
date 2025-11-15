@@ -1,4 +1,4 @@
-# R/HOOD Studio - Technical Architecture Guide
+# R/HOOD Portal - Technical Architecture Guide
 
 ## 🏗️ System Architecture
 
@@ -642,4 +642,4 @@ jobs:
 - **Audit Logging**: Comprehensive activity tracking
 - **Penetration Testing**: Regular security assessments
 
-This technical architecture guide provides a comprehensive overview of the R/HOOD Studio system architecture, implementation details, and future considerations. It serves as a reference for developers, system administrators, and technical stakeholders.
+This technical architecture guide provides a comprehensive overview of the R/HOOD Portal system architecture, implementation details, and future considerations. It serves as a reference for developers, system administrators, and technical stakeholders.

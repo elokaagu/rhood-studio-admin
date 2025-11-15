@@ -26,7 +26,7 @@ INSERT INTO user_profiles (
   'Admin DJ', -- Replace with your DJ name
   'admin@rhood.com', -- Replace with your email
   'Your City', -- Replace with your city
-  'Rhood Studio Administrator', -- Replace with your bio
+  'Rhood Portal Administrator', -- Replace with your bio
   ARRAY['House', 'Techno', 'Electronic'] -- Replace with your genres
 ) ON CONFLICT (id) DO UPDATE SET
   first_name = EXCLUDED.first_name,

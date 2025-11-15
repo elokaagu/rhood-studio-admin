@@ -340,7 +340,7 @@ export default function OpportunityDetailsPage() {
             ? "Opportunity archived"
             : "Opportunity reopened",
           description: shouldArchive
-            ? "This opportunity is now hidden from the app while remaining in the Studio."
+            ? "This opportunity is now hidden from the app while remaining in the Portal."
             : "This opportunity is visible to talent in the app again.",
         });
       }

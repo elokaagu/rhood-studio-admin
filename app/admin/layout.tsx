@@ -104,7 +104,7 @@ function AppSidebar() {
           {!isCollapsed && (
             <div className="ml-3">
               <h1 className="text-lg font-bold text-foreground">R/HOOD</h1>
-              <p className="text-xs text-muted-foreground">Studio</p>
+              <p className="text-xs text-muted-foreground">Portal</p>
             </div>
           )}
         </div>

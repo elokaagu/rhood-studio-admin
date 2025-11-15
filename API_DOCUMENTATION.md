@@ -1,8 +1,8 @@
-# R/HOOD Studio - API Documentation
+# R/HOOD Portal - API Documentation
 
 ## 🌐 API Overview
 
-The R/HOOD Studio platform uses Supabase as its backend service, providing a comprehensive REST API and real-time subscriptions. This documentation covers all available endpoints, data models, and integration patterns.
+The R/HOOD Portal platform uses Supabase as its backend service, providing a comprehensive REST API and real-time subscriptions. This documentation covers all available endpoints, data models, and integration patterns.
 
 ## 🔗 Base Configuration
 
@@ -762,4 +762,4 @@ const checkDatabaseHealth = async () => {
 }
 ```
 
-This comprehensive API documentation provides everything needed to integrate with the R/HOOD Studio platform. It covers all endpoints, data models, real-time features, and best practices for effective API usage.
+This comprehensive API documentation provides everything needed to integrate with the R/HOOD Portal platform. It covers all endpoints, data models, real-time features, and best practices for effective API usage.

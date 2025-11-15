@@ -112,7 +112,7 @@ export default function AdminLoginPage() {
             priority={true}
           />
         </div>
-        <p className={textStyles.headline.section}>STUDIO MANAGEMENT</p>
+        <p className={textStyles.headline.section}>PORTAL MANAGEMENT</p>
       </div>
 
       <Card className="bg-card border-border">

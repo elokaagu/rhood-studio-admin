@@ -1,10 +1,10 @@
-# R/HOOD Studio - Admin Dashboard
+# R/HOOD Portal - Admin Dashboard
 
 A comprehensive music community management platform for DJs and producers, built with Next.js, React, and Tailwind CSS.
 
 ## 📚 Documentation
 
-- **[Complete Studio Documentation](./STUDIO_DOCUMENTATION.md)** - Comprehensive overview of all features and functionality
+- **[Complete Portal Documentation](./PORTAL_DOCUMENTATION.md)** - Comprehensive overview of all features and functionality
 - **[Admin User Guide](./ADMIN_USER_GUIDE.md)** - Step-by-step guide for admin users
 - **[Technical Architecture](./TECHNICAL_ARCHITECTURE.md)** - System architecture and implementation details
 - **[Database Schema Guide](./DATABASE_SCHEMA_GUIDE.md)** - Complete database structure and setup
@@ -44,7 +44,7 @@ A comprehensive music community management platform for DJs and producers, built
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/your-username/rhood-studio.git
-   cd rhood-studio
+   cd rhood-portal
    ```
 
 2. **Install dependencies:**

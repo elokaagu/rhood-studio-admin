@@ -447,7 +447,7 @@ export default function AnalyticsPage() {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(26);
         doc.setTextColor(...brandBlack);
-        doc.text("R/HOOD Studio Analytics", margin, margin);
+        doc.text("R/HOOD Portal Analytics", margin, margin);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(12);
         doc.setTextColor(...textMuted);

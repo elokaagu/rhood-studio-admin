@@ -1,8 +1,8 @@
-# R/HOOD Studio - Database Schema & Setup Guide
+# R/HOOD Portal - Database Schema & Setup Guide
 
 ## 🗄️ Database Overview
 
-The R/HOOD Studio platform uses PostgreSQL via Supabase as its primary database. This guide covers the complete database schema, setup procedures, and maintenance tasks.
+The R/HOOD Portal platform uses PostgreSQL via Supabase as its primary database. This guide covers the complete database schema, setup procedures, and maintenance tasks.
 
 ## 📋 Table Structure
 
@@ -429,7 +429,7 @@ CREATE POLICY "Admins can delete files" ON storage.objects
 ### **Complete Setup Script**
 
 ```sql
--- Complete database setup for R/HOOD Studio
+-- Complete database setup for R/HOOD Portal
 -- Run this script in your Supabase SQL Editor
 
 -- 1. Create all tables
@@ -705,4 +705,4 @@ WHERE n_dead_tup > 0
 ORDER BY dead_percent DESC;
 ```
 
-This comprehensive database guide provides everything needed to understand, set up, and maintain the R/HOOD Studio database. It includes schema definitions, security policies, maintenance procedures, and debugging tools for effective database management.
+This comprehensive database guide provides everything needed to understand, set up, and maintain the R/HOOD Portal database. It includes schema definitions, security policies, maintenance procedures, and debugging tools for effective database management.

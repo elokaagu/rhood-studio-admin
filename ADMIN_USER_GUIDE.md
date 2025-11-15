@@ -1,8 +1,8 @@
-# R/HOOD Studio - Admin User Guide
+# R/HOOD Portal - Admin User Guide
 
 ## 🎯 Getting Started
 
-Welcome to R/HOOD Studio! This guide will help you navigate and use all the features of the admin dashboard effectively.
+Welcome to R/HOOD Portal! This guide will help you navigate and use all the features of the admin dashboard effectively.
 
 ## 🏠 Dashboard Overview
 
@@ -336,4 +336,4 @@ Each page shows relevant statistics:
 - **Approve**: Accept applications
 - **Reject**: Decline applications
 
-This user guide provides everything you need to effectively manage the R/HOOD Studio platform. For additional support or questions, don't hesitate to contact the support team!
+This user guide provides everything you need to effectively manage the R/HOOD Portal platform. For additional support or questions, don't hesitate to contact the support team!

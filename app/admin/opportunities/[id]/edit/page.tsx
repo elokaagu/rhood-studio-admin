@@ -705,7 +705,7 @@ export default function EditOpportunityPage() {
               <div className="space-y-1">
                 <p className={textStyles.body.regular}>Archive opportunity</p>
                 <p className="text-sm text-muted-foreground">
-                  Archived opportunities stay visible in the Studio but are
+                  Archived opportunities stay visible in the Portal but are
                   removed from the app.
                 </p>
               </div>

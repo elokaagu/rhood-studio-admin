@@ -3,7 +3,7 @@ import { Resend } from "resend";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFromAddress =
-  process.env.RESEND_FROM_EMAIL ?? "R/HOOD Studio <studio@resend.dev>";
+  process.env.RESEND_FROM_EMAIL ?? "R/HOOD Portal <portal@resend.dev>";
 
 interface ApplicationDecisionPayload {
   email?: string;
@@ -49,15 +49,15 @@ export async function POST(request: Request) {
         : "Thanks for applying";
     const bodyCopy =
       body.status === "approved"
-        ? `Fantastic news – the team behind "${body.opportunityTitle}" would love to work with you. Log in to the Studio to review the details and confirm next steps.`
+        ? `Fantastic news – the team behind "${body.opportunityTitle}" would love to work with you. Log in to the Portal to review the details and confirm next steps.`
         : `Thanks for putting yourself forward for "${body.opportunityTitle}". The organiser went in a different direction this time, but we’d love to see you pitch again.`;
 
     const ctaLabel =
-      body.status === "approved" ? "Open the Studio" : "Find more gigs";
+      body.status === "approved" ? "Open the Portal" : "Find more gigs";
     const previewText =
       body.status === "approved"
-        ? "You’ve been booked – view the opportunity in the Studio"
-        : "You’re still on our radar – check other live gigs.";
+        ? "You've been booked – view the opportunity in the Portal"
+        : "You're still on our radar – check other live gigs.";
 
     const html = `
       <table style="width:100%;background-color:#0f0f0f;padding:32px 0;font-family:Helvetica,Arial,sans-serif;color:#ffffff;">
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
           <td align="center">
             <table style="width:560px;background-color:#1a1a1a;border-radius:16px;padding:40px;">
               <tr>
-                <td style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#c2cc06;font-weight:700;">R/HOOD Studio</td>
+                <td style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#c2cc06;font-weight:700;">R/HOOD Portal</td>
               </tr>
               <tr>
                 <td style="padding-top:24px;font-size:28px;font-weight:700;line-height:1.3;">${heroHeading}</td>
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
                   <a href="${
                     process.env.NEXT_PUBLIC_APP_URL ||
                     process.env.NEXT_PUBLIC_SITE_URL ||
-                    "https://studio.rhood.co"
+                    "https://portal.rhood.co"
                   }" style="display:inline-block;padding:14px 28px;background-color:#c2cc06;color:#1d1d1b;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;">${ctaLabel}</a>
                 </td>
               </tr>
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
                   This notification was sent because your application for <strong>${
                     body.opportunityTitle
                   }</strong> was marked as ${body.status}.<br/>
-                  Need help? Reply to this email or contact the R/HOOD team in the Studio.
+                  Need help? Reply to this email or contact the R/HOOD team in the Portal.
                 </td>
               </tr>
             </table>
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
       </table>
     `;
 
-    const text = `Hey ${firstName},\n\n${bodyCopy}\n\nSign in to the Studio for the latest updates.`;
+    const text = `Hey ${firstName},\n\n${bodyCopy}\n\nSign in to the Portal for the latest updates.`;
 
     await resend.emails.send({
       from: defaultFromAddress,

@@ -247,6 +247,7 @@ export default function AdminLayout({
             first_name: "",
             last_name: "",
             dj_name: "",
+            city: "",
           })
           .select("first_name, last_name, dj_name")
           .single();

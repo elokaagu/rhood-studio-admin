@@ -40,6 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getDisplayLength } from "@/lib/text-utils";
 
 const DESCRIPTION_MAX_LENGTH = 350;
 
@@ -499,7 +500,9 @@ export default function EditOpportunityPage() {
     const linkMarkdown = `[${linkText.trim() || linkUrl}](${linkUrl.trim()})`;
     const newDescription = textBefore + linkMarkdown + textAfter;
 
-    if (newDescription.length > DESCRIPTION_MAX_LENGTH) {
+    // Check display length (excluding markdown syntax) instead of raw length
+    const displayLength = getDisplayLength(newDescription);
+    if (displayLength > DESCRIPTION_MAX_LENGTH) {
       toast({
         title: "Error",
         description: `Link would exceed the ${DESCRIPTION_MAX_LENGTH} character limit`,
@@ -618,15 +621,18 @@ export default function EditOpportunityPage() {
                 id="description"
                 placeholder="Describe the event, atmosphere, and what you're looking for..."
                 value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  // Only update if display length is within limit
+                  if (getDisplayLength(newValue) <= DESCRIPTION_MAX_LENGTH) {
+                    setFormData({ ...formData, description: newValue });
+                  }
+                }}
                 className="bg-secondary border-border text-foreground min-h-[100px]"
-                maxLength={DESCRIPTION_MAX_LENGTH}
                 required
               />
               <p className="text-xs text-muted-foreground text-right">
-                {formData.description.length}/{DESCRIPTION_MAX_LENGTH} characters
+                {getDisplayLength(formData.description)}/{DESCRIPTION_MAX_LENGTH} characters
               </p>
             </div>
 

@@ -9,6 +9,7 @@ import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatTimeRange } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
+import { LinkText } from "@/components/ui/link-text";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -555,7 +556,7 @@ export default function OpportunityDetailsPage() {
               <div className="space-y-2">
                 <h3 className={textStyles.subheading.small}>Description</h3>
                 <p className={textStyles.body.regular}>
-                  {opportunity.description}
+                  <LinkText text={opportunity.description} />
                 </p>
               </div>
 
@@ -563,7 +564,7 @@ export default function OpportunityDetailsPage() {
                 <div className="space-y-2">
                   <h3 className={textStyles.subheading.small}>Requirements</h3>
                   <p className={textStyles.body.regular}>
-                    {opportunity.requirements}
+                    <LinkText text={opportunity.requirements} />
                   </p>
                 </div>
               )}

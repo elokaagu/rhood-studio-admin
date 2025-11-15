@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,25 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { Calendar, MapPin, Music, Save, X, Plus, Clock } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Music,
+  Save,
+  X,
+  Plus,
+  Clock,
+  Link as LinkIcon,
+} from "lucide-react";
 import LocationAutocomplete from "@/components/location-autocomplete";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const DESCRIPTION_MAX_LENGTH = 300;
 
@@ -27,6 +44,10 @@ export default function CreateOpportunityPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -73,6 +94,79 @@ export default function CreateOpportunityPage() {
   const handleSaveDraft = async () => {
     await handleCreateOrDraft({ publishImmediately: false });
   };
+
+  const handleOpenLinkDialog = () => {
+    const textarea = descriptionTextareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = formData.description.substring(start, end);
+      setLinkText(selectedText || "");
+    }
+    setLinkDialogOpen(true);
+  };
+
+  const handleInsertLink = () => {
+    if (!linkUrl.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const textarea = descriptionTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const textBefore = formData.description.substring(0, start);
+    const textAfter = formData.description.substring(end);
+    const linkMarkdown = `[${linkText.trim() || linkUrl}](${linkUrl.trim()})`;
+    const newDescription = textBefore + linkMarkdown + textAfter;
+
+    if (newDescription.length > DESCRIPTION_MAX_LENGTH) {
+      toast({
+        title: "Error",
+        description: `Link would exceed the ${DESCRIPTION_MAX_LENGTH} character limit`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFormData({ ...formData, description: newDescription });
+    setLinkDialogOpen(false);
+    setLinkUrl("");
+    setLinkText("");
+
+    // Restore cursor position after link
+    setTimeout(() => {
+      const newPosition = start + linkMarkdown.length;
+      textarea.setSelectionRange(newPosition, newPosition);
+      textarea.focus();
+    }, 0);
+  };
+
+  // Handle Ctrl+K / Cmd+K keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        const activeElement = document.activeElement;
+        if (
+          activeElement === descriptionTextareaRef.current ||
+          activeElement?.id === "description"
+        ) {
+          e.preventDefault();
+          handleOpenLinkDialog();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreateOrDraft = async ({
     publishImmediately,
@@ -286,10 +380,23 @@ export default function CreateOpportunityPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-foreground">
-                Description
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="description" className="text-foreground">
+                  Description
+                </Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleOpenLinkDialog}
+                  className="h-8 px-2"
+                  title="Insert link (Ctrl+K / Cmd+K)"
+                >
+                  <LinkIcon className="h-4 w-4" />
+                </Button>
+              </div>
               <Textarea
+                ref={descriptionTextareaRef}
                 id="description"
                 placeholder="Describe the event, atmosphere, and what you're looking for..."
                 value={formData.description}
@@ -561,6 +668,65 @@ export default function CreateOpportunityPage() {
           </Button>
         </div>
       </form>
+
+      {/* Link Dialog */}
+      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Insert Link</DialogTitle>
+            <DialogDescription>
+              Add a link to your description. Selected text will be used as the
+              link text.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="link-text">Link Text</Label>
+              <Input
+                id="link-text"
+                placeholder="Text to display (optional)"
+                value={linkText}
+                onChange={(e) => setLinkText(e.target.value)}
+                className="bg-secondary border-border text-foreground"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="link-url">URL *</Label>
+              <Input
+                id="link-url"
+                placeholder="https://example.com"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                className="bg-secondary border-border text-foreground"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleInsertLink();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setLinkDialogOpen(false);
+                setLinkUrl("");
+                setLinkText("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleInsertLink}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Insert Link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

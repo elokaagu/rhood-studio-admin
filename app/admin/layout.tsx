@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
@@ -151,6 +161,183 @@ export default function AdminLayout({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const [userName, setUserName] = useState<string>("RHOOD TEAM");
+  const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileFormData, setProfileFormData] = useState({
+    first_name: "",
+    last_name: "",
+    dj_name: "",
+  });
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      try {
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+          console.warn("Unable to fetch user:", authError);
+          return;
+        }
+
+        // Fetch user profile
+        const { data: profile, error: profileError } = await supabase
+          .from("user_profiles")
+          .select("first_name, last_name, dj_name")
+          .eq("id", user.id)
+          .single();
+
+        if (profileError) {
+          console.warn("Unable to fetch user profile:", profileError);
+          // Fallback to email username
+          const emailUsername = user.email?.split("@")[0] || "RHOOD TEAM";
+          setUserName(emailUsername.toUpperCase());
+          return;
+        }
+
+        // Determine display name: prefer dj_name, then first_name last_name, then email username
+        const displayName =
+          profile?.dj_name?.trim() ||
+          [profile?.first_name, profile?.last_name]
+            .map((part) => (part ? part.trim() : ""))
+            .filter(Boolean)
+            .join(" ") ||
+          user.email?.split("@")[0] ||
+          "RHOOD TEAM";
+
+        setUserName(displayName.toUpperCase());
+      } catch (error) {
+        console.error("Error fetching user name:", error);
+        setUserName("RHOOD TEAM");
+      }
+    };
+
+    fetchUserName();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      setIsLoadingProfile(true);
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        throw new Error("Unable to fetch user");
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("first_name, last_name, dj_name")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError) {
+        // If profile doesn't exist, create one
+        const { data: newProfile, error: createError } = await supabase
+          .from("user_profiles")
+          .insert({
+            id: user.id,
+            email: user.email || "",
+            first_name: "",
+            last_name: "",
+            dj_name: "",
+          })
+          .select("first_name, last_name, dj_name")
+          .single();
+
+        if (createError) {
+          throw createError;
+        }
+
+        setProfileFormData({
+          first_name: newProfile?.first_name || "",
+          last_name: newProfile?.last_name || "",
+          dj_name: newProfile?.dj_name || "",
+        });
+      } else {
+        setProfileFormData({
+          first_name: profile?.first_name || "",
+          last_name: profile?.last_name || "",
+          dj_name: profile?.dj_name || "",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load profile data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  const handleOpenAccountSettings = () => {
+    setAccountSettingsOpen(true);
+    fetchUserProfile();
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsSavingProfile(true);
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        throw new Error("Unable to fetch user");
+      }
+
+      const { error: updateError } = await supabase
+        .from("user_profiles")
+        .update({
+          first_name: profileFormData.first_name.trim(),
+          last_name: profileFormData.last_name.trim(),
+          dj_name: profileFormData.dj_name.trim(),
+        })
+        .eq("id", user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Update the displayed name
+      const displayName =
+        profileFormData.dj_name.trim() ||
+        [profileFormData.first_name, profileFormData.last_name]
+          .map((part) => (part ? part.trim() : ""))
+          .filter(Boolean)
+          .join(" ") ||
+        user.email?.split("@")[0] ||
+        "RHOOD TEAM";
+
+      setUserName(displayName.toUpperCase());
+
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+
+      setAccountSettingsOpen(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -207,7 +394,7 @@ export default function AdminLayout({
                 variant="outline"
                 className={`border-primary ${textStyles.headline.badge}`}
               >
-                RHOOD TEAM
+                {userName}
               </Badge>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -216,7 +403,10 @@ export default function AdminLayout({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem className="cursor-pointer">
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={handleOpenAccountSettings}
+                  >
                     <User className="mr-2 h-4 w-4" />
                     Account Settings
                   </DropdownMenuItem>
@@ -237,6 +427,82 @@ export default function AdminLayout({
           <div className="flex-1 p-6">{children}</div>
         </main>
       </div>
+
+      {/* Account Settings Dialog */}
+      <Dialog open={accountSettingsOpen} onOpenChange={setAccountSettingsOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Account Settings</DialogTitle>
+            <DialogDescription>
+              Update your profile information. Changes will be reflected in your
+              display name.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="dj_name">DJ Name</Label>
+              <Input
+                id="dj_name"
+                placeholder="Your DJ name"
+                value={profileFormData.dj_name}
+                onChange={(e) =>
+                  setProfileFormData({
+                    ...profileFormData,
+                    dj_name: e.target.value,
+                  })
+                }
+                disabled={isLoadingProfile || isSavingProfile}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="first_name">First Name</Label>
+              <Input
+                id="first_name"
+                placeholder="Your first name"
+                value={profileFormData.first_name}
+                onChange={(e) =>
+                  setProfileFormData({
+                    ...profileFormData,
+                    first_name: e.target.value,
+                  })
+                }
+                disabled={isLoadingProfile || isSavingProfile}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="last_name">Last Name</Label>
+              <Input
+                id="last_name"
+                placeholder="Your last name"
+                value={profileFormData.last_name}
+                onChange={(e) =>
+                  setProfileFormData({
+                    ...profileFormData,
+                    last_name: e.target.value,
+                  })
+                }
+                disabled={isLoadingProfile || isSavingProfile}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAccountSettingsOpen(false)}
+              disabled={isSavingProfile}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveProfile}
+              disabled={isLoadingProfile || isSavingProfile}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {isSavingProfile ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

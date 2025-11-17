@@ -57,11 +57,26 @@ A comprehensive music community management platform for DJs and producers, built
    cp .env.example .env.local
    ```
    
-   Add your Supabase credentials to `.env.local`:
+   Add your credentials to `.env.local`:
    ```env
+   # Supabase Configuration
    NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+   
+   # Resend Email Service (for application decision emails)
+   RESEND_API_KEY=re_your_resend_api_key_here
+   RESEND_FROM_EMAIL="R/HOOD Portal <info@rhood.io>"
+   
+   # Application URLs
+   NEXT_PUBLIC_APP_URL=https://portal.rhood.co
+   NEXT_PUBLIC_SITE_URL=https://portal.rhood.co
    ```
+   
+   **Resend Setup:**
+   - Sign up at [resend.com](https://resend.com)
+   - Get your API key from the dashboard (starts with `re_`)
+   - Verify your domain or use the test domain `portal@resend.dev` for development
+   - Set `RESEND_FROM_EMAIL` to a verified email address or domain
 
 4. **Set up the database:**
    - Go to your Supabase project dashboard

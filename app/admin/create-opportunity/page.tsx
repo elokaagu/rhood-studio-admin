@@ -37,7 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getDisplayLength } from "@/lib/text-utils";
+import { getDisplayLength, getDisplayText } from "@/lib/text-utils";
 
 const DESCRIPTION_MAX_LENGTH = 350;
 
@@ -320,9 +320,15 @@ export default function CreateOpportunityPage() {
           ? selectedGenres.join(", ")
           : formData.genre || null;
 
+      // Process description to convert markdown links to display text only
+      // This ensures URLs don't show in the app - only the link text is displayed
+      const processedDescription = getDisplayText(
+        formData.description.trim()
+      ).slice(0, DESCRIPTION_MAX_LENGTH);
+
       const { error } = await supabase.from("opportunities").insert({
         title: formData.title.trim(),
-        description: formData.description.trim().slice(0, DESCRIPTION_MAX_LENGTH),
+        description: processedDescription,
         location: formData.location.trim(),
         event_date: eventStart.toISOString(),
         event_end_time: eventEnd.toISOString(),

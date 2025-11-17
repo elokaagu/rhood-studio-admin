@@ -649,7 +649,7 @@ export default function EditOpportunityPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="location" className={textStyles.body.regular}>
+                <Label htmlFor="location" className={`${textStyles.body.regular} flex items-center`}>
                   <MapPin className="h-4 w-4 mr-2" />
                   Location
                 </Label>
@@ -678,7 +678,7 @@ export default function EditOpportunityPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="pay" className={textStyles.body.regular}>
+                <Label htmlFor="pay" className={`${textStyles.body.regular} flex items-center`}>
                   Pay Range
                 </Label>
                 <Input
@@ -733,88 +733,92 @@ export default function EditOpportunityPage() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="date"
-                  className={`${textStyles.body.regular} flex items-center`}
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  {formData.dateType === "range" ? "Start Date" : "Date"}
-                </Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
-                  className="bg-secondary border-border text-foreground"
-                  required
-                />
-              </div>
-
-              {formData.dateType === "range" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label
-                    htmlFor="endDate"
+                    htmlFor="date"
                     className={`${textStyles.body.regular} flex items-center`}
                   >
                     <Calendar className="h-4 w-4 mr-2" />
-                    End Date
+                    {formData.dateType === "range" ? "Start Date" : "Date"}
                   </Label>
                   <Input
-                    id="endDate"
+                    id="date"
                     type="date"
-                    value={formData.endDate}
+                    value={formData.date}
                     onChange={(e) =>
-                      setFormData({ ...formData, endDate: e.target.value })
+                      setFormData({ ...formData, date: e.target.value })
                     }
                     className="bg-secondary border-border text-foreground"
-                    required={formData.dateType === "range"}
-                    min={formData.date}
+                    required
                   />
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="time"
-                  className={`${textStyles.body.regular} flex items-center`}
-                >
-                  <Clock className="h-4 w-4 mr-2" />
-                  Start Time
-                </Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) =>
-                    setFormData({ ...formData, time: e.target.value })
-                  }
-                  className="bg-secondary border-border text-foreground"
-                  required
-                />
+                {formData.dateType === "range" && (
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="endDate"
+                      className={`${textStyles.body.regular} flex items-center`}
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      End Date
+                    </Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) =>
+                        setFormData({ ...formData, endDate: e.target.value })
+                      }
+                      className="bg-secondary border-border text-foreground"
+                      required={formData.dateType === "range"}
+                      min={formData.date}
+                    />
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="endTime"
-                  className={`${textStyles.body.regular} flex items-center`}
-                >
-                  <Clock className="h-4 w-4 mr-2" />
-                  Finish Time
-                </Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  value={formData.endTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, endTime: e.target.value })
-                  }
-                  className="bg-secondary border-border text-foreground"
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="time"
+                    className={`${textStyles.body.regular} flex items-center`}
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Start Time
+                  </Label>
+                  <Input
+                    id="time"
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) =>
+                      setFormData({ ...formData, time: e.target.value })
+                    }
+                    className="bg-secondary border-border text-foreground"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="endTime"
+                    className={`${textStyles.body.regular} flex items-center`}
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Finish Time
+                  </Label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) =>
+                      setFormData({ ...formData, endTime: e.target.value })
+                    }
+                    className="bg-secondary border-border text-foreground"
+                    required
+                  />
+                </div>
               </div>
             </div>
 

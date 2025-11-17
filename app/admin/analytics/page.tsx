@@ -218,8 +218,114 @@ export default function AnalyticsPage() {
         .gte("updated_at", today.toISOString());
       setDailyActiveUsers(dailyActive || 0);
 
-      // Calculate minutes per user (placeholder)
-      setMinutesPerUser(0);
+      // Calculate minutes per user per day
+      // Get all AI sessions from today with processing times
+      const { data: aiSessions } = await supabase
+        .from("ai_insights_sessions")
+        .select("processing_time_ms, user_id")
+        .gte("created_at", today.toISOString())
+        .not("processing_time_ms", "is", null);
+
+      // Get unique active users today from various activities
+      const activeUserIds = new Set<string>();
+
+      // Users with AI sessions today
+      if (aiSessions) {
+        aiSessions.forEach((session) => {
+          if (session.user_id) {
+            activeUserIds.add(session.user_id);
+          }
+        });
+      }
+
+      // Users who created applications today
+      const { data: todayApplications } = await supabase
+        .from("applications")
+        .select("user_id")
+        .gte("created_at", today.toISOString());
+      if (todayApplications) {
+        todayApplications.forEach((app) => {
+          if (app.user_id) {
+            activeUserIds.add(app.user_id);
+          }
+        });
+      }
+
+      // Users who uploaded mixes today
+      const { data: todayMixes } = await supabase
+        .from("mixes")
+        .select("uploaded_by")
+        .gte("created_at", today.toISOString());
+      if (todayMixes) {
+        todayMixes.forEach((mix) => {
+          if (mix.uploaded_by) {
+            activeUserIds.add(mix.uploaded_by);
+          }
+        });
+      }
+
+      // Users who sent messages today
+      const { data: todayMessages } = await supabase
+        .from("messages")
+        .select("sender_id")
+        .gte("created_at", today.toISOString());
+      if (todayMessages) {
+        todayMessages.forEach((msg) => {
+          if (msg.sender_id) {
+            activeUserIds.add(msg.sender_id);
+          }
+        });
+      }
+
+      // Users who updated their profile today
+      const { data: todayProfileUpdates } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .gte("updated_at", today.toISOString());
+      if (todayProfileUpdates) {
+        todayProfileUpdates.forEach((profile) => {
+          activeUserIds.add(profile.id);
+        });
+      }
+
+      const activeUsersCount = activeUserIds.size;
+
+      // Calculate total processing time from AI sessions (in milliseconds)
+      let totalProcessingTimeMs = 0;
+      if (aiSessions) {
+        totalProcessingTimeMs = aiSessions.reduce(
+          (sum, session) => sum + (session.processing_time_ms || 0),
+          0
+        );
+      }
+
+      // Estimate additional engagement time from other activities
+      // Rough estimates: application = 2 min, mix upload = 5 min, message = 1 min, profile update = 1 min
+      let estimatedAdditionalMinutes = 0;
+      if (todayApplications) {
+        estimatedAdditionalMinutes += todayApplications.length * 2;
+      }
+      if (todayMixes) {
+        estimatedAdditionalMinutes += todayMixes.length * 5;
+      }
+      if (todayMessages) {
+        estimatedAdditionalMinutes += todayMessages.length * 1;
+      }
+      if (todayProfileUpdates) {
+        estimatedAdditionalMinutes += todayProfileUpdates.length * 1;
+      }
+
+      // Convert AI processing time from ms to minutes
+      const aiProcessingMinutes = totalProcessingTimeMs / 1000 / 60;
+      const totalEngagementMinutes = aiProcessingMinutes + estimatedAdditionalMinutes;
+
+      // Calculate average minutes per user per day
+      const avgMinutes =
+        activeUsersCount > 0
+          ? Math.round((totalEngagementMinutes / activeUsersCount) * 10) / 10
+          : 0;
+
+      setMinutesPerUser(avgMinutes);
 
       // Fetch top users
       const { data: allMembers } = await supabase

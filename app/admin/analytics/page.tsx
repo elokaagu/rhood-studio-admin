@@ -31,6 +31,7 @@ import {
   FileSpreadsheet,
   FileText,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 
@@ -834,50 +835,66 @@ export default function AnalyticsPage() {
             Analytics and insights for R/HOOD
           </p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              disabled={isBusy}
-              className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+        <div className="flex items-center gap-3">
+          <Button
+            asChild
+            variant="outline"
+            className="border-brand-green text-brand-green hover:bg-brand-green/10"
+          >
+            <a
+              href="https://analytics.google.com/analytics/web/?authuser=3#/a375463949p513483059/realtime/overview?params=_u..nav%3Dmaui&collectionId=app"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              {isBusy ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Preparing...
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Data
-                </>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[200px]">
-            <DropdownMenuItem
-              onSelect={() => {
-                if (!isGeneratingPDF) {
-                  downloadCSV();
-                }
-              }}
-              disabled={isGeneratingCSV}
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Download CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => {
-                if (!isGeneratingCSV) {
-                  downloadPDF();
-                }
-              }}
-              disabled={isGeneratingPDF}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Download PDF
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Detailed Analytics
+            </a>
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                disabled={isBusy}
+                className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+              >
+                {isBusy ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Preparing...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Data
+                  </>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[200px]">
+              <DropdownMenuItem
+                onSelect={() => {
+                  if (!isGeneratingPDF) {
+                    downloadCSV();
+                  }
+                }}
+                disabled={isGeneratingCSV}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Download CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  if (!isGeneratingCSV) {
+                    downloadPDF();
+                  }
+                }}
+                disabled={isGeneratingPDF}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Download PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Key Metrics */}

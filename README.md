@@ -78,6 +78,10 @@ A comprehensive music community management platform for DJs and producers, built
    - Verify your domain or use the test domain `portal@resend.dev` for development
    - Set `RESEND_FROM_EMAIL` to a verified email address or domain
 
+   **Supabase Email Templates:**
+   - Configure signup confirmation emails to show "R/HOOD" as sender
+   - See [Supabase Email Setup Guide](./SUPABASE_EMAIL_SETUP.md) for detailed instructions
+
 4. **Set up the database:**
    - Go to your Supabase project dashboard
    - Navigate to SQL Editor

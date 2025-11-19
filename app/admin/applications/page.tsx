@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { createApplicationStatusNotification, triggerApplicationDecisionEmail } from "@/lib/notifications";
+import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
 import {
   Calendar,
   MapPin,
@@ -32,32 +33,63 @@ function ApplicationsContent() {
   // Fetch applications from database
   const fetchApplications = async () => {
     try {
-      // Fetch from both applications table and application_form_responses table
-      const [applicationsResult, formResponsesResult] = await Promise.all([
-        // Fetch from simple applications table
-        supabase
-          .from("applications")
-          .select(
-            `
+      const userProfile = await getCurrentUserProfile();
+      const userId = await getCurrentUserId();
+
+      // For brands, first get their opportunity IDs
+      let brandOpportunityIds: string[] | null = null;
+      if (userProfile?.role === "brand" && userId) {
+        const { data: brandOpportunities } = await supabase
+          .from("opportunities")
+          .select("id")
+          .eq("organizer_id", userId);
+        brandOpportunityIds = brandOpportunities?.map((opp) => opp.id) || [];
+      }
+
+      // Build queries based on user role
+      let applicationsQuery = supabase
+        .from("applications")
+        .select(
+          `
             *,
-            opportunities(title),
+            opportunities(title, organizer_id),
             user_profiles(dj_name, first_name, last_name, city, location, genres, email)
           `
-          )
-          .order("created_at", { ascending: false }),
+        );
 
-        // Fetch from application form responses table
-        supabase
-          .from("application_form_responses")
-          .select(
-            `
+      let formResponsesQuery = supabase
+        .from("application_form_responses")
+        .select(
+          `
             *,
-            opportunities(title),
+            opportunities(title, organizer_id),
             user_profiles(dj_name, first_name, last_name, city, location, genres, email),
             application_forms(title)
           `
-          )
-          .order("submitted_at", { ascending: false }),
+        );
+
+      // Filter by brand's opportunities if user is a brand
+      if (userProfile?.role === "brand" && brandOpportunityIds) {
+        if (brandOpportunityIds.length === 0) {
+          // No opportunities, so no applications
+          setApplications([]);
+          setIsLoading(false);
+          return;
+        }
+        applicationsQuery = applicationsQuery.in(
+          "opportunity_id",
+          brandOpportunityIds
+        );
+        formResponsesQuery = formResponsesQuery.in(
+          "opportunity_id",
+          brandOpportunityIds
+        );
+      }
+
+      // Fetch from both applications table and application_form_responses table
+      const [applicationsResult, formResponsesResult] = await Promise.all([
+        applicationsQuery.order("created_at", { ascending: false }),
+        formResponsesQuery.order("submitted_at", { ascending: false }),
       ]);
 
       let allApplications: any[] = [];
@@ -279,7 +311,7 @@ function ApplicationsContent() {
         .select(
           `
           *,
-          opportunities(title),
+          opportunities(title, organizer_id),
           user_profiles(dj_name, first_name, last_name, email)
         `
         )
@@ -289,6 +321,23 @@ function ApplicationsContent() {
       if (fetchError) {
         console.error("Error fetching application data:", fetchError);
         throw fetchError;
+      }
+
+      // Check if brand is trying to approve/reject application for their own opportunity
+      const userProfile = await getCurrentUserProfile();
+      const userId = await getCurrentUserId();
+      if (
+        userProfile?.role === "brand" &&
+        userId &&
+        (applicationData as any)?.opportunities?.organizer_id !== userId
+      ) {
+        toast({
+          title: "Access Denied",
+          description:
+            "You can only approve/reject applications for your own opportunities.",
+          variant: "destructive",
+        });
+        return;
       }
 
       console.log("Application data fetched:", applicationData);
@@ -416,7 +465,7 @@ function ApplicationsContent() {
         .select(
           `
           *,
-          opportunities(title),
+          opportunities(title, organizer_id),
           user_profiles(dj_name, first_name, last_name, email)
         `
         )
@@ -426,6 +475,23 @@ function ApplicationsContent() {
       if (fetchError) {
         console.error("Error fetching application data:", fetchError);
         throw fetchError;
+      }
+
+      // Check if brand is trying to approve/reject application for their own opportunity
+      const userProfile = await getCurrentUserProfile();
+      const userId = await getCurrentUserId();
+      if (
+        userProfile?.role === "brand" &&
+        userId &&
+        (applicationData as any)?.opportunities?.organizer_id !== userId
+      ) {
+        toast({
+          title: "Access Denied",
+          description:
+            "You can only approve/reject applications for your own opportunities.",
+          variant: "destructive",
+        });
+        return;
       }
 
       console.log("Application data fetched:", applicationData);

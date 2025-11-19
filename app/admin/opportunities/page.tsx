@@ -8,6 +8,7 @@ import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatTimeRange } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -52,10 +53,20 @@ export default function OpportunitiesPage() {
   // Fetch opportunities from database
   const fetchOpportunities = async () => {
     try {
-      const { data, error } = await supabase
-        .from("opportunities")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const userProfile = await getCurrentUserProfile();
+      const userId = await getCurrentUserId();
+
+      // Build query based on user role
+      let query = supabase.from("opportunities").select("*");
+
+      // Brands can only see their own opportunities
+      if (userProfile?.role === "brand" && userId) {
+        query = query.eq("organizer_id", userId);
+      }
+
+      const { data, error } = await query.order("created_at", {
+        ascending: false,
+      });
 
       if (error) {
         throw error;

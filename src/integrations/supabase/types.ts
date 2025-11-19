@@ -755,6 +755,7 @@ export type Database = {
       user_profiles: {
         Row: {
           bio: string | null;
+          brand_name: string | null;
           city: string;
           created_at: string | null;
           dj_name: string;
@@ -765,11 +766,13 @@ export type Database = {
           instagram: string | null;
           last_name: string;
           profile_image_url: string | null;
+          role: string | null;
           soundcloud: string | null;
           updated_at: string | null;
         };
         Insert: {
           bio?: string | null;
+          brand_name?: string | null;
           city: string;
           created_at?: string | null;
           dj_name: string;
@@ -780,11 +783,13 @@ export type Database = {
           instagram?: string | null;
           last_name: string;
           profile_image_url?: string | null;
+          role?: string | null;
           soundcloud?: string | null;
           updated_at?: string | null;
         };
         Update: {
           bio?: string | null;
+          brand_name?: string | null;
           city?: string;
           created_at?: string | null;
           dj_name?: string;
@@ -795,6 +800,7 @@ export type Database = {
           instagram?: string | null;
           last_name?: string;
           profile_image_url?: string | null;
+          role?: string | null;
           soundcloud?: string | null;
           updated_at?: string | null;
         };
@@ -949,6 +955,60 @@ export type Database = {
             foreignKeyName: "application_form_responses_opportunity_id_fkey";
             columns: ["opportunity_id"];
             referencedRelation: "opportunities";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      invite_codes: {
+        Row: {
+          id: string;
+          code: string;
+          brand_name: string;
+          created_by: string | null;
+          used_by: string | null;
+          used_at: string | null;
+          expires_at: string | null;
+          is_active: boolean | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          brand_name: string;
+          created_by?: string | null;
+          used_by?: string | null;
+          used_at?: string | null;
+          expires_at?: string | null;
+          is_active?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          code?: string;
+          brand_name?: string;
+          created_by?: string | null;
+          used_by?: string | null;
+          used_at?: string | null;
+          expires_at?: string | null;
+          is_active?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "invite_codes_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "user_profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "invite_codes_used_by_fkey";
+            columns: ["used_by"];
+            isOneToOne: false;
+            referencedRelation: "user_profiles";
             referencedColumns: ["id"];
           }
         ];

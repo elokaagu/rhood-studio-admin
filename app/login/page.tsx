@@ -20,9 +20,11 @@ export default function AdminLoginPage() {
     lastName: "",
     email: "",
     password: "",
+    inviteCode: "",
   });
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isBrandSignup, setIsBrandSignup] = useState(false);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -44,6 +46,53 @@ export default function AdminLoginPage() {
 
     try {
       if (isSignUp) {
+        // Validate invite code for brand signups
+        if (isBrandSignup) {
+          if (!formData.inviteCode) {
+            toast({
+              title: "Invite Code Required",
+              description: "Please enter an invite code to register as a brand.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+
+          // Validate invite code
+          const { data: inviteCodeData, error: inviteError } = await supabase
+            .from("invite_codes")
+            .select("id, brand_name, expires_at")
+            .eq("code", formData.inviteCode.trim().toUpperCase())
+            .eq("is_active", true)
+            .is("used_by", null)
+            .single();
+
+          if (inviteError || !inviteCodeData) {
+            toast({
+              title: "Invalid Invite Code",
+              description:
+                "The invite code is invalid, expired, or has already been used.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+
+          // Check if invite code is expired
+          if (
+            inviteCodeData.expires_at &&
+            new Date(inviteCodeData.expires_at) < new Date()
+          ) {
+            toast({
+              title: "Invite Code Expired",
+              description: "This invite code has expired. Please request a new one.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+        }
+
         // Sign up new user
         const { data, error } = await supabase.auth.signUp({
           email: formData.email,
@@ -57,11 +106,69 @@ export default function AdminLoginPage() {
             variant: "destructive",
           });
         } else if (data.user) {
-          toast({
-            title: "Account Created!",
-            description: "Please check your email to confirm your account.",
-          });
+          // Create user profile
+          const profileData: any = {
+            id: data.user.id,
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            dj_name: "",
+            city: "",
+            role: isBrandSignup ? "brand" : "admin",
+          };
+
+          // If brand signup, add brand_name from invite code
+          if (isBrandSignup && formData.inviteCode) {
+            const { data: inviteData } = await supabase
+              .from("invite_codes")
+              .select("id, brand_name")
+              .eq("code", formData.inviteCode.trim().toUpperCase())
+              .single();
+
+            if (inviteData) {
+              profileData.brand_name = inviteData.brand_name;
+
+              // Mark invite code as used
+              await supabase
+                .from("invite_codes")
+                .update({
+                  used_by: data.user.id,
+                  used_at: new Date().toISOString(),
+                })
+                .eq("id", inviteData.id);
+            }
+          }
+
+          const { error: profileError } = await supabase
+            .from("user_profiles")
+            .insert(profileData);
+
+          if (profileError) {
+            console.error("Error creating profile:", profileError);
+            toast({
+              title: "Account Created",
+              description:
+                "Account created but profile setup failed. Please contact support.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Account Created!",
+              description: isBrandSignup
+                ? "Brand account created successfully! Please check your email to confirm your account."
+                : "Please check your email to confirm your account.",
+            });
+          }
+
           setIsSignUp(false); // Switch back to login mode
+          setIsBrandSignup(false);
+          setFormData({
+            firstName: "",
+            lastName: "",
+            email: "",
+            password: "",
+            inviteCode: "",
+          });
         }
       } else {
         // Sign in existing user
@@ -130,18 +237,35 @@ export default function AdminLoginPage() {
               priority={true}
             />
             <CardTitle className={`text-center ${textStyles.headline.card}`}>
-              {isSignUp ? "CREATE" : "ADMIN"}
+              {isSignUp
+                ? isBrandSignup
+                  ? "BRAND"
+                  : "CREATE"
+                : "ADMIN"}
               <br />
-              {isSignUp ? "ACCOUNT" : "LOGIN"}
+              {isSignUp
+                ? isBrandSignup
+                  ? "SIGNUP"
+                  : "ACCOUNT"
+                : "LOGIN"}
             </CardTitle>
           </div>
           <div className="text-center">
-            <Badge
-              variant="outline"
-              className={`border-primary ${textStyles.headline.badge}`}
-            >
-              RHOOD TEAM ONLY
-            </Badge>
+            {!isSignUp || !isBrandSignup ? (
+              <Badge
+                variant="outline"
+                className={`border-primary ${textStyles.headline.badge}`}
+              >
+                RHOOD TEAM ONLY
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className={`border-primary ${textStyles.headline.badge}`}
+              >
+                BRAND PORTAL
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -228,6 +352,32 @@ export default function AdminLoginPage() {
               />
             </div>
 
+            {/* Invite Code - Only for brand signup */}
+            {isSignUp && isBrandSignup && (
+              <div className="space-y-2">
+                <Label htmlFor="inviteCode" className={textStyles.body.regular}>
+                  Invite Code *
+                </Label>
+                <Input
+                  id="inviteCode"
+                  type="text"
+                  placeholder="Enter your invite code"
+                  value={formData.inviteCode}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      inviteCode: e.target.value.toUpperCase(),
+                    })
+                  }
+                  className="bg-secondary border-border text-foreground font-mono"
+                  required
+                />
+                <p className={textStyles.body.small + " text-muted-foreground"}>
+                  Enter the invite code provided by an admin
+                </p>
+              </div>
+            )}
+
             {/* Submit Button */}
             <Button
               type="submit"
@@ -238,7 +388,8 @@ export default function AdminLoginPage() {
                 loading ||
                 !formData.email ||
                 !formData.password ||
-                (isSignUp && (!formData.firstName || !formData.lastName))
+                (isSignUp && (!formData.firstName || !formData.lastName)) ||
+                (isSignUp && isBrandSignup && !formData.inviteCode)
               }
             >
               {loading
@@ -254,7 +405,26 @@ export default function AdminLoginPage() {
       </Card>
 
       {/* Toggle between Sign In and Sign Up */}
-      <div className="text-center mt-6">
+      <div className="text-center mt-6 space-y-2">
+        {isSignUp && (
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => {
+                setIsBrandSignup(!isBrandSignup);
+                setFormData({
+                  ...formData,
+                  inviteCode: "",
+                });
+              }}
+              className={`${textStyles.body.small} text-primary hover:underline`}
+            >
+              {isBrandSignup
+                ? "Sign up as R/HOOD Team member instead"
+                : "Sign up as Brand instead"}
+            </button>
+          </div>
+        )}
         <p className={textStyles.body.small}>
           {isSignUp ? "Already have an account?" : "Don't have an account?"}
         </p>
@@ -262,12 +432,14 @@ export default function AdminLoginPage() {
           type="button"
           onClick={() => {
             setIsSignUp(!isSignUp);
+            setIsBrandSignup(false);
             // Clear form when switching modes
             setFormData({
               firstName: "",
               lastName: "",
               email: "",
               password: "",
+              inviteCode: "",
             });
           }}
           className={`mt-2 ${textStyles.body.regular} text-primary hover:underline`}

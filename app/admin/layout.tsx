@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import type { UserRole } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -48,46 +49,61 @@ import {
   User,
   MessageSquare,
   BarChart3,
+  Key,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { textStyles } from "@/lib/typography";
+import { getCurrentUserProfile, type UserRole } from "@/lib/auth-utils";
 
-const sidebarItems = [
+const allSidebarItems = [
   {
     title: "Dashboard",
     url: "/admin/dashboard",
     icon: LayoutDashboard,
+    roles: ["admin", "brand"] as UserRole[],
   },
   {
     title: "Opportunities",
     url: "/admin/opportunities",
     icon: Briefcase,
+    roles: ["admin", "brand"] as UserRole[],
   },
   {
     title: "Applications",
     url: "/admin/applications",
     icon: FileText,
+    roles: ["admin", "brand"] as UserRole[],
   },
   {
     title: "Mixes",
     url: "/admin/mixes",
     icon: Music,
+    roles: ["admin"] as UserRole[],
   },
   {
     title: "Members",
     url: "/admin/members",
     icon: Users,
+    roles: ["admin"] as UserRole[],
   },
   {
     title: "Communities",
     url: "/admin/communities",
     icon: MessageSquare,
+    roles: ["admin"] as UserRole[],
   },
   {
     title: "Analytics",
     url: "/admin/analytics",
     icon: BarChart3,
+    roles: ["admin"] as UserRole[],
+  },
+  {
+    title: "Invite Codes",
+    url: "/admin/invite-codes",
+    icon: Key,
+    roles: ["admin"] as UserRole[],
   },
 ];
 
@@ -95,6 +111,20 @@ function AppSidebar() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const pathname = usePathname();
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const profile = await getCurrentUserProfile();
+      setUserRole(profile?.role || "admin");
+    };
+    fetchUserRole();
+  }, []);
+
+  // Filter sidebar items based on user role
+  const sidebarItems = allSidebarItems.filter((item) =>
+    userRole ? item.roles.includes(userRole) : true
+  );
 
   return (
     <Sidebar collapsible="icon">
@@ -187,7 +217,7 @@ export default function AdminLayout({
         // Fetch user profile
         const { data: profile, error: profileError } = await supabase
           .from("user_profiles")
-          .select("first_name, last_name, dj_name")
+          .select("first_name, last_name, dj_name, brand_name, role")
           .eq("id", user.id)
           .single();
 
@@ -199,17 +229,22 @@ export default function AdminLayout({
           return;
         }
 
-        // Determine display name: prefer dj_name, then first_name last_name, then email username
-        const displayName =
-          profile?.dj_name?.trim() ||
-          [profile?.first_name, profile?.last_name]
-            .map((part) => (part ? part.trim() : ""))
-            .filter(Boolean)
-            .join(" ") ||
-          user.email?.split("@")[0] ||
-          "RHOOD TEAM";
-
-        setUserName(displayName.toUpperCase());
+        // For brands, show brand name prominently
+        if (profile?.role === "brand") {
+          const brandName = profile.brand_name?.trim() || "BRAND";
+          setUserName(brandName.toUpperCase());
+        } else {
+          // For admins/DJs, use dj_name, then first_name last_name, then email username
+          const displayName =
+            profile?.dj_name?.trim() ||
+            [profile?.first_name, profile?.last_name]
+              .map((part) => (part ? part.trim() : ""))
+              .filter(Boolean)
+              .join(" ") ||
+            user.email?.split("@")[0] ||
+            "RHOOD TEAM";
+          setUserName(displayName.toUpperCase());
+        }
       } catch (error) {
         console.error("Error fetching user name:", error);
         setUserName("RHOOD TEAM");

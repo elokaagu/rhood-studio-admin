@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { textStyles } from "@/lib/typography";
 import { formatDateShort } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -35,34 +36,74 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch opportunities count
-        const { count: opportunitiesCount } = await supabase
+        const userProfile = await getCurrentUserProfile();
+        const userId = await getCurrentUserId();
+
+        // Build queries based on user role
+        let opportunitiesQuery = supabase
           .from("opportunities")
           .select("*", { count: "exact", head: true })
           .eq("is_active", true);
 
-        // Fetch applications count
-        const { count: applicationsCount } = await supabase
+        let applicationsQuery = supabase
           .from("applications")
           .select("*", { count: "exact", head: true })
           .eq("status", "pending");
 
-        // Fetch user profiles count
-        const { count: membersCount } = await supabase
-          .from("user_profiles")
-          .select("*", { count: "exact", head: true });
+        // Brands can only see their own opportunities and applications
+        if (userProfile?.role === "brand" && userId) {
+          // Get brand's opportunity IDs
+          const { data: brandOpportunities } = await supabase
+            .from("opportunities")
+            .select("id")
+            .eq("organizer_id", userId);
+          const brandOpportunityIds =
+            brandOpportunities?.map((opp) => opp.id) || [];
 
-        // Fetch mixes uploaded this month
-        const monthStart = new Date();
-        monthStart.setDate(1);
-        monthStart.setHours(0, 0, 0, 0);
+          opportunitiesQuery = opportunitiesQuery.eq("organizer_id", userId);
 
-        const { count: mixesThisMonthCount } = await supabase
-          .from("mixes")
-          .select("*", { count: "exact", head: true })
-          .gte("created_at", monthStart.toISOString());
+          if (brandOpportunityIds.length > 0) {
+            applicationsQuery = applicationsQuery.in(
+              "opportunity_id",
+              brandOpportunityIds
+            );
+          } else {
+            // No opportunities, so no applications
+            applicationsQuery = applicationsQuery.eq("id", "00000000-0000-0000-0000-000000000000"); // Impossible ID to return 0
+          }
+        }
 
-        setStats([
+        // Fetch opportunities count
+        const { count: opportunitiesCount } = await opportunitiesQuery;
+
+        // Fetch applications count
+        const { count: applicationsCount } = await applicationsQuery;
+
+        // Only admins see members and mixes
+        let membersCount = 0;
+        let mixesThisMonthCount = 0;
+
+        if (userProfile?.role === "admin") {
+          // Fetch user profiles count
+          const { count: membersCountResult } = await supabase
+            .from("user_profiles")
+            .select("*", { count: "exact", head: true });
+          membersCount = membersCountResult || 0;
+
+          // Fetch mixes uploaded this month
+          const monthStart = new Date();
+          monthStart.setDate(1);
+          monthStart.setHours(0, 0, 0, 0);
+
+          const { count: mixesCount } = await supabase
+            .from("mixes")
+            .select("*", { count: "exact", head: true })
+            .gte("created_at", monthStart.toISOString());
+          mixesThisMonthCount = mixesCount || 0;
+        }
+
+        // Build stats array based on role
+        const statsArray = [
           {
             title: "Active Opportunities",
             value: opportunitiesCount?.toString() || "0",
@@ -71,15 +112,23 @@ export default function DashboardPage() {
             title: "Pending Applications",
             value: applicationsCount?.toString() || "0",
           },
-          {
-            title: "Total Members",
-            value: membersCount?.toString() || "0",
-          },
-          {
-            title: "New Mixes",
-            value: mixesThisMonthCount?.toString() || "0",
-          },
-        ]);
+        ];
+
+        // Only show members and mixes for admins
+        if (userProfile?.role === "admin") {
+          statsArray.push(
+            {
+              title: "Total Members",
+              value: membersCount.toString(),
+            },
+            {
+              title: "New Mixes",
+              value: mixesThisMonthCount.toString(),
+            }
+          );
+        }
+
+        setStats(statsArray);
         setStatsLoaded(true);
       } catch (error) {
         console.error("Error fetching stats:", error);
@@ -104,34 +153,55 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchRecentActivity = async () => {
       try {
-        // Fetch recent applications
-        const { data: recentApplications } = await supabase
+        const userProfile = await getCurrentUserProfile();
+        const userId = await getCurrentUserId();
+
+        // Build queries based on user role
+        let applicationsQuery = supabase
           .from("applications")
           .select(
             `
             id,
             created_at,
             status,
-            opportunities!inner(title),
+            opportunities!inner(title, organizer_id),
             user_profiles!inner(dj_name)
           `
-          )
+          );
+
+        let opportunitiesQuery = supabase
+          .from("opportunities")
+          .select("id, title, created_at, organizer_id");
+
+        // Brands can only see their own opportunities and applications
+        if (userProfile?.role === "brand" && userId) {
+          applicationsQuery = applicationsQuery.eq(
+            "opportunities.organizer_id",
+            userId
+          );
+          opportunitiesQuery = opportunitiesQuery.eq("organizer_id", userId);
+        }
+
+        // Fetch recent applications
+        const { data: recentApplications } = await applicationsQuery
           .order("created_at", { ascending: false })
           .limit(3);
 
         // Fetch recent opportunities
-        const { data: recentOpportunities } = await supabase
-          .from("opportunities")
-          .select("id, title, created_at")
+        const { data: recentOpportunities } = await opportunitiesQuery
           .order("created_at", { ascending: false })
           .limit(2);
 
-        // Fetch recent user registrations
-        const { data: recentUsers } = await supabase
-          .from("user_profiles")
-          .select("id, dj_name, created_at")
-          .order("created_at", { ascending: false })
-          .limit(2);
+        // Only admins see user registrations
+        let recentUsers: any[] = [];
+        if (userProfile?.role === "admin") {
+          const { data: usersData } = await supabase
+            .from("user_profiles")
+            .select("id, dj_name, created_at")
+            .order("created_at", { ascending: false })
+            .limit(2);
+          recentUsers = usersData || [];
+        }
 
         const activities: Array<{
           type: string;
@@ -198,13 +268,24 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchUpcomingEvents = async () => {
       try {
-        // Fetch opportunities with event dates in the future
-        const { data: opportunities, error } = await supabase
+        const userProfile = await getCurrentUserProfile();
+        const userId = await getCurrentUserId();
+
+        // Build query based on user role
+        let query = supabase
           .from("opportunities")
-          .select("title, event_date, genre, location")
+          .select("title, event_date, genre, location, organizer_id")
           .eq("is_active", true)
           .not("event_date", "is", null)
-          .gte("event_date", new Date().toISOString())
+          .gte("event_date", new Date().toISOString());
+
+        // Brands can only see their own opportunities
+        if (userProfile?.role === "brand" && userId) {
+          query = query.eq("organizer_id", userId);
+        }
+
+        // Fetch opportunities with event dates in the future
+        const { data: opportunities, error } = await query
           .order("event_date", { ascending: true })
           .limit(3);
 

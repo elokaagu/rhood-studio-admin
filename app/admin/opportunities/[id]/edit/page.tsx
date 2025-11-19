@@ -18,6 +18,7 @@ import {
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
 import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Calendar,
@@ -59,14 +60,39 @@ export default function EditOpportunityPage() {
   // Fetch opportunity data from database
   const fetchOpportunity = async () => {
     try {
-      const { data, error } = await supabase
+      const userProfile = await getCurrentUserProfile();
+      const userId = await getCurrentUserId();
+
+      let query = supabase
         .from("opportunities")
         .select("*")
-        .eq("id", opportunityId as string)
-        .single();
+        .eq("id", opportunityId as string);
+
+      // Brands can only access their own opportunities
+      if (userProfile?.role === "brand" && userId) {
+        query = query.eq("organizer_id", userId);
+      }
+
+      const { data, error } = await query.single();
 
       if (error) {
         throw error;
+      }
+
+      // Check if brand is trying to access someone else's opportunity
+      if (
+        userProfile?.role === "brand" &&
+        userId &&
+        data &&
+        data.organizer_id !== userId
+      ) {
+        toast({
+          title: "Access Denied",
+          description: "You can only edit your own opportunities.",
+          variant: "destructive",
+        });
+        router.push("/admin/opportunities");
+        return;
       }
 
       if (data) {

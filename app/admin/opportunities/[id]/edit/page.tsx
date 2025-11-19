@@ -589,27 +589,28 @@ export default function EditOpportunityPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:space-x-4">
           <Button
             variant="outline"
             onClick={() => router.push(`/admin/opportunities/${opportunityId}`)}
+            className="w-full sm:w-auto"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
           <div>
-            <h1 className={textStyles.headline.section}>EDIT OPPORTUNITY</h1>
-            <p className={textStyles.body.regular}>
+            <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl`}>EDIT OPPORTUNITY</h1>
+            <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
               Update opportunity information
             </p>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {/* Basic Information */}
         <Card className="bg-card border-border">
           <CardHeader>
@@ -989,7 +990,7 @@ export default function EditOpportunityPage() {
         </Card>
 
         {/* Actions */}
-        <div className="flex items-center justify-end space-x-4">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4 sm:space-x-4">
           <Button
             type="button"
             variant="outline"
@@ -1012,7 +1013,7 @@ export default function EditOpportunityPage() {
 
       {/* Link Dialog */}
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Insert Link</DialogTitle>
             <DialogDescription>

@@ -376,25 +376,26 @@ export default function CreateOpportunityPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">
             Create Opportunity
           </h1>
-          <p className="text-muted-foreground">Post a new DJ opportunity</p>
+          <p className="text-sm sm:text-base text-muted-foreground">Post a new DJ opportunity</p>
         </div>
         <Button
           variant="outline"
           onClick={() => router.push("/admin/opportunities")}
+          className="w-full sm:w-auto"
         >
           <X className="h-4 w-4 mr-2" />
           Cancel
         </Button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {/* Basic Information */}
         <Card className="bg-card border-border">
           <CardHeader>
@@ -746,7 +747,7 @@ export default function CreateOpportunityPage() {
         </Card>
 
         {/* Actions */}
-        <div className="flex items-center justify-end space-x-4">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4 sm:space-x-4">
           <Button
             type="button"
             variant="outline"
@@ -769,7 +770,7 @@ export default function CreateOpportunityPage() {
 
       {/* Link Dialog */}
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Insert Link</DialogTitle>
             <DialogDescription>

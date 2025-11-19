@@ -607,21 +607,21 @@ function ApplicationsContent() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
             APPLICATIONS
           </h1>
-          <p className={textStyles.body.regular}>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
             Review and manage DJ applications
           </p>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -692,24 +692,24 @@ function ApplicationsContent() {
           filteredApplications.map((application) => (
             <Card key={application.id} className="bg-card border-border">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className={textStyles.subheading.large}>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`${textStyles.subheading.large} text-base sm:text-lg`}>
                       {application.opportunity}
                     </h3>
 
-                    <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground mt-2">
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
+                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         {application.appliedDate}
                       </div>
                       <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-1" />
-                        {application.applicant.location}
+                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span className="truncate">{application.applicant.location}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-2">
+                    <div className="flex items-center space-x-4 text-xs sm:text-sm text-muted-foreground mt-2">
                       <div className="flex items-center">
                         <span className="text-foreground font-medium">
                           {application.applicant.name}
@@ -718,10 +718,10 @@ function ApplicationsContent() {
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2">
                     <Badge
                       variant="outline"
-                      className="border-border text-foreground bg-transparent text-xs"
+                      className="border-border text-foreground bg-transparent text-xs w-full sm:w-auto justify-center sm:justify-start"
                     >
                       {getStatusIcon(application.status)}
                       <span className="ml-1">
@@ -730,41 +730,44 @@ function ApplicationsContent() {
                       </span>
                     </Badge>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2 sm:space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-foreground"
+                        className="text-foreground text-xs sm:text-sm flex-1 sm:flex-initial"
                         onClick={() =>
                           (window.location.href = `/admin/applications/${application.id}`)
                         }
                       >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Details
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span className="hidden sm:inline">View Details</span>
+                        <span className="sm:hidden">View</span>
                       </Button>
                       {application.status === "pending" && (
                         <>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-brand-green hover:text-brand-green/80"
+                            className="text-brand-green hover:text-brand-green/80 text-xs sm:text-sm flex-1 sm:flex-initial"
                             onClick={() =>
                               handleApprove(application.id, application.type)
                             }
                           >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Approve
+                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            <span className="hidden sm:inline">Approve</span>
+                            <span className="sm:hidden">✓</span>
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 text-xs sm:text-sm flex-1 sm:flex-initial"
                             onClick={() =>
                               handleReject(application.id, application.type)
                             }
                           >
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Reject
+                            <XCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            <span className="hidden sm:inline">Reject</span>
+                            <span className="sm:hidden">✗</span>
                           </Button>
                         </>
                       )}

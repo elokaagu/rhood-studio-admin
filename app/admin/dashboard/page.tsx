@@ -491,19 +491,19 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {isLoading ? (
         <>
           <StatsSkeleton />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
             <ActivitySkeleton />
             <EventsSkeleton />
           </div>
         </>
       ) : (
-        <div className="animate-in fade-in-0 duration-500 space-y-8">
+        <div className="animate-in fade-in-0 duration-500 space-y-4 sm:space-y-6 md:space-y-8">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
             {stats.map((stat, index) => (
               <Card key={index} className="bg-card border-border">
                 <CardHeader className="pb-2">
@@ -523,7 +523,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Activity and Upcoming Events */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
             {/* Recent Activity */}
             <Card className="bg-card border-border">
               <CardHeader className="pb-4">

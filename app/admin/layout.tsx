@@ -407,8 +407,8 @@ export default function AdminLayout({
 
         <main className="flex-1 flex flex-col">
           {/* Header */}
-          <header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-4">
-            <div className="flex items-center gap-3">
+          <header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-3 sm:px-4">
+            <div className="flex items-center gap-2 sm:gap-3">
               <SidebarTrigger className="h-8 w-8" />
               <div className="flex items-center">
                 <Image
@@ -416,7 +416,7 @@ export default function AdminLayout({
                   alt="R/HOOD"
                   width={120}
                   height={36}
-                  className="h-8 w-auto transition-opacity duration-300"
+                  className="h-6 sm:h-8 w-auto transition-opacity duration-300"
                   placeholder="blur"
                   blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                   loading="eager"
@@ -424,17 +424,17 @@ export default function AdminLayout({
                 />
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
               <Badge
                 variant="outline"
-                className={`border-primary ${textStyles.headline.badge}`}
+                className={`border-primary ${textStyles.headline.badge} text-xs sm:text-sm px-2 sm:px-3 hidden sm:inline-flex`}
               >
                 {userName}
               </Badge>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Settings className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
+                    <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -459,13 +459,13 @@ export default function AdminLayout({
           </header>
 
           {/* Content */}
-          <div className="flex-1 p-6">{children}</div>
+          <div className="flex-1 p-3 sm:p-4 md:p-6">{children}</div>
         </main>
       </div>
 
       {/* Account Settings Dialog */}
       <Dialog open={accountSettingsOpen} onOpenChange={setAccountSettingsOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Account Settings</DialogTitle>
             <DialogDescription>

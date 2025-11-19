@@ -403,28 +403,29 @@ export default function OpportunitiesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
             OPPORTUNITIES
           </h1>
-          <p className={textStyles.body.regular}>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
             Manage all DJ opportunities and gigs
           </p>
         </div>
         <Button
-          className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+          className="bg-brand-green hover:bg-brand-green/90 text-brand-black w-full sm:w-auto"
           onClick={() => (window.location.href = "/admin/create-opportunity")}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Create Opportunity
+          <span className="hidden sm:inline">Create Opportunity</span>
+          <span className="sm:hidden">Create</span>
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -519,18 +520,18 @@ export default function OpportunitiesPage() {
                 opportunity.is_archived ? "opacity-75" : ""
               }`}
             >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between gap-6">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                   {/* Image Section */}
                   {opportunity.image_url && (
-                    <div className="flex-shrink-0">
-                      <div className="relative w-32 h-32 rounded-lg overflow-hidden bg-muted">
+                    <div className="flex-shrink-0 w-full sm:w-auto">
+                      <div className="relative w-full sm:w-32 h-48 sm:h-32 rounded-lg overflow-hidden bg-muted">
                         <Image
                           src={opportunity.image_url}
                           alt={opportunity.title}
                           fill
                           className="object-cover transition-all duration-300 ease-in-out"
-                          sizes="128px"
+                          sizes="(max-width: 640px) 100vw, 128px"
                           placeholder="blur"
                           blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWESEyMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                           loading="lazy"
@@ -540,53 +541,134 @@ export default function OpportunitiesPage() {
                     </div>
                   )}
 
-                  <div className="flex-1">
-                    <h3 className={`${textStyles.subheading.large} mb-2`}>
+                  <div className="flex-1 w-full min-w-0">
+                    <h3 className={`${textStyles.subheading.large} mb-2 text-base sm:text-lg`}>
                       {opportunity.title}
                     </h3>
 
-                    <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-4">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {opportunity.event_date
-                          ? formatDate(opportunity.event_date)
-                          : opportunity.date}
+                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span className="truncate">
+                          {opportunity.event_date
+                            ? formatDate(opportunity.event_date)
+                            : opportunity.date}
+                        </span>
                       </div>
                       <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {formatTimeRange(
-                          opportunity.event_date,
-                          opportunity.event_end_time
-                        )}
+                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span className="truncate">
+                          {formatTimeRange(
+                            opportunity.event_date,
+                            opportunity.event_end_time
+                          )}
+                        </span>
                       </div>
                       <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-1" />
-                        {opportunity.location}
+                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span className="truncate">{opportunity.location}</span>
                       </div>
                       <div className="flex items-center">
-                        {opportunity.payment
-                          ? `£${opportunity.payment}`
-                          : opportunity.pay}
+                        <span className="truncate">
+                          {opportunity.payment
+                            ? `£${opportunity.payment}`
+                            : opportunity.pay}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                       <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-1" />
+                        <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         {opportunity.applicants || 0} applicants
                       </div>
                       {opportunity.selected && (
                         <div className="flex items-center">
                           <span className="text-brand-green">Selected: </span>
-                          <span className="text-foreground">
+                          <span className="text-foreground truncate">
                             {opportunity.selected}
                           </span>
                         </div>
                       )}
                     </div>
+
+                    {/* Mobile: Action buttons below content */}
+                    <div className="flex flex-wrap items-center gap-2 sm:hidden mt-3">
+                      {getStatusBadge(
+                        opportunity.is_archived
+                          ? "archived"
+                          : opportunity.is_active
+                          ? "active"
+                          : opportunity.status
+                      )}
+                      {opportunity.genre && (
+                        <Badge
+                          variant="outline"
+                          className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                        >
+                          {opportunity.genre}
+                        </Badge>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-foreground text-xs"
+                        onClick={() =>
+                          (window.location.href = `/admin/opportunities/${opportunity.id}`)
+                        }
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            disabled={actionLoadingId === opportunity.id}
+                          >
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="bg-card border-border"
+                        >
+                          <DropdownMenuItem
+                            onClick={() =>
+                              toggleArchive(
+                                opportunity.id,
+                                opportunity.title,
+                                !opportunity.is_archived
+                              )
+                            }
+                            disabled={actionLoadingId === opportunity.id}
+                          >
+                            {opportunity.is_archived ? (
+                              <RotateCcw className="h-4 w-4 mr-2" />
+                            ) : (
+                              <Archive className="h-4 w-4 mr-2" />
+                            )}
+                            {opportunity.is_archived ? "Reopen" : "Archive"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleDelete(opportunity.id, opportunity.title)
+                            }
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            disabled={actionLoadingId === opportunity.id}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
+                  {/* Desktop: Action buttons on the right */}
+                  <div className="hidden sm:flex items-center space-x-2">
                     {getStatusBadge(
                       opportunity.is_archived
                         ? "archived"
@@ -667,7 +749,7 @@ export default function OpportunitiesPage() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent className="bg-card border-border text-foreground">
+        <DialogContent className="bg-card border-border text-foreground max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle
               className={`${textStyles.subheading.large} text-brand-white`}

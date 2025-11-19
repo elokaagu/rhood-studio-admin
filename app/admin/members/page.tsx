@@ -556,28 +556,29 @@ export default function MembersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
             MEMBERS
           </h1>
-          <p className={textStyles.body.regular}>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
             Manage R/HOOD community members
           </p>
         </div>
         <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
           <DialogTrigger asChild>
             <Button
-              className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+              className="bg-brand-green text-brand-black hover:bg-brand-green/90 w-full sm:w-auto"
               onClick={handleInviteMember}
             >
               <UserPlus className="h-4 w-4 mr-2" />
-              Invite Member
+              <span className="hidden sm:inline">Invite Member</span>
+              <span className="sm:hidden">Invite</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border">
+          <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
             <DialogHeader>
               <DialogTitle className={textStyles.subheading.large}>
                 Invite New Member
@@ -670,25 +671,25 @@ export default function MembersPage() {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:space-x-4">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search members, locations, or genres..."
-            className="pl-10 bg-secondary border-border text-foreground"
+            className="pl-10 bg-secondary border-border text-foreground w-full"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap items-center gap-2 sm:space-x-2">
           <Button
             variant="outline"
             size="sm"
-            className={
+            className={`text-xs sm:text-sm ${
               activeFilter === "all"
                 ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
                 : ""
-            }
+            }`}
             onClick={() => setActiveFilter("all")}
           >
             All
@@ -696,11 +697,11 @@ export default function MembersPage() {
           <Button
             variant="outline"
             size="sm"
-            className={
+            className={`text-xs sm:text-sm ${
               activeFilter === "active"
                 ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
                 : ""
-            }
+            }`}
             onClick={() => setActiveFilter("active")}
           >
             Active
@@ -708,11 +709,11 @@ export default function MembersPage() {
           <Button
             variant="outline"
             size="sm"
-            className={
+            className={`text-xs sm:text-sm ${
               activeFilter === "inactive"
                 ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
                 : ""
-            }
+            }`}
             onClick={() => setActiveFilter("inactive")}
           >
             Inactive
@@ -722,12 +723,15 @@ export default function MembersPage() {
         {/* Sort Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="min-w-[140px]">
-              <ArrowUpDown className="h-4 w-4 mr-2" />
-              {sortBy === "date_joined_newest" && "Newest First"}
-              {sortBy === "date_joined_oldest" && "Oldest First"}
-              {sortBy === "last_active_newest" && "Recently Active"}
-              {sortBy === "last_active_oldest" && "Least Active"}
+            <Button variant="outline" size="sm" className="min-w-[140px] text-xs sm:text-sm w-full sm:w-auto">
+              <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+              <span className="hidden sm:inline">
+                {sortBy === "date_joined_newest" && "Newest First"}
+                {sortBy === "date_joined_oldest" && "Oldest First"}
+                {sortBy === "last_active_newest" && "Recently Active"}
+                {sortBy === "last_active_oldest" && "Least Active"}
+              </span>
+              <span className="sm:hidden">Sort</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-card border-border">
@@ -776,78 +780,85 @@ export default function MembersPage() {
         ) : (
           filteredMembers.map((member) => (
             <Card key={member.id} className="bg-card border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
                     {/* Avatar with Profile Image */}
-                    <Avatar className="h-12 w-12 bg-brand-green">
+                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12 bg-brand-green flex-shrink-0">
                       <AvatarImage
                         src={member.profileImageUrl}
                         alt={member.name}
                         className="object-cover"
                       />
-                      <AvatarFallback className="text-brand-black font-bold">
+                      <AvatarFallback className="text-brand-black font-bold text-xs sm:text-sm">
                         {getInitials(member.name)}
                       </AvatarFallback>
                     </Avatar>
 
                     {/* Member Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <h3 className={textStyles.subheading.large}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className={`${textStyles.subheading.large} text-base sm:text-lg truncate`}>
                           {member.name}
                         </h3>
-                        <div className="flex items-center">
-                          <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                          <span className="text-sm text-muted-foreground">
+                        <div className="flex items-center flex-shrink-0">
+                          <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400 mr-1" />
+                          <span className="text-xs sm:text-sm text-muted-foreground">
                             {member.rating}
                           </span>
                         </div>
                       </div>
 
                       <p
-                        className={`${textStyles.body.regular} text-muted-foreground`}
+                        className={`${textStyles.body.regular} text-muted-foreground text-xs sm:text-sm truncate`}
                       >
                         {member.email}
                       </p>
 
                       {/* Metadata Row */}
-                      <div className="flex items-center space-x-6 text-sm text-muted-foreground mt-2">
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground mt-2">
+                        {member.location && (
+                          <div className="flex items-center">
+                            <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            <span className="truncate">{member.location}</span>
+                          </div>
+                        )}
                         <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          {member.location}
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          Joined {member.joinedDate}
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          <span className="truncate">Joined {member.joinedDate}</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Right Side - Actions */}
-                  <div className="flex items-center space-x-2">
-                    {getStatusBadge(member.status)}
+                  <div className="flex flex-wrap items-center gap-2 sm:space-x-2">
+                    <div className="w-full sm:w-auto">
+                      {getStatusBadge(member.status)}
+                    </div>
 
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-foreground"
+                      className="text-foreground text-xs sm:text-sm flex-1 sm:flex-initial"
                       onClick={() =>
                         (window.location.href = `/admin/members/${member.id}`)
                       }
                     >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Details
+                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span className="hidden sm:inline">View Details</span>
+                      <span className="sm:hidden">View</span>
                     </Button>
 
                     <Button
                       variant="outline"
                       size="sm"
+                      className="text-xs sm:text-sm flex-1 sm:flex-initial"
                       onClick={() => handleMessageMember(member)}
                     >
-                      <Mail className="h-4 w-4 mr-1" />
-                      Message
+                      <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span className="hidden sm:inline">Message</span>
+                      <span className="sm:hidden">Msg</span>
                     </Button>
 
                     <DropdownMenu>
@@ -855,9 +866,9 @@ export default function MembersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 flex-shrink-0"
                         >
-                          <MoreVertical className="h-4 w-4" />
+                          <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
@@ -885,7 +896,7 @@ export default function MembersPage() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent className="bg-card border-border text-foreground">
+        <DialogContent className="bg-card border-border text-foreground max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle
               className={`${textStyles.subheading.large} text-brand-white`}

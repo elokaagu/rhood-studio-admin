@@ -831,26 +831,27 @@ export default function MixesPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
             MIXES
           </h1>
-          <p className={textStyles.body.regular}>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
             Review and manage submitted DJ mixes
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-3 w-full sm:w-auto">
           <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-brand-green text-brand-black hover:bg-brand-green/90">
+              <Button className="bg-brand-green text-brand-black hover:bg-brand-green/90 w-full sm:w-auto">
                 <Upload className="h-4 w-4 mr-2" />
-                Upload Mix
+                <span className="hidden sm:inline">Upload Mix</span>
+                <span className="sm:hidden">Upload</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-border max-w-2xl">
+            <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle className={textStyles.headline.card}>
                   UPLOAD NEW MIX
@@ -1115,7 +1116,7 @@ export default function MixesPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end space-x-4">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4 sm:space-x-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -1148,6 +1149,7 @@ export default function MixesPage() {
             variant="outline"
             onClick={handleRefreshArtwork}
             disabled={isRefreshingArtwork}
+            className="w-full sm:w-auto text-xs sm:text-sm"
           >
             {isRefreshingArtwork ? "Refreshing..." : "Refresh Artwork"}
           </Button>
@@ -1155,29 +1157,29 @@ export default function MixesPage() {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:space-x-4">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search mixes, artists, or genres..."
-            className="pl-10 bg-secondary border-border text-foreground"
+            className="pl-10 bg-secondary border-border text-foreground w-full"
           />
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap items-center gap-2 sm:space-x-2">
           <Button
             variant="outline"
             size="sm"
-            className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+            className="bg-brand-green text-brand-black hover:bg-brand-green/90 text-xs sm:text-sm"
           >
             All
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
             Pending
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
             Approved
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
             Rejected
           </Button>
         </div>
@@ -1212,11 +1214,11 @@ export default function MixesPage() {
               key={mix.id}
               className="bg-card border-border hover:border-brand-green/30 transition-all duration-300"
             >
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-6">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:space-x-6">
                   {/* Mix Artwork with Play Button */}
-                  <div className="relative group">
-                    <div className="relative h-20 w-20 rounded-xl overflow-hidden bg-gradient-to-br from-secondary to-muted shadow-lg">
+                  <div className="relative group w-full sm:w-auto">
+                    <div className="relative h-32 w-full sm:h-20 sm:w-20 rounded-xl overflow-hidden bg-gradient-to-br from-secondary to-muted shadow-lg">
                       {mix.image_url || mix.imageUrl ? (
                         <Image
                           src={mix.image_url || mix.imageUrl}
@@ -1259,16 +1261,16 @@ export default function MixesPage() {
                   </div>
 
                   {/* Mix Information */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 w-full sm:w-auto">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
                         <h3
-                          className={`${textStyles.subheading.large} truncate`}
+                          className={`${textStyles.subheading.large} text-base sm:text-lg truncate`}
                         >
                           {mix.title}
                         </h3>
                         <p
-                          className={`${textStyles.body.regular} text-muted-foreground truncate`}
+                          className={`${textStyles.body.regular} text-muted-foreground text-xs sm:text-sm truncate`}
                         >
                           by {mix.artist}
                         </p>
@@ -1276,13 +1278,13 @@ export default function MixesPage() {
                     </div>
 
                     {/* Metadata */}
-                    <div className="flex items-center space-x-6 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
                       <div className="flex items-center space-x-1">
-                        <Clock className="h-4 w-4" />
+                        <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span>{formatDuration(mix.duration)}</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <Calendar className="h-4 w-4" />
+                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span>
                           {mix.created_at
                             ? formatDateShort(mix.created_at)
@@ -1293,7 +1295,7 @@ export default function MixesPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center space-x-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:space-x-3 w-full sm:w-auto">
                     {/* Genre Badge */}
                     <div className="flex-shrink-0">
                       {getGenreBadge(mix.genre)}
@@ -1303,11 +1305,12 @@ export default function MixesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-brand-green/10 border-brand-green/30 text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-300"
+                      className="bg-brand-green/10 border-brand-green/30 text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-300 text-xs sm:text-sm flex-1 sm:flex-initial"
                       onClick={() => handleDownload(mix.title, mix.file_url)}
                     >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
+                      <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Download</span>
+                      <span className="sm:hidden">DL</span>
                     </Button>
 
                     {/* More Options */}
@@ -1344,7 +1347,7 @@ export default function MixesPage() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent className="bg-card border-border text-foreground">
+        <DialogContent className="bg-card border-border text-foreground max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle
               className={`${textStyles.subheading.large} text-brand-white`}

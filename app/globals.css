@@ -113,6 +113,18 @@
   }
 }
 
+/* Ensure sidebar is fully opaque */
+[data-sidebar="sidebar"] {
+  background-color: hsl(var(--sidebar-background)) !important;
+  opacity: 1 !important;
+}
+
+/* Ensure sidebar has highest z-index */
+.sidebar,
+[data-sidebar="sidebar"] {
+  z-index: 100 !important;
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -276,28 +276,29 @@ export default function CommunitiesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
             COMMUNITIES
           </h1>
-          <p className={textStyles.body.regular}>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
             Manage group chats and community discussions
           </p>
         </div>
         <Button
-          className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+          className="bg-brand-green hover:bg-brand-green/90 text-brand-black w-full sm:w-auto"
           onClick={() => router.push("/admin/communities/create")}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Create Community
+          <span className="hidden sm:inline">Create Community</span>
+          <span className="sm:hidden">Create</span>
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -381,13 +382,13 @@ export default function CommunitiesPage() {
 
       {/* Search */}
       <div className="flex items-center space-x-2">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search communities..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 w-full"
           />
         </div>
       </div>
@@ -442,9 +443,9 @@ export default function CommunitiesPage() {
               key={community.id}
               className="bg-card border-border hover:border-primary/50 transition-colors"
             >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
                     {/* Community Avatar */}
                     <div className="flex-shrink-0">
                       {community.image_url && !imageErrors.has(community.id) ? (
@@ -518,16 +519,18 @@ export default function CommunitiesPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center space-x-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() =>
                           router.push(`/admin/communities/${community.id}`)
                         }
+                        className="text-xs sm:text-sm flex-1 sm:flex-initial"
                       >
-                        <MessageSquare className="h-3 w-3 mr-1" />
-                        View Chat
+                        <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span className="hidden sm:inline">View Chat</span>
+                        <span className="sm:hidden">View</span>
                       </Button>
                       <Button
                         variant="outline"
@@ -535,8 +538,9 @@ export default function CommunitiesPage() {
                         onClick={() =>
                           router.push(`/admin/communities/${community.id}/edit`)
                         }
+                        className="text-xs sm:text-sm"
                       >
-                        <Settings className="h-3 w-3" />
+                        <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
 
                       <DropdownMenu>

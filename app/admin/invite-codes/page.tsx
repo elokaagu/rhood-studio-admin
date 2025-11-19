@@ -299,19 +299,19 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'th
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
             INVITE CODES
           </h1>
-          <p className={textStyles.body.regular}>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
             Generate invite codes for brand accounts
           </p>
         </div>
         <Button
-          className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+          className="bg-brand-green hover:bg-brand-green/90 text-brand-black w-full sm:w-auto"
           onClick={() => setIsDialogOpen(true)}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -322,8 +322,8 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'th
       {/* Instructions */}
       <Alert className="bg-card border-border">
         <Info className="h-4 w-4" />
-        <AlertTitle>How Invite Codes Work</AlertTitle>
-        <AlertDescription className="mt-2 space-y-2">
+        <AlertTitle className="text-sm sm:text-base">How Invite Codes Work</AlertTitle>
+        <AlertDescription className="mt-2 space-y-2 text-xs sm:text-sm">
           <p>
             <strong>1. Generate a code:</strong> Click &quot;Generate Code&quot; and enter the brand name. The code will be automatically copied to your clipboard.
           </p>
@@ -354,20 +354,20 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'th
         ) : (
           inviteCodes.map((code) => (
             <Card key={code.id} className="bg-card border-border">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between gap-6">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className={`${textStyles.subheading.large} font-mono`}>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                      <h3 className={`${textStyles.subheading.large} font-mono text-base sm:text-lg break-all`}>
                         {code.code}
                       </h3>
                       {getStatusBadge(code)}
                     </div>
 
-                    <div className="space-y-1 text-sm text-muted-foreground">
+                    <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
                       <p>
                         <span className="font-semibold">Brand:</span>{" "}
-                        {code.brand_name}
+                        <span className="truncate block sm:inline">{code.brand_name}</span>
                       </p>
                       <p>
                         <span className="font-semibold">Created:</span>{" "}
@@ -382,36 +382,41 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'th
                       {code.used_by && code.used_by_profile && (
                         <p>
                           <span className="font-semibold">Used by:</span>{" "}
-                          {code.used_by_profile.email}
+                          <span className="truncate block sm:inline">{code.used_by_profile.email}</span>
                         </p>
                       )}
                       {code.created_by_profile && (
                         <p>
                           <span className="font-semibold">Created by:</span>{" "}
-                          {code.created_by_profile.dj_name ||
-                            code.created_by_profile.brand_name ||
-                            `${code.created_by_profile.first_name} ${code.created_by_profile.last_name}`}
+                          <span className="truncate block sm:inline">
+                            {code.created_by_profile.dj_name ||
+                              code.created_by_profile.brand_name ||
+                              `${code.created_by_profile.first_name} ${code.created_by_profile.last_name}`}
+                          </span>
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleCopyCode(code.code)}
                       disabled={copiedCode === code.code}
+                      className="text-xs sm:text-sm flex-1 sm:flex-initial"
                     >
                       {copiedCode === code.code ? (
                         <>
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Copied
+                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          <span className="hidden sm:inline">Copied</span>
+                          <span className="sm:hidden">✓</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="h-4 w-4 mr-1" />
-                          Copy Code
+                          <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          <span className="hidden sm:inline">Copy Code</span>
+                          <span className="sm:hidden">Copy</span>
                         </>
                       )}
                     </Button>
@@ -422,18 +427,21 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'th
                           size="sm"
                           onClick={() => handleShareCode(code)}
                           title="Copy share instructions to clipboard"
+                          className="text-xs sm:text-sm flex-1 sm:flex-initial"
                         >
-                          <Share2 className="h-4 w-4 mr-1" />
-                          Share
+                          <Share2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          <span className="hidden sm:inline">Share</span>
+                          <span className="sm:hidden">Share</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 text-xs sm:text-sm flex-1 sm:flex-initial"
                           onClick={() => handleDeactivateCode(code.id)}
                         >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Deactivate
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          <span className="hidden sm:inline">Deactivate</span>
+                          <span className="sm:hidden">Deactivate</span>
                         </Button>
                       </>
                     )}
@@ -447,7 +455,7 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'th
 
       {/* Generate Code Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Generate Invite Code</DialogTitle>
             <DialogDescription>

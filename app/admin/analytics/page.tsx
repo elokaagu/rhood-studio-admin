@@ -824,22 +824,22 @@ export default function AnalyticsPage() {
   const isBusy = isGeneratingCSV || isGeneratingPDF;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
             ANALYTICS
           </h1>
-          <p className={textStyles.body.regular}>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
             Analytics and insights for R/HOOD
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <Button
             asChild
             variant="outline"
-            className="border-brand-green text-brand-green hover:bg-brand-green/10"
+            className="border-brand-green text-brand-green hover:bg-brand-green/10 w-full sm:w-auto"
           >
             <a
               href="https://analytics.google.com/analytics/web/?authuser=3#/a375463949p513483059/realtime/overview?params=_u..nav%3Dmaui&collectionId=app"
@@ -847,14 +847,15 @@ export default function AnalyticsPage() {
               rel="noopener noreferrer"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
-              Detailed Analytics
+              <span className="hidden sm:inline">Detailed Analytics</span>
+              <span className="sm:hidden">Analytics</span>
             </a>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 disabled={isBusy}
-                className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+                className="bg-brand-green hover:bg-brand-green/90 text-brand-black w-full sm:w-auto"
               >
                 {isBusy ? (
                   <>
@@ -864,7 +865,8 @@ export default function AnalyticsPage() {
                 ) : (
                   <>
                     <Download className="h-4 w-4 mr-2" />
-                    Export Data
+                    <span className="hidden sm:inline">Export Data</span>
+                    <span className="sm:hidden">Export</span>
                   </>
                 )}
               </Button>
@@ -898,7 +900,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -1064,22 +1066,22 @@ export default function AnalyticsPage() {
               {topUsers.mostActive.map((user, index) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                  className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-muted/50"
                 >
-                  <div className="flex items-center space-x-2">
-                    <Badge className="bg-brand-green text-brand-black text-xs">
+                  <div className="flex items-center space-x-2 min-w-0 flex-1">
+                    <Badge className="bg-brand-green text-brand-black text-xs flex-shrink-0">
                       #{index + 1}
                     </Badge>
                     <button
                       onClick={() => router.push(`/admin/members/${user.id}`)}
-                      className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer`}
+                      className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer truncate text-left`}
                     >
                       {user.name}
                     </button>
                   </div>
                   <Badge
                     variant="outline"
-                    className="border-brand-green text-brand-green bg-transparent"
+                    className="border-brand-green text-brand-green bg-transparent flex-shrink-0 text-xs"
                   >
                     {user.gigs} gigs
                   </Badge>
@@ -1133,17 +1135,17 @@ export default function AnalyticsPage() {
               {topUsers.upAndComing.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                  className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-muted/50"
                 >
                   <button
                     onClick={() => router.push(`/admin/members/${user.id}`)}
-                    className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer`}
+                    className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer truncate text-left text-xs sm:text-sm min-w-0 flex-1`}
                   >
                     {user.name}
                   </button>
                   <Badge
                     variant="outline"
-                    className="border-brand-green text-brand-green bg-transparent"
+                    className="border-brand-green text-brand-green bg-transparent flex-shrink-0 text-xs"
                   >
                     <ArrowUp className="h-3 w-3 mr-1" />
                     New
@@ -1166,17 +1168,17 @@ export default function AnalyticsPage() {
               {topUsers.leastActive.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                  className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-muted/50"
                 >
                   <button
                     onClick={() => router.push(`/admin/members/${user.id}`)}
-                    className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer`}
+                    className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer truncate text-left text-xs sm:text-sm min-w-0 flex-1`}
                   >
                     {user.name}
                   </button>
                   <Badge
                     variant="outline"
-                    className="border-gray-400 text-gray-400 bg-transparent"
+                    className="border-gray-400 text-gray-400 bg-transparent flex-shrink-0 text-xs"
                   >
                     {user.gigs} gigs
                   </Badge>

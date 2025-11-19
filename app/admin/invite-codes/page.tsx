@@ -86,6 +86,7 @@ export default function InviteCodesPage() {
 
   useEffect(() => {
     fetchInviteCodes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleGenerateCode = async () => {
@@ -238,7 +239,8 @@ export default function InviteCodesPage() {
           <XCircle className="h-3 w-3 mr-1" />
           Inactive
         </Badge>
-      }
+      );
+    }
 
     if (code.expires_at && new Date(code.expires_at) < new Date()) {
       return (

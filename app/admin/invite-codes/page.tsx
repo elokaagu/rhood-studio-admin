@@ -18,6 +18,8 @@ import {
   Clock,
   Trash2,
   Key,
+  Share2,
+  Info,
 } from "lucide-react";
 import {
   Dialog,
@@ -28,6 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/date-utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function InviteCodesPage() {
   const { toast } = useToast();
@@ -190,6 +193,36 @@ export default function InviteCodesPage() {
     }
   };
 
+  const handleShareCode = async (code: any) => {
+    const shareText = `You've been invited to create a brand account on R/HOOD Portal!
+
+Brand: ${code.brand_name}
+Invite Code: ${code.code}
+
+To create your account:
+1. Go to the login page
+2. Click "Create Account"
+3. Toggle to "Sign up as Brand instead"
+4. Enter your details and the invite code above
+5. Complete your registration
+
+The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'the expiration date set by the admin'}.`;
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      toast({
+        title: "Instructions Copied!",
+        description: "Share instructions copied to clipboard. You can paste this in an email or message.",
+      });
+    } catch (error) {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy share instructions",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeactivateCode = async (codeId: string) => {
     try {
       const { error } = await supabase
@@ -286,6 +319,26 @@ export default function InviteCodesPage() {
         </Button>
       </div>
 
+      {/* Instructions */}
+      <Alert className="bg-card border-border">
+        <Info className="h-4 w-4" />
+        <AlertTitle>How Invite Codes Work</AlertTitle>
+        <AlertDescription className="mt-2 space-y-2">
+          <p>
+            <strong>1. Generate a code:</strong> Click &quot;Generate Code&quot; and enter the brand name. The code will be automatically copied to your clipboard.
+          </p>
+          <p>
+            <strong>2. Share with the brand:</strong> Send the invite code to the brand contact (via email, Slack, etc.). You can use the &quot;Share&quot; button to copy ready-to-send instructions.
+          </p>
+          <p>
+            <strong>3. Brand creates account:</strong> The brand goes to the login page, clicks &quot;Create Account&quot;, toggles to &quot;Sign up as Brand instead&quot;, and enters the invite code along with their details.
+          </p>
+          <p>
+            <strong>4. Automatic setup:</strong> Once the brand signs up, their account is automatically configured with the brand role and brand name from the invite code.
+          </p>
+        </AlertDescription>
+      </Alert>
+
       {/* Invite Codes List */}
       <div className="space-y-4">
         {isLoading ? (
@@ -358,20 +411,31 @@ export default function InviteCodesPage() {
                       ) : (
                         <>
                           <Copy className="h-4 w-4 mr-1" />
-                          Copy
+                          Copy Code
                         </>
                       )}
                     </Button>
                     {!code.used_by && code.is_active && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => handleDeactivateCode(code.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Deactivate
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleShareCode(code)}
+                          title="Copy share instructions to clipboard"
+                        >
+                          <Share2 className="h-4 w-4 mr-1" />
+                          Share
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => handleDeactivateCode(code.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Deactivate
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>

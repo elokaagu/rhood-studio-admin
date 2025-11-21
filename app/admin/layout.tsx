@@ -50,6 +50,8 @@ import {
   BarChart3,
   Key,
   Calendar,
+  Coins,
+  Trophy,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -115,6 +117,18 @@ const allSidebarItems = [
     title: "Invite Codes",
     url: "/admin/invite-codes",
     icon: Key,
+    roles: ["admin"] as UserRole[],
+  },
+  {
+    title: "Leaderboard",
+    url: "/admin/leaderboard",
+    icon: Trophy,
+    roles: ["admin"] as UserRole[],
+  },
+  {
+    title: "Credit Transactions",
+    url: "/admin/credits/transactions",
+    icon: Coins,
     roles: ["admin"] as UserRole[],
   },
 ];
@@ -204,6 +218,7 @@ export default function AdminLayout({
   const router = useRouter();
   const { toast } = useToast();
   const [userName, setUserName] = useState<string>("RHOOD TEAM");
+  const [userCredits, setUserCredits] = useState<number>(0);
   const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -229,9 +244,9 @@ export default function AdminLayout({
         // Fetch user profile
         const { data: profile, error: profileError } = await supabase
           .from("user_profiles")
-          .select("first_name, last_name, dj_name, brand_name, role")
+          .select("first_name, last_name, dj_name, brand_name, role, credits")
           .eq("id", user.id)
-          .single();
+          .single() as { data: any; error: any };
 
         if (profileError) {
           console.warn("Unable to fetch user profile:", profileError);
@@ -256,6 +271,11 @@ export default function AdminLayout({
             user.email?.split("@")[0] ||
             "RHOOD TEAM";
           setUserName(displayName.toUpperCase());
+        }
+
+        // Set user credits (credits column may not exist in types yet - migration needed)
+        if (profile && (profile as any).credits !== undefined && (profile as any).credits !== null) {
+          setUserCredits((profile as any).credits);
         }
       } catch (error) {
         console.error("Error fetching user name:", error);
@@ -444,6 +464,16 @@ export default function AdminLayout({
               >
                 {userName}
               </Badge>
+              {/* Credits Badge - only show for DJs */}
+              {userCredits > 0 && (
+                <Badge
+                  variant="outline"
+                  className="border-brand-green text-brand-green bg-transparent text-xs sm:text-sm px-2 sm:px-3 hidden sm:inline-flex items-center gap-1"
+                >
+                  <Coins className="h-3 w-3 sm:h-4 sm:w-4" />
+                  {userCredits}
+                </Badge>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">

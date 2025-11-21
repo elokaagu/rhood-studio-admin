@@ -37,6 +37,8 @@ import {
   MoreVertical,
   Archive,
   RotateCcw,
+  Rocket,
+  Coins,
 } from "lucide-react";
 
 export default function OpportunitiesPage() {
@@ -49,12 +51,33 @@ export default function OpportunitiesPage() {
     title: string;
   } | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [userCredits, setUserCredits] = useState<number>(0);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [boostingOpportunityId, setBoostingOpportunityId] = useState<string | null>(null);
 
   // Fetch opportunities from database
   const fetchOpportunities = async () => {
     try {
       const userProfile = await getCurrentUserProfile();
       const userId = await getCurrentUserId();
+      
+      // Store user role and credits
+      if (userProfile) {
+        setUserRole(userProfile.role || null);
+      }
+      
+      // Fetch user credits if user is a DJ
+      if (userId && userProfile?.role !== "brand" && userProfile?.role !== "admin") {
+        // @ts-ignore - credits column not in types yet (migration needed)
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("credits")
+          .eq("id", userId)
+          .single();
+        if (profile && (profile as any).credits !== undefined) {
+          setUserCredits((profile as any).credits || 0);
+        }
+      }
 
       // Build query based on user role
       let query = supabase.from("opportunities").select("*");
@@ -72,28 +95,49 @@ export default function OpportunitiesPage() {
         throw error;
       }
 
-      // Fetch applicants count for each opportunity
+      // Fetch applicants count and boost information for each opportunity
       if (data && data.length > 0) {
         const opportunitiesWithApplicants = await Promise.all(
           data.map(async (opportunity) => {
             try {
-              const { count, error: countError } = await supabase
-                .from("applications")
-                .select("*", { count: "exact", head: true })
-                .eq("opportunity_id", opportunity.id);
+              const [applicantsResult, boostsResult] = await Promise.all([
+                supabase
+                  .from("applications")
+                  .select("*", { count: "exact", head: true })
+                  .eq("opportunity_id", opportunity.id)
+                  .then((result: any) => ({ ...result, countError: result.error })),
+                // @ts-ignore - opportunity_boosts table not in types yet (migration needed)
+                (supabase.from as any)("opportunity_boosts")
+                  .select("id, user_id, boost_expires_at")
+                  .eq("opportunity_id", opportunity.id)
+                  .eq("is_active", true)
+                  .gte("boost_expires_at", new Date().toISOString())
+                  .order("created_at", { ascending: false }),
+              ]);
+
+              const hasActiveBoost = boostsResult.data && boostsResult.data.length > 0;
+              const userBoost = userId
+                ? (boostsResult.data as any)?.find((boost: any) => boost.user_id === userId)
+                : null;
 
               return {
                 ...opportunity,
-                applicants: countError ? 0 : count || 0,
+                applicants: applicantsResult.countError ? 0 : applicantsResult.count || 0,
+                hasBoost: hasActiveBoost,
+                userBoost: userBoost,
+                boostCount: (boostsResult.data as any)?.length || 0,
               };
             } catch (err) {
               console.warn(
-                `Could not fetch applicants count for opportunity ${opportunity.id}:`,
+                `Could not fetch data for opportunity ${opportunity.id}:`,
                 err
               );
               return {
                 ...opportunity,
                 applicants: 0,
+                hasBoost: false,
+                userBoost: null,
+                boostCount: 0,
               };
             }
           })
@@ -170,7 +214,24 @@ export default function OpportunitiesPage() {
           }
         }
 
-        setOpportunities(normalized);
+        // Sort opportunities: boosted ones first, then by created_at
+        const sorted = normalized.sort((a, b) => {
+          // Boosted opportunities first
+          if (a.hasBoost && !b.hasBoost) return -1;
+          if (!a.hasBoost && b.hasBoost) return 1;
+          // If both boosted, sort by boost count (more boosts = higher)
+          if (a.hasBoost && b.hasBoost) {
+            if ((b.boostCount || 0) !== (a.boostCount || 0)) {
+              return (b.boostCount || 0) - (a.boostCount || 0);
+            }
+          }
+          // Then by created_at (newest first)
+          const aDate = new Date(a.created_at || 0).getTime();
+          const bDate = new Date(b.created_at || 0).getTime();
+          return bDate - aDate;
+        });
+
+        setOpportunities(sorted);
       } else {
         setOpportunities([]);
       }
@@ -241,6 +302,45 @@ export default function OpportunitiesPage() {
   ) => {
     setOpportunityToDelete({ id: opportunityId, title: opportunityTitle });
     setDeleteModalOpen(true);
+  };
+
+  const handleBoost = async (opportunityId: string, opportunityTitle: string) => {
+    try {
+      setBoostingOpportunityId(opportunityId);
+      
+      const response = await fetch("/api/credits/boost-opportunity", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          opportunity_id: opportunityId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to boost opportunity");
+      }
+
+      toast({
+        title: "Successfully Boosted!",
+        description: `${opportunityTitle} has been boosted to the top of the list for 24 hours.`,
+      });
+
+      // Refresh opportunities and user credits
+      await fetchOpportunities();
+    } catch (error: any) {
+      console.error("Error boosting opportunity:", error);
+      toast({
+        title: "Boost Failed",
+        description: error.message || "Failed to boost opportunity. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setBoostingOpportunityId(null);
+    }
   };
 
   const confirmDelete = async () => {
@@ -582,6 +682,15 @@ export default function OpportunitiesPage() {
                         <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         {opportunity.applicants || 0} applicants
                       </div>
+                      {opportunity.hasBoost && (
+                        <Badge
+                          variant="outline"
+                          className="border-brand-green text-brand-green bg-transparent text-xs"
+                        >
+                          <Rocket className="h-3 w-3 mr-1" />
+                          Boosted
+                        </Badge>
+                      )}
                       {opportunity.selected && (
                         <div className="flex items-center">
                           <span className="text-brand-green">Selected: </span>
@@ -607,6 +716,38 @@ export default function OpportunitiesPage() {
                           className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
                         >
                           {opportunity.genre}
+                        </Badge>
+                      )}
+                      {/* Boost button for DJs */}
+                      {userRole !== "brand" && userRole !== "admin" && !opportunity.userBoost && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-brand-green border-brand-green hover:bg-brand-green hover:text-brand-black text-xs"
+                          onClick={() => handleBoost(opportunity.id, opportunity.title)}
+                          disabled={boostingOpportunityId === opportunity.id || userCredits < 100}
+                          title={userCredits < 100 ? "You need 100 credits to boost" : "Boost to top (100 credits)"}
+                        >
+                          {boostingOpportunityId === opportunity.id ? (
+                            <>
+                              <Clock className="h-3 w-3 mr-1 animate-spin" />
+                              Boosting...
+                            </>
+                          ) : (
+                            <>
+                              <Rocket className="h-3 w-3 mr-1" />
+                              Boost
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      {opportunity.userBoost && (
+                        <Badge
+                          variant="outline"
+                          className="border-brand-green text-brand-green bg-brand-green/10 text-xs"
+                        >
+                          <Rocket className="h-3 w-3 mr-1" />
+                          Your Boost Active
                         </Badge>
                       )}
                       <Button
@@ -682,6 +823,38 @@ export default function OpportunitiesPage() {
                         className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
                       >
                         {opportunity.genre}
+                      </Badge>
+                    )}
+                    {/* Boost button for DJs - Desktop */}
+                    {userRole !== "brand" && userRole !== "admin" && !opportunity.userBoost && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-brand-green border-brand-green hover:bg-brand-green hover:text-brand-black"
+                        onClick={() => handleBoost(opportunity.id, opportunity.title)}
+                        disabled={boostingOpportunityId === opportunity.id || userCredits < 100}
+                        title={userCredits < 100 ? "You need 100 credits to boost" : "Boost to top (100 credits)"}
+                      >
+                        {boostingOpportunityId === opportunity.id ? (
+                          <>
+                            <Clock className="h-4 w-4 mr-1 animate-spin" />
+                            Boosting...
+                          </>
+                        ) : (
+                          <>
+                            <Rocket className="h-4 w-4 mr-1" />
+                            Boost
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    {opportunity.userBoost && (
+                      <Badge
+                        variant="outline"
+                        className="border-brand-green text-brand-green bg-brand-green/10"
+                      >
+                        <Rocket className="h-4 w-4 mr-1" />
+                        Your Boost Active
                       </Badge>
                     )}
                     <Button

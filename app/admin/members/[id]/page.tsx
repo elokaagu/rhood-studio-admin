@@ -21,6 +21,10 @@ import {
   Edit,
   Trash2,
   MoreVertical,
+  Key,
+  CheckCircle,
+  Clock,
+  Coins,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -44,6 +48,8 @@ export default function MemberDetailsPage() {
   const { toast } = useToast();
   const [member, setMember] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [inviteCodes, setInviteCodes] = useState<any[]>([]);
+  const [isLoadingInviteCodes, setIsLoadingInviteCodes] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<{
     id: string;
@@ -118,6 +124,7 @@ export default function MemberDetailsPage() {
           phone: "No phone", // Phone field doesn't exist in database schema
           profileImageUrl: data.profile_image_url, // Add profile image URL
           rating: rating,
+          credits: (data as any).credits || 0,
           socialLinks: {
             instagram: data.instagram || "",
             soundcloud: data.soundcloud || "",
@@ -199,10 +206,47 @@ export default function MemberDetailsPage() {
     setIsLoading(false);
   };
 
+  // Fetch invite codes used by this member
+  const fetchInviteCodes = async () => {
+    if (!memberId) return;
+    
+    try {
+      setIsLoadingInviteCodes(true);
+      const { data, error } = await supabase
+        .from("invite_codes")
+        .select(
+          `
+          *,
+          created_by_profile:user_profiles!invite_codes_created_by_fkey(dj_name, first_name, last_name, brand_name, email)
+        `
+        )
+        .eq("used_by", memberId as string)
+        .order("used_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setInviteCodes(data || []);
+    } catch (error) {
+      console.error("Error fetching invite codes:", error);
+      // Don't show toast for invite codes error, just log it
+    } finally {
+      setIsLoadingInviteCodes(false);
+    }
+  };
+
   // Load member on component mount
   useEffect(() => {
     fetchMember();
   }, [memberId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch invite codes when member is loaded
+  useEffect(() => {
+    if (member?.id) {
+      fetchInviteCodes();
+    }
+  }, [member?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = () => {
     if (member) {
@@ -569,6 +613,109 @@ export default function MemberDetailsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Credit Transactions */}
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
+                <Coins className="h-4 w-4" />
+                Credit Transactions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isLoadingInviteCodes ? (
+                <p className={textStyles.body.regular}>Loading transactions...</p>
+              ) : (
+                <div className="space-y-2">
+                  {/* Show recent 5 transactions */}
+                  <p className={`${textStyles.body.small} text-muted-foreground mb-3`}>
+                    Recent credit transactions for this member
+                  </p>
+                  {/* Transaction list will be added here */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/admin/credits/transactions?user=${member.id}`)}
+                    className="w-full"
+                  >
+                    View All Transactions
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Invite Codes */}
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
+                <Key className="h-4 w-4" />
+                Invite Codes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isLoadingInviteCodes ? (
+                <p className={textStyles.body.regular}>Loading invite codes...</p>
+              ) : inviteCodes.length === 0 ? (
+                <p className={`${textStyles.body.regular} text-muted-foreground`}>
+                  This member hasn&apos;t used any invite codes.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {inviteCodes.map((code) => (
+                    <div
+                      key={code.id}
+                      className="p-4 bg-secondary rounded-md border border-border"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <code className={`${textStyles.body.regular} font-mono text-brand-green font-semibold`}>
+                              {code.code}
+                            </code>
+                            <Badge
+                              variant="outline"
+                              className="border-green-500 text-green-500 bg-transparent"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Used
+                            </Badge>
+                          </div>
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <p>
+                              <span className="font-semibold">Brand:</span> {code.brand_name}
+                            </p>
+                            {code.used_at && (
+                              <p>
+                                <span className="font-semibold">Used on:</span>{" "}
+                                {formatDate(code.used_at)}
+                              </p>
+                            )}
+                            {code.created_by_profile && (
+                              <p>
+                                <span className="font-semibold">Created by:</span>{" "}
+                                {code.created_by_profile.dj_name ||
+                                  code.created_by_profile.brand_name ||
+                                  `${code.created_by_profile.first_name || ""} ${code.created_by_profile.last_name || ""}`.trim() ||
+                                  code.created_by_profile.email ||
+                                  "Unknown"}
+                              </p>
+                            )}
+                            {code.created_at && (
+                              <p>
+                                <span className="font-semibold">Created:</span>{" "}
+                                {formatDate(code.created_at)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar */}
@@ -646,6 +793,16 @@ export default function MemberDetailsPage() {
                 </div>
                 <span className={textStyles.subheading.small}>
                   {member.rating || 0.0}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Coins className="h-4 w-4 mr-2 text-brand-green" />
+                  <span className={textStyles.body.regular}>Credits</span>
+                </div>
+                <span className={`${textStyles.subheading.small} text-brand-green`}>
+                  {member.credits || 0}
                 </span>
               </div>
             </CardContent>

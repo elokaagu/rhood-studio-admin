@@ -13,7 +13,7 @@ A comprehensive music community management platform for DJs and producers, built
 ## 🎯 Features
 
 - **Admin Dashboard**: Comprehensive management interface with live statistics
-- **Opportunities Management**: Create, edit, and manage DJ opportunities and gigs
+- **Opportunities Management**: Create, edit, and manage DJ opportunities and gigs with AI-powered text refinement
 - **Applications Review**: Review and approve/reject DJ applications with detailed profiles
 - **Members Management**: Manage DJ community members with social media integration
 - **Mixes Management**: Handle DJ mix submissions with automatic approval
@@ -67,6 +67,9 @@ A comprehensive music community management platform for DJs and producers, built
    RESEND_API_KEY=re_your_resend_api_key_here
    RESEND_FROM_EMAIL="R/HOOD Portal <info@rhood.io>"
    
+   # OpenAI API (for AI text refinement in opportunity descriptions)
+   OPENAI_API_KEY=sk-your_openai_api_key_here
+   
    # Application URLs
    NEXT_PUBLIC_APP_URL=https://portal.rhood.co
    NEXT_PUBLIC_SITE_URL=https://portal.rhood.co
@@ -81,6 +84,12 @@ A comprehensive music community management platform for DJs and producers, built
    **Supabase Email Templates:**
    - Configure signup confirmation emails to show "R/HOOD" as sender
    - See [Supabase Email Setup Guide](./SUPABASE_EMAIL_SETUP.md) for detailed instructions
+   
+   **OpenAI Setup (Optional - for AI text refinement):**
+   - Sign up at [openai.com](https://openai.com)
+   - Get your API key from the dashboard (starts with `sk-`)
+   - Add `OPENAI_API_KEY` to your environment variables
+   - If not configured, the AI refinement feature will be disabled
 
 4. **Set up the database:**
    - Go to your Supabase project dashboard
@@ -130,6 +139,7 @@ A comprehensive music community management platform for DJs and producers, built
 
 ### **Opportunities Management**
 - Create and manage DJ gig opportunities
+- AI-powered text refinement for clearer descriptions (700 character limit)
 - Image upload with lazy loading
 - Status management (active/inactive)
 - Search and filtering capabilities

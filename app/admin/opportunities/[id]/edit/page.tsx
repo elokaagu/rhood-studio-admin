@@ -30,6 +30,8 @@ import {
   Clock,
   CheckCircle,
   Link as LinkIcon,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import LocationAutocomplete from "@/components/location-autocomplete";
@@ -43,7 +45,7 @@ import {
 } from "@/components/ui/dialog";
 import { getDisplayLength, getDisplayText } from "@/lib/text-utils";
 
-const DESCRIPTION_MAX_LENGTH = 350;
+const DESCRIPTION_MAX_LENGTH = 700;
 
 export default function EditOpportunityPage() {
   const params = useParams();
@@ -55,6 +57,8 @@ export default function EditOpportunityPage() {
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
+  const [aiRefineDialogOpen, setAiRefineDialogOpen] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Fetch opportunity data from database
@@ -558,6 +562,73 @@ export default function EditOpportunityPage() {
     }, 0);
   };
 
+  const handleRefineWithAI = async () => {
+    if (!formData.description.trim()) {
+      toast({
+        title: "No text to refine",
+        description: "Please enter some text in the description field first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRefining(true);
+    try {
+      const response = await fetch("/api/ai/refine", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: formData.description,
+          maxLength: DESCRIPTION_MAX_LENGTH,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to refine text");
+      }
+
+      const data = await response.json();
+      const refinedText = data.refinedText || formData.description;
+
+      // Check display length before applying
+      if (getDisplayLength(refinedText) > DESCRIPTION_MAX_LENGTH) {
+        toast({
+          title: "Refinement too long",
+          description: `The refined text exceeds the ${DESCRIPTION_MAX_LENGTH} character limit.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setFormData({ ...formData, description: refinedText });
+      setAiRefineDialogOpen(false);
+      toast({
+        title: "Text refined",
+        description: "Your description has been refined by AI.",
+      });
+
+      // Focus the textarea after refinement
+      setTimeout(() => {
+        descriptionTextareaRef.current?.focus();
+      }, 0);
+    } catch (error) {
+      console.error("Error refining text:", error);
+      toast({
+        title: "Refinement failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to refine text. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
   // Handle Ctrl+K / Cmd+K keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -640,16 +711,29 @@ export default function EditOpportunityPage() {
                 <Label htmlFor="description" className={textStyles.body.regular}>
                   Description
                 </Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleOpenLinkDialog}
-                  className="h-8 px-2"
-                  title="Insert link (Ctrl+K / Cmd+K)"
-                >
-                  <LinkIcon className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAiRefineDialogOpen(true)}
+                    className="h-8 px-2"
+                    title="Refine with AI"
+                    disabled={!formData.description.trim()}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleOpenLinkDialog}
+                    className="h-8 px-2"
+                    title="Insert link (Ctrl+K / Cmd+K)"
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <Textarea
                 ref={descriptionTextareaRef}
@@ -1065,6 +1149,60 @@ export default function EditOpportunityPage() {
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Insert Link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Refinement Dialog */}
+      <Dialog open={aiRefineDialogOpen} onOpenChange={setAiRefineDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              Refine with AI
+            </DialogTitle>
+            <DialogDescription>
+              AI will refine your description to be clearer and more concise
+              while preserving all key information. The text will stay within
+              the {DESCRIPTION_MAX_LENGTH} character limit.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Current Description</Label>
+              <div className="p-3 bg-secondary border border-border rounded-md text-sm text-muted-foreground max-h-32 overflow-y-auto">
+                {formData.description || "(empty)"}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {getDisplayLength(formData.description)}/{DESCRIPTION_MAX_LENGTH} characters
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAiRefineDialogOpen(false)}
+              disabled={isRefining}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRefineWithAI}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={isRefining || !formData.description.trim()}
+            >
+              {isRefining ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Refining...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Refine Text
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1013,6 +1013,90 @@ export type Database = {
           }
         ];
       };
+      booking_requests: {
+        Row: {
+          id: string;
+          brand_id: string;
+          dj_id: string;
+          event_title: string;
+          event_description: string | null;
+          event_date: string;
+          event_end_time: string | null;
+          location: string;
+          location_place_id: string | null;
+          payment_amount: number | null;
+          payment_currency: string | null;
+          genre: string | null;
+          additional_requirements: string | null;
+          contact_email: string | null;
+          contact_phone: string | null;
+          status: string;
+          dj_response_at: string | null;
+          dj_response_notes: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          brand_id: string;
+          dj_id: string;
+          event_title: string;
+          event_description?: string | null;
+          event_date: string;
+          event_end_time?: string | null;
+          location: string;
+          location_place_id?: string | null;
+          payment_amount?: number | null;
+          payment_currency?: string | null;
+          genre?: string | null;
+          additional_requirements?: string | null;
+          contact_email?: string | null;
+          contact_phone?: string | null;
+          status?: string;
+          dj_response_at?: string | null;
+          dj_response_notes?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          brand_id?: string;
+          dj_id?: string;
+          event_title?: string;
+          event_description?: string | null;
+          event_date?: string;
+          event_end_time?: string | null;
+          location?: string;
+          location_place_id?: string | null;
+          payment_amount?: number | null;
+          payment_currency?: string | null;
+          genre?: string | null;
+          additional_requirements?: string | null;
+          contact_email?: string | null;
+          contact_phone?: string | null;
+          status?: string;
+          dj_response_at?: string | null;
+          dj_response_notes?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "booking_requests_brand_id_fkey";
+            columns: ["brand_id"];
+            isOneToOne: false;
+            referencedRelation: "user_profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "booking_requests_dj_id_fkey";
+            columns: ["dj_id"];
+            isOneToOne: false;
+            referencedRelation: "user_profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       ai_feedback_analysis: {

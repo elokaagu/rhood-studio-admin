@@ -49,6 +49,7 @@ import {
   MessageSquare,
   BarChart3,
   Key,
+  Calendar,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -60,6 +61,18 @@ const allSidebarItems = [
     title: "Dashboard",
     url: "/admin/dashboard",
     icon: LayoutDashboard,
+    roles: ["admin", "brand"] as UserRole[],
+  },
+  {
+    title: "Book a DJ",
+    url: "/admin/book-dj",
+    icon: Calendar,
+    roles: ["brand"] as UserRole[],
+  },
+  {
+    title: "Booking Requests",
+    url: "/admin/booking-requests",
+    icon: Calendar,
     roles: ["admin", "brand"] as UserRole[],
   },
   {

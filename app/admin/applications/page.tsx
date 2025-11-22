@@ -357,12 +357,11 @@ function ApplicationsContent() {
 
       console.log("Updating with data:", updateData);
 
-      const { data: updatedData, error } = await supabase
+      // Update without select to avoid trigger/view issues with missing fields
+      const { error } = await supabase
         .from(tableName as any)
         .update(updateData)
-        .eq("id", applicationId)
-        .select()
-        .single();
+        .eq("id", applicationId);
 
       if (error) {
         console.error("Error updating application:", error);
@@ -375,7 +374,7 @@ function ApplicationsContent() {
         throw error;
       }
 
-      console.log("Application updated successfully:", updatedData);
+      console.log("Application updated successfully");
 
       const opportunityTitle =
         (applicationData as any)?.opportunities?.title ||
@@ -511,12 +510,11 @@ function ApplicationsContent() {
 
       console.log("Updating with data:", updateData);
 
-      const { data: updatedData, error } = await supabase
+      // Update without select to avoid trigger/view issues with missing fields
+      const { error } = await supabase
         .from(tableName as any)
         .update(updateData)
-        .eq("id", applicationId)
-        .select()
-        .single();
+        .eq("id", applicationId);
 
       if (error) {
         console.error("Error updating application:", error);
@@ -529,7 +527,7 @@ function ApplicationsContent() {
         throw error;
       }
 
-      console.log("Application updated successfully:", updatedData);
+      console.log("Application updated successfully");
 
       const opportunityTitle =
         (applicationData as any)?.opportunities?.title ||

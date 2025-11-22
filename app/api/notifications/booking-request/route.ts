@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
 const resendApiKey = process.env.RESEND_API_KEY;
-const defaultFromAddress = "R/HOOD <hello@rhood.com>";
+const defaultFromAddress = "R/HOOD <hello@rhood.io>";
 
 interface BookingRequestPayload {
   djEmail?: string;

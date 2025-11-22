@@ -40,7 +40,7 @@ export default function ApplicationDetailsPage() {
       // Update application status
       const { error } = await supabase
         .from("applications")
-        .update({ status: "approved" })
+        .update({ status: "approved", updated_at: new Date().toISOString() })
         .eq("id", applicationId as string);
 
       if (error) {

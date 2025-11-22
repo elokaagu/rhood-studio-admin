@@ -50,41 +50,132 @@ export default function LeaderboardPage() {
     try {
       setIsLoading(true);
       
-      // @ts-ignore - RPC function not in types yet (migration needed)
-      if (year) {
-        // Yearly leaderboard
-        const { data, error } = await (supabase.rpc as any)("get_credits_leaderboard", {
-          p_year: year,
-          p_limit: 100,
-        });
+      // Try to use RPC function first, fallback to direct query if function doesn't exist
+      try {
+        // @ts-ignore - RPC function not in types yet (migration needed)
+        if (year) {
+          // Yearly leaderboard
+          const { data, error } = await (supabase.rpc as any)("get_credits_leaderboard", {
+            p_year: year,
+            p_limit: 100,
+          });
 
-        if (error) {
-          throw error;
+          if (error) {
+            // If function doesn't exist or has issues, use fallback
+            if (error.code === '42883' || error.message?.includes('does not exist')) {
+              console.warn("RPC function not found, using fallback query");
+              await fetchLeaderboardFallback(year);
+              return;
+            }
+            throw error;
+          }
+
+          setLeaderboard((data as LeaderboardEntry[]) || []);
+        } else {
+          // All-time leaderboard
+          const { data, error } = await (supabase.rpc as any)("get_credits_leaderboard", {
+            p_year: null,
+            p_limit: 100,
+          });
+
+          if (error) {
+            // If function doesn't exist or has issues, use fallback
+            if (error.code === '42883' || error.message?.includes('does not exist')) {
+              console.warn("RPC function not found, using fallback query");
+              await fetchLeaderboardFallback(null);
+              return;
+            }
+            throw error;
+          }
+
+          setLeaderboard((data as LeaderboardEntry[]) || []);
         }
-
-        setLeaderboard((data as LeaderboardEntry[]) || []);
-      } else {
-        // All-time leaderboard
-        const { data, error } = await (supabase.rpc as any)("get_credits_leaderboard", {
-          p_year: null,
-          p_limit: 100,
-        });
-
-        if (error) {
-          throw error;
+      } catch (rpcError: any) {
+        // If RPC fails, try fallback query
+        if (rpcError.code === '42883' || rpcError.message?.includes('does not exist')) {
+          console.warn("RPC function not found, using fallback query");
+          await fetchLeaderboardFallback(year);
+        } else {
+          throw rpcError;
         }
-
-        setLeaderboard((data as LeaderboardEntry[]) || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching leaderboard:", error);
       toast({
         title: "Error",
-        description: "Failed to load leaderboard. Please try again.",
+        description: error.message || "Failed to load leaderboard. Please run the credits system migration in Supabase.",
         variant: "destructive",
       });
+      setLeaderboard([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Fallback query if RPC function doesn't exist yet
+  const fetchLeaderboardFallback = async (year: number | null) => {
+    try {
+      // Try to query credits directly
+      // @ts-ignore - credits column may not exist yet
+      let query: any = supabase
+        .from("user_profiles")
+        .select("id, dj_name, brand_name, first_name, last_name, email, credits")
+        .or("role.is.null,role.neq.admin")
+        .limit(100);
+      
+      // @ts-ignore - credits column may not exist yet
+      query = query.order("credits", { ascending: false, nullsLast: true });
+      
+      const { data: profiles, error } = await query;
+
+      if (error) {
+        // If credits column doesn't exist, return empty array
+        if (error.code === '42703' || error.message?.includes('column "credits" does not exist')) {
+          console.warn("Credits column doesn't exist yet - migration needed");
+          toast({
+            title: "Migration Required",
+            description: "Please run the credits system migration (20250114000000_create_credits_system.sql) in Supabase to enable the leaderboard.",
+            variant: "destructive",
+          });
+          setLeaderboard([]);
+          return;
+        }
+        throw error;
+      }
+
+      // Transform to leaderboard format and filter out users with 0 or null credits
+      const entries: LeaderboardEntry[] = (profiles || [])
+        .filter((profile: any) => profile.credits > 0)
+        .map((profile: any, index: number) => ({
+          user_id: profile.id,
+          dj_name: profile.dj_name,
+          brand_name: profile.brand_name,
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: profile.email,
+          total_credits: profile.credits || 0,
+          rank_position: index + 1,
+        }));
+
+      // If filtering by year, we can't do it without the function
+      // So we'll just show all-time for now with a note
+      if (year) {
+        toast({
+          title: "Year Filter Not Available",
+          description: "Year filtering requires the database migration. Showing all-time leaderboard instead.",
+          variant: "default",
+        });
+      }
+      
+      setLeaderboard(entries);
+    } catch (error: any) {
+      console.error("Error in fallback leaderboard query:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load leaderboard. Please run the credits system migration.",
+        variant: "destructive",
+      });
+      setLeaderboard([]);
     }
   };
 

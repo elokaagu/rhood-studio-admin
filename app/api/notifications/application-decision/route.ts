@@ -3,7 +3,7 @@ import { Resend } from "resend";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFromAddress =
-  process.env.RESEND_FROM_EMAIL ?? "R/HOOD Portal <info@rhood.io>";
+  process.env.RESEND_FROM_EMAIL ?? "R/HOOD <hello@rhood.io>";
 
 interface ApplicationDecisionPayload {
   email?: string;

@@ -236,6 +236,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Drop trigger if it exists, then create it
+DROP TRIGGER IF EXISTS booking_request_accepted_credits ON booking_requests;
+
 CREATE TRIGGER booking_request_accepted_credits
 AFTER UPDATE ON booking_requests
 FOR EACH ROW
@@ -261,6 +264,9 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Drop trigger if it exists, then create it
+DROP TRIGGER IF EXISTS application_approved_credits ON applications;
 
 CREATE TRIGGER application_approved_credits
 AFTER UPDATE ON applications
@@ -301,7 +307,7 @@ BEGIN
     WITH yearly_credits AS (
       SELECT 
         ct.user_id,
-        SUM(ct.amount) as total
+        SUM(ct.amount)::INTEGER as total
       FROM credit_transactions ct
       WHERE ct.created_at >= v_start_date
         AND ct.created_at <= v_end_date
@@ -315,13 +321,13 @@ BEGIN
       up.first_name,
       up.last_name,
       up.email,
-      COALESCE(yc.total, 0)::INTEGER as total_credits,
-      ROW_NUMBER() OVER (ORDER BY COALESCE(yc.total, 0) DESC) as rank_position
+      COALESCE(yc.total, COALESCE(up.credits, 0))::INTEGER as total_credits,
+      ROW_NUMBER() OVER (ORDER BY COALESCE(yc.total, COALESCE(up.credits, 0)) DESC) as rank_position
     FROM user_profiles up
     LEFT JOIN yearly_credits yc ON up.id = yc.user_id
-    WHERE up.role != 'admin' -- Exclude admins from leaderboard
-      AND (yc.total IS NOT NULL OR up.credits > 0) -- Only show users with credits
-    ORDER BY COALESCE(yc.total, 0) DESC, up.credits DESC
+    WHERE (up.role IS NULL OR up.role != 'admin') -- Exclude admins from leaderboard
+      AND (yc.total IS NOT NULL OR COALESCE(up.credits, 0) > 0) -- Only show users with credits
+    ORDER BY COALESCE(yc.total, COALESCE(up.credits, 0)) DESC
     LIMIT p_limit;
   ELSE
     -- All-time leaderboard
@@ -333,12 +339,12 @@ BEGIN
       up.first_name,
       up.last_name,
       up.email,
-      up.credits as total_credits,
-      ROW_NUMBER() OVER (ORDER BY up.credits DESC) as rank_position
+      COALESCE(up.credits, 0)::INTEGER as total_credits,
+      ROW_NUMBER() OVER (ORDER BY COALESCE(up.credits, 0) DESC) as rank_position
     FROM user_profiles up
-    WHERE up.role != 'admin' -- Exclude admins
-      AND up.credits > 0
-    ORDER BY up.credits DESC
+    WHERE (up.role IS NULL OR up.role != 'admin') -- Exclude admins
+      AND COALESCE(up.credits, 0) > 0
+    ORDER BY COALESCE(up.credits, 0) DESC
     LIMIT p_limit;
   END IF;
 END;

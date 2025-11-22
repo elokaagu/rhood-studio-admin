@@ -28,6 +28,9 @@ import {
   ExternalLink,
   Filter,
   X,
+  Trophy,
+  Clock,
+  DollarSign,
 } from "lucide-react";
 import { textStyles } from "@/lib/typography";
 import LocationAutocomplete from "@/components/location-autocomplete";
@@ -46,12 +49,15 @@ interface DJProfile {
   profile_image_url: string | null;
   rating: number;
   mixCount: number;
+  credits: number;
   latestMix: {
     id: string;
     title: string;
     genre: string;
     file_url: string;
+    description?: string | null;
   } | null;
+  availability?: string; // 'available', 'busy', 'unknown'
 }
 
 const genres = [
@@ -78,6 +84,8 @@ export default function BookDJPage() {
   const [selectedGenre, setSelectedGenre] = useState<string>("all");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [hasMixFilter, setHasMixFilter] = useState<boolean>(false);
+  const [creditsFilter, setCreditsFilter] = useState<string>("all"); // 'all', 'top10', 'top50', 'top100'
+  const [availabilityFilter, setAvailabilityFilter] = useState<string>("all"); // 'all', 'available', 'busy'
   const [userProfile, setUserProfile] = useState<any>(null);
 
   // Check if user is a brand
@@ -142,7 +150,7 @@ export default function BookDJPage() {
           try {
             const { data: mixData, error: mixError } = await supabase
               .from("mixes")
-              .select("id, title, genre, file_url")
+              .select("id, title, genre, file_url, description")
               .eq("uploaded_by", profile.id)
               .order("created_at", { ascending: false })
               .limit(1)
@@ -163,6 +171,32 @@ export default function BookDJPage() {
             console.warn("Could not fetch mixes for user:", profile.id);
           }
 
+          // Get credits
+          const credits = (profile.credits as number) || 0;
+
+          // Check availability (based on upcoming bookings)
+          let availability = "unknown";
+          try {
+            const { data: upcomingBookings } = await supabase
+              .from("booking_requests")
+              .select("id, event_date, status")
+              .eq("dj_id", profile.id)
+              .in("status", ["pending", "accepted"])
+              .gte("event_date", new Date().toISOString())
+              .limit(5);
+
+            // Check if DJ has many upcoming bookings (considered "busy")
+            if (upcomingBookings && upcomingBookings.length >= 3) {
+              availability = "busy";
+            } else if (upcomingBookings && upcomingBookings.length > 0) {
+              availability = "available";
+            } else {
+              availability = "available";
+            }
+          } catch (availabilityErr) {
+            console.warn("Could not check availability for user:", profile.id);
+          }
+
           return {
             id: profile.id,
             dj_name: profile.dj_name || "",
@@ -177,11 +211,16 @@ export default function BookDJPage() {
             profile_image_url: profile.profile_image_url || null,
             rating: Math.round(rating * 10) / 10,
             mixCount,
+            credits,
             latestMix,
+            availability,
           };
         })
       );
 
+      // Sort by credits (highest first)
+      transformedDJs.sort((a, b) => b.credits - a.credits);
+      
       setDjs(transformedDJs);
       setFilteredDjs(transformedDJs);
     } catch (error) {
@@ -240,8 +279,25 @@ export default function BookDJPage() {
       filtered = filtered.filter((dj) => dj.mixCount > 0);
     }
 
+    // Credits/Ranking filter
+    if (creditsFilter !== "all") {
+      const sortedByCredits = [...filtered].sort((a, b) => b.credits - a.credits);
+      if (creditsFilter === "top10") {
+        filtered = sortedByCredits.slice(0, 10);
+      } else if (creditsFilter === "top50") {
+        filtered = sortedByCredits.slice(0, 50);
+      } else if (creditsFilter === "top100") {
+        filtered = sortedByCredits.slice(0, 100);
+      }
+    }
+
+    // Availability filter
+    if (availabilityFilter !== "all") {
+      filtered = filtered.filter((dj) => dj.availability === availabilityFilter);
+    }
+
     setFilteredDjs(filtered);
-  }, [searchTerm, selectedGenre, selectedLocation, hasMixFilter, djs]);
+  }, [searchTerm, selectedGenre, selectedLocation, hasMixFilter, creditsFilter, availabilityFilter, djs]);
 
   const handleBookDJ = (djId: string) => {
     router.push(`/admin/book-dj/${djId}/request`);
@@ -292,7 +348,7 @@ export default function BookDJPage() {
           </div>
 
           {/* Filter Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {/* Genre Filter */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Genre</label>
@@ -335,6 +391,57 @@ export default function BookDJPage() {
               />
             </div>
 
+            {/* Credits/Ranking Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-1">
+                <Trophy className="h-3 w-3" />
+                Ranking / Credits
+              </label>
+              <Select value={creditsFilter} onValueChange={setCreditsFilter}>
+                <SelectTrigger className="bg-secondary border-border text-foreground">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem value="all" className="text-foreground hover:bg-accent">
+                    All DJs
+                  </SelectItem>
+                  <SelectItem value="top10" className="text-foreground hover:bg-accent">
+                    Top 10
+                  </SelectItem>
+                  <SelectItem value="top50" className="text-foreground hover:bg-accent">
+                    Top 50
+                  </SelectItem>
+                  <SelectItem value="top100" className="text-foreground hover:bg-accent">
+                    Top 100
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Availability Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Availability
+              </label>
+              <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+                <SelectTrigger className="bg-secondary border-border text-foreground">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem value="all" className="text-foreground hover:bg-accent">
+                    All
+                  </SelectItem>
+                  <SelectItem value="available" className="text-foreground hover:bg-accent">
+                    Available
+                  </SelectItem>
+                  <SelectItem value="busy" className="text-foreground hover:bg-accent">
+                    Busy
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Mix Filter */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Has Mix</label>
@@ -359,33 +466,33 @@ export default function BookDJPage() {
                 </Button>
               </div>
             </div>
-
-            {/* Clear Filters */}
-            {(selectedGenre !== "all" ||
-              selectedLocation ||
-              hasMixFilter ||
-              searchTerm) && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground opacity-0">
-                  Clear
-                </label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setSelectedGenre("all");
-                    setSelectedLocation("");
-                    setHasMixFilter(false);
-                  }}
-                  className="w-full"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Clear All
-                </Button>
-              </div>
-            )}
           </div>
+
+          {/* Clear Filters */}
+          {(selectedGenre !== "all" ||
+            selectedLocation ||
+            hasMixFilter ||
+            creditsFilter !== "all" ||
+            availabilityFilter !== "all" ||
+            searchTerm) && (
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedGenre("all");
+                  setSelectedLocation("");
+                  setHasMixFilter(false);
+                  setCreditsFilter("all");
+                  setAvailabilityFilter("all");
+                }}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Clear All Filters
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -439,13 +546,40 @@ export default function BookDJPage() {
                       </div>
                     </div>
 
-                    {/* Rating */}
-                    {dj.rating > 0 && (
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-medium text-foreground">
-                          {dj.rating.toFixed(1)}
-                        </span>
+                    {/* Rating and Credits */}
+                    <div className="flex items-center gap-3">
+                      {dj.rating > 0 && (
+                        <div className="flex items-center gap-1">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-medium text-foreground">
+                            {dj.rating.toFixed(1)}
+                          </span>
+                        </div>
+                      )}
+                      {dj.credits > 0 && (
+                        <div className="flex items-center gap-1">
+                          <Trophy className="h-4 w-4 text-brand-green" />
+                          <span className="text-sm font-medium text-foreground">
+                            {dj.credits} credits
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Availability Badge */}
+                    {dj.availability && dj.availability !== "unknown" && (
+                      <div>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${
+                            dj.availability === "available"
+                              ? "border-green-500 text-green-500"
+                              : "border-orange-500 text-orange-500"
+                          }`}
+                        >
+                          <Clock className="h-3 w-3 mr-1" />
+                          {dj.availability === "available" ? "Available" : "Busy"}
+                        </Badge>
                       </div>
                     )}
 
@@ -474,11 +608,28 @@ export default function BookDJPage() {
 
                     {/* Mix Info */}
                     {dj.latestMix && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Music className="h-4 w-4" />
-                        <span>
-                          {dj.mixCount} {dj.mixCount === 1 ? "mix" : "mixes"}
-                        </span>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Music className="h-4 w-4" />
+                          <span>
+                            {dj.mixCount} {dj.mixCount === 1 ? "mix" : "mixes"}
+                          </span>
+                        </div>
+                        {dj.latestMix.title && (
+                          <div className="text-xs font-medium text-foreground truncate">
+                            Latest: {dj.latestMix.title}
+                          </div>
+                        )}
+                        {dj.latestMix.description && (
+                          <div className="text-xs text-muted-foreground line-clamp-2">
+                            {dj.latestMix.description}
+                          </div>
+                        )}
+                        {dj.latestMix.genre && (
+                          <Badge variant="outline" className="text-xs border-border text-foreground mt-1">
+                            {dj.latestMix.genre}
+                          </Badge>
+                        )}
                       </div>
                     )}
 

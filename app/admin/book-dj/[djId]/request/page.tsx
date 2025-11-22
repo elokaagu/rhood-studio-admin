@@ -247,9 +247,34 @@ export default function BookingRequestPage() {
         // Don't fail the booking request if notification fails
       }
 
+      // Create direct message to DJ about the booking
+      try {
+        const brandUserId = await getCurrentUserId();
+        if (brandUserId) {
+          const messageContent = `Hi! I'd like to book you for "${formData.event_title}" on ${new Date(formData.event_date).toLocaleDateString()} at ${formData.location}. Please check your booking requests for full details. Looking forward to hearing from you!`;
+          
+          const { error: messageError } = await supabase
+            .from("messages")
+            .insert({
+              sender_id: brandUserId,
+              receiver_id: djId,
+              content: messageContent,
+              is_read: false,
+            });
+
+          if (messageError) {
+            console.error("Error creating direct message:", messageError);
+            // Don't fail the booking request if message creation fails
+          }
+        }
+      } catch (messageError) {
+        console.error("Error creating direct message:", messageError);
+        // Don't fail the booking request if message creation fails
+      }
+
       toast({
         title: "Booking Request Sent",
-        description: "Your booking request has been sent to the DJ. They will be notified via email and in-app notification.",
+        description: "Your booking request has been sent to the DJ. They will be notified via email, direct message, and in-app notification.",
       });
 
       router.push("/admin/book-dj");

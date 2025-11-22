@@ -305,40 +305,62 @@ function ApplicationsContent() {
         `Approving ${applicationType} application ${applicationId} from table ${tableName}`
       );
 
-      // First, get the application details to create notification
-      const { data: applicationData, error: fetchError } = await supabase
+      // Get user profile first for role checking
+      const userProfile = await getCurrentUserProfile();
+      const userId = await getCurrentUserId();
+
+      // First, get the application details - fetch without joins to avoid venue field issues
+      const { data: applicationBasic, error: fetchBasicError } = await supabase
         .from(tableName as any)
-        .select(
-          `
-          *,
-          opportunities(title, organizer_id),
-          user_profiles(dj_name, first_name, last_name, email)
-        `
-        )
+        .select("*")
         .eq("id", applicationId)
         .single();
 
-      if (fetchError) {
-        console.error("Error fetching application data:", fetchError);
-        throw fetchError;
+      if (fetchBasicError) {
+        console.error("Error fetching application data:", fetchBasicError);
+        throw fetchBasicError;
       }
 
-      // Check if brand is trying to approve/reject application for their own opportunity
-      const userProfile = await getCurrentUserProfile();
-      const userId = await getCurrentUserId();
-      if (
-        userProfile?.role === "brand" &&
-        userId &&
-        (applicationData as any)?.opportunities?.organizer_id !== userId
-      ) {
-        toast({
-          title: "Access Denied",
-          description:
-            "You can only approve/reject applications for your own opportunities.",
-          variant: "destructive",
-        });
-        return;
+      // For brand role validation, fetch opportunity organizer_id separately if needed
+      if (userProfile?.role === "brand" && userId && applicationBasic?.opportunity_id) {
+        const { data: opportunity } = await supabase
+          .from("opportunities")
+          .select("organizer_id, title")
+          .eq("id", (applicationBasic as any).opportunity_id)
+          .single();
+
+        if (opportunity && (opportunity as any).organizer_id !== userId) {
+          toast({
+            title: "Access Denied",
+            description:
+              "You can only approve/reject applications for your own opportunities.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
+
+      // Fetch user profile and opportunity details separately for notification
+      const [userProfileResult, opportunityResult] = await Promise.all([
+        supabase
+          .from("user_profiles")
+          .select("dj_name, first_name, last_name, email")
+          .eq("id", (applicationBasic as any).user_id)
+          .single(),
+        applicationBasic?.opportunity_id
+          ? supabase
+              .from("opportunities")
+              .select("title")
+              .eq("id", (applicationBasic as any).opportunity_id)
+              .single()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      const applicationData = {
+        ...applicationBasic,
+        user_profiles: userProfileResult.data,
+        opportunities: opportunityResult.data,
+      };
 
       console.log("Application data fetched:", applicationData);
 
@@ -371,6 +393,18 @@ function ApplicationsContent() {
           details: error.details,
           hint: error.hint,
         });
+        
+        // If error is about venue field, provide helpful message
+        if (error.message?.includes("venue") || error.message?.includes("v_opportunity")) {
+          console.error("Venue field error detected. This might be due to a view or RLS policy referencing a non-existent field.");
+          toast({
+            title: "Update Error",
+            description: "There was an issue with the database schema. Please run the latest migration to fix this issue.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw error;
       }
 
@@ -383,12 +417,12 @@ function ApplicationsContent() {
 
       // Create notification for the user
       if (
-        (applicationData as any)?.user_id &&
+        (applicationBasic as any)?.user_id &&
         opportunityTitle
       ) {
         try {
           await createApplicationStatusNotification(
-            (applicationData as any).user_id,
+            (applicationBasic as any).user_id,
             applicationId,
             "approved",
             opportunityTitle
@@ -458,40 +492,62 @@ function ApplicationsContent() {
         `Rejecting ${applicationType} application ${applicationId} from table ${tableName}`
       );
 
-      // First, get the application details to create notification
-      const { data: applicationData, error: fetchError } = await supabase
+      // Get user profile first for role checking
+      const userProfile = await getCurrentUserProfile();
+      const userId = await getCurrentUserId();
+
+      // First, get the application details - fetch without joins to avoid venue field issues
+      const { data: applicationBasic, error: fetchBasicError } = await supabase
         .from(tableName as any)
-        .select(
-          `
-          *,
-          opportunities(title, organizer_id),
-          user_profiles(dj_name, first_name, last_name, email)
-        `
-        )
+        .select("*")
         .eq("id", applicationId)
         .single();
 
-      if (fetchError) {
-        console.error("Error fetching application data:", fetchError);
-        throw fetchError;
+      if (fetchBasicError) {
+        console.error("Error fetching application data:", fetchBasicError);
+        throw fetchBasicError;
       }
 
-      // Check if brand is trying to approve/reject application for their own opportunity
-      const userProfile = await getCurrentUserProfile();
-      const userId = await getCurrentUserId();
-      if (
-        userProfile?.role === "brand" &&
-        userId &&
-        (applicationData as any)?.opportunities?.organizer_id !== userId
-      ) {
-        toast({
-          title: "Access Denied",
-          description:
-            "You can only approve/reject applications for your own opportunities.",
-          variant: "destructive",
-        });
-        return;
+      // For brand role validation, fetch opportunity organizer_id separately if needed
+      if (userProfile?.role === "brand" && userId && applicationBasic?.opportunity_id) {
+        const { data: opportunity } = await supabase
+          .from("opportunities")
+          .select("organizer_id, title")
+          .eq("id", (applicationBasic as any).opportunity_id)
+          .single();
+
+        if (opportunity && (opportunity as any).organizer_id !== userId) {
+          toast({
+            title: "Access Denied",
+            description:
+              "You can only approve/reject applications for your own opportunities.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
+
+      // Fetch user profile and opportunity details separately for notification
+      const [userProfileResult, opportunityResult] = await Promise.all([
+        supabase
+          .from("user_profiles")
+          .select("dj_name, first_name, last_name, email")
+          .eq("id", (applicationBasic as any).user_id)
+          .single(),
+        applicationBasic?.opportunity_id
+          ? supabase
+              .from("opportunities")
+              .select("title")
+              .eq("id", (applicationBasic as any).opportunity_id)
+              .single()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      const applicationData = {
+        ...applicationBasic,
+        user_profiles: userProfileResult.data,
+        opportunities: opportunityResult.data,
+      };
 
       console.log("Application data fetched:", applicationData);
 
@@ -524,6 +580,18 @@ function ApplicationsContent() {
           details: error.details,
           hint: error.hint,
         });
+        
+        // If error is about venue field, provide helpful message
+        if (error.message?.includes("venue") || error.message?.includes("v_opportunity")) {
+          console.error("Venue field error detected. This might be due to a view or RLS policy referencing a non-existent field.");
+          toast({
+            title: "Update Error",
+            description: "There was an issue with the database schema. Please run the latest migration to fix this issue.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw error;
       }
 
@@ -536,12 +604,12 @@ function ApplicationsContent() {
 
       // Create notification for the user
       if (
-        (applicationData as any)?.user_id &&
+        (applicationBasic as any)?.user_id &&
         opportunityTitle
       ) {
         try {
           await createApplicationStatusNotification(
-            (applicationData as any).user_id,
+            (applicationBasic as any).user_id,
             applicationId,
             "rejected",
             opportunityTitle

@@ -69,50 +69,83 @@ export default function CreditTransactionsPage() {
       const userId = await getCurrentUserId();
       if (!userId) return;
 
-      // Build query - use type assertion to avoid deep type instantiation issues
-      // @ts-ignore - Type instantiation is too deep for TypeScript to infer
-      let query: any = supabase.from("credit_transactions").select(`
-        *,
-        user_profile:user_profiles!credit_transactions_user_id_fkey(
-          dj_name,
-          brand_name,
-          first_name,
-          last_name,
-          email
-        )
-      `);
+      // Check if credit_transactions table exists
+      // Use a simpler query that doesn't rely on foreign key constraint names
+      // @ts-ignore - credit_transactions table may not be in types yet
+      const { data: transactionsData, error: transactionsError } = await (supabase.from as any)("credit_transactions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (transactionsError) {
+        // If table doesn't exist, show empty state
+        if (transactionsError.code === "42P01" || transactionsError.message?.includes("does not exist")) {
+          console.warn("Credit transactions table does not exist. Migration may not have been run.");
+          setTransactions([]);
+          return;
+        }
+        throw transactionsError;
+      }
+
+      if (!transactionsData || transactionsData.length === 0) {
+        setTransactions([]);
+        return;
+      }
 
       // Filter by transaction type
+      let filteredTransactions = transactionsData;
       if (filterType !== "all") {
         if (filterType === "earned") {
-          query = query.gt("amount", 0);
+          filteredTransactions = filteredTransactions.filter((t: any) => t.amount > 0);
         } else if (filterType === "spent") {
-          query = query.lt("amount", 0);
+          filteredTransactions = filteredTransactions.filter((t: any) => t.amount < 0);
         } else {
-          query = query.eq("transaction_type", filterType);
+          filteredTransactions = filteredTransactions.filter((t: any) => t.transaction_type === filterType);
         }
       }
 
       // Non-admins only see their own transactions
       if (userProfile?.role !== "admin") {
-        query = query.eq("user_id", userId);
+        filteredTransactions = filteredTransactions.filter((t: any) => t.user_id === userId);
       }
 
-      // Execute query
-      const { data, error } = await query.order("created_at", { ascending: false }).limit(100);
+      // Fetch user profiles for admin view or if needed
+      const userIds = [...new Set(filteredTransactions.map((t: any) => t.user_id))];
+      let userProfilesMap: Record<string, any> = {};
 
-      if (error) {
-        throw error;
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("user_profiles")
+          .select("id, dj_name, brand_name, first_name, last_name, email")
+          .in("id", userIds);
+
+        if (profilesData) {
+          profilesData.forEach((profile: any) => {
+            userProfilesMap[profile.id] = profile;
+          });
+        }
       }
 
-      setTransactions((data as CreditTransaction[]) || []);
-    } catch (error) {
+      // Combine transactions with user profiles
+      const transactionsWithProfiles = filteredTransactions.map((transaction: any) => ({
+        ...transaction,
+        user_profile: userProfilesMap[transaction.user_id] || null,
+      }));
+
+      setTransactions(transactionsWithProfiles as CreditTransaction[]);
+    } catch (error: any) {
       console.error("Error fetching transactions:", error);
+      // Provide more helpful error message
+      const errorMessage = error?.code === "42P01" || error?.message?.includes("does not exist")
+        ? "Credit transactions table does not exist. Please run the credits system migration."
+        : "Failed to load credit transactions. Please try again.";
+      
       toast({
         title: "Error",
-        description: "Failed to load credit transactions. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
+      setTransactions([]);
     } finally {
       setIsLoading(false);
     }

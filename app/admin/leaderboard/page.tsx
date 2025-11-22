@@ -53,47 +53,37 @@ export default function LeaderboardPage() {
       // Try to use RPC function first, fallback to direct query if function doesn't exist
       try {
         // @ts-ignore - RPC function not in types yet (migration needed)
-        if (year) {
-          // Yearly leaderboard
-          const { data, error } = await (supabase.rpc as any)("get_credits_leaderboard", {
-            p_year: year,
-            p_limit: 100,
-          });
+        // Call with named parameters in the order defined: p_year, p_limit
+        const { data, error } = await (supabase.rpc as any)("get_credits_leaderboard", {
+          p_year: year,
+          p_limit: 100,
+        });
 
-          if (error) {
-            // If function doesn't exist or has issues, use fallback
-            if (error.code === '42883' || error.message?.includes('does not exist')) {
-              console.warn("RPC function not found, using fallback query");
-              await fetchLeaderboardFallback(year);
-              return;
-            }
-            throw error;
+        if (error) {
+          // If function doesn't exist or has issues, use fallback
+          if (
+            error.code === '42883' || 
+            error.message?.includes('does not exist') ||
+            error.message?.includes('Could not find the function') ||
+            error.message?.includes('schema cache')
+          ) {
+            console.warn("RPC function not found or schema cache issue, using fallback query:", error.message);
+            await fetchLeaderboardFallback(year);
+            return;
           }
-
-          setLeaderboard((data as LeaderboardEntry[]) || []);
-        } else {
-          // All-time leaderboard
-          const { data, error } = await (supabase.rpc as any)("get_credits_leaderboard", {
-            p_year: null,
-            p_limit: 100,
-          });
-
-          if (error) {
-            // If function doesn't exist or has issues, use fallback
-            if (error.code === '42883' || error.message?.includes('does not exist')) {
-              console.warn("RPC function not found, using fallback query");
-              await fetchLeaderboardFallback(null);
-              return;
-            }
-            throw error;
-          }
-
-          setLeaderboard((data as LeaderboardEntry[]) || []);
+          throw error;
         }
+
+        setLeaderboard((data as LeaderboardEntry[]) || []);
       } catch (rpcError: any) {
         // If RPC fails, try fallback query
-        if (rpcError.code === '42883' || rpcError.message?.includes('does not exist')) {
-          console.warn("RPC function not found, using fallback query");
+        if (
+          rpcError.code === '42883' || 
+          rpcError.message?.includes('does not exist') ||
+          rpcError.message?.includes('Could not find the function') ||
+          rpcError.message?.includes('schema cache')
+        ) {
+          console.warn("RPC function not found or schema cache issue, using fallback query:", rpcError.message);
           await fetchLeaderboardFallback(year);
         } else {
           throw rpcError;
@@ -101,11 +91,25 @@ export default function LeaderboardPage() {
       }
     } catch (error: any) {
       console.error("Error fetching leaderboard:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to load leaderboard. Please run the credits system migration in Supabase.",
-        variant: "destructive",
-      });
+      
+      // Check if it's a function not found error
+      if (
+        error.message?.includes("Could not find the function") ||
+        error.message?.includes("schema cache") ||
+        error.code === '42883'
+      ) {
+        toast({
+          title: "Migration Required",
+          description: "The leaderboard function is not available. Please run migrations 20250114000000_create_credits_system.sql and 20250116000001_fix_leaderboard_function.sql in Supabase.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to load leaderboard. Please try again.",
+          variant: "destructive",
+        });
+      }
       setLeaderboard([]);
     } finally {
       setIsLoading(false);

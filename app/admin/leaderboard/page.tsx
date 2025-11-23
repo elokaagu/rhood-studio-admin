@@ -219,7 +219,6 @@ export default function LeaderboardPage() {
   };
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   return (
     <div className="space-y-6">
@@ -244,17 +243,14 @@ export default function LeaderboardPage() {
           >
             All Time
           </Button>
-          {years.map((year) => (
-            <Button
-              key={year}
-              variant={selectedYear === year ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedYear(year)}
-              className="text-xs sm:text-sm"
-            >
-              {year}
-            </Button>
-          ))}
+          <Button
+            variant={selectedYear === currentYear ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedYear(currentYear)}
+            className="text-xs sm:text-sm"
+          >
+            {currentYear}
+          </Button>
         </div>
       </div>
 

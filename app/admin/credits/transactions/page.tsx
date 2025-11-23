@@ -67,21 +67,52 @@ export default function CreditTransactionsPage() {
     try {
       setIsLoading(true);
       const userId = await getCurrentUserId();
-      if (!userId) return;
+      if (!userId) {
+        setIsLoading(false);
+        return;
+      }
 
-      // Check if credit_transactions table exists
-      // Use a simpler query that doesn't rely on foreign key constraint names
+      // Build query with proper RLS filtering - filter at database level
       // @ts-ignore - credit_transactions table may not be in types yet
-      const { data: transactionsData, error: transactionsError } = await (supabase.from as any)("credit_transactions")
-        .select("*")
+      let query: any = (supabase.from as any)("credit_transactions").select("*");
+
+      // Non-admins can only see their own transactions (RLS will also enforce this)
+      // But we filter at query level to be explicit and improve performance
+      if (userProfile?.role !== "admin") {
+        query = query.eq("user_id", userId);
+      }
+
+      // Apply transaction type filter at database level
+      if (filterType !== "all") {
+        if (filterType === "earned") {
+          query = query.gt("amount", 0);
+        } else if (filterType === "spent") {
+          query = query.lt("amount", 0);
+        } else {
+          query = query.eq("transaction_type", filterType);
+        }
+      }
+
+      // Execute query with ordering and limit
+      const { data: transactionsData, error: transactionsError } = await query
         .order("created_at", { ascending: false })
         .limit(100);
 
       if (transactionsError) {
         // If table doesn't exist, show empty state
-        if (transactionsError.code === "42P01" || transactionsError.message?.includes("does not exist")) {
-          console.warn("Credit transactions table does not exist. Migration may not have been run.");
+        if (
+          transactionsError.code === "42P01" || 
+          transactionsError.message?.includes("does not exist") ||
+          transactionsError.message?.includes("permission denied")
+        ) {
+          console.warn("Credit transactions table does not exist or access denied. Migration may not have been run.", transactionsError);
+          toast({
+            title: "Migration Required",
+            description: "Credit transactions table does not exist or you don't have permission. Please run the credits system migration (20250114000000_create_credits_system.sql) in Supabase.",
+            variant: "destructive",
+          });
           setTransactions([]);
+          setIsLoading(false);
           return;
         }
         throw transactionsError;
@@ -89,37 +120,24 @@ export default function CreditTransactionsPage() {
 
       if (!transactionsData || transactionsData.length === 0) {
         setTransactions([]);
+        setIsLoading(false);
         return;
       }
 
-      // Filter by transaction type
-      let filteredTransactions = transactionsData;
-      if (filterType !== "all") {
-        if (filterType === "earned") {
-          filteredTransactions = filteredTransactions.filter((t: any) => t.amount > 0);
-        } else if (filterType === "spent") {
-          filteredTransactions = filteredTransactions.filter((t: any) => t.amount < 0);
-        } else {
-          filteredTransactions = filteredTransactions.filter((t: any) => t.transaction_type === filterType);
-        }
-      }
-
-      // Non-admins only see their own transactions
-      if (userProfile?.role !== "admin") {
-        filteredTransactions = filteredTransactions.filter((t: any) => t.user_id === userId);
-      }
-
-      // Fetch user profiles for admin view or if needed
-      const userIds = [...new Set(filteredTransactions.map((t: any) => t.user_id))];
+      // Fetch user profiles for admin view
+      const userIds = [...new Set(transactionsData.map((t: any) => t.user_id))];
       let userProfilesMap: Record<string, any> = {};
 
       if (userIds.length > 0) {
-        const { data: profilesData } = await supabase
+        const { data: profilesData, error: profilesError } = await supabase
           .from("user_profiles")
           .select("id, dj_name, brand_name, first_name, last_name, email")
           .in("id", userIds);
 
-        if (profilesData) {
+        if (profilesError) {
+          console.warn("Error fetching user profiles:", profilesError);
+          // Continue without profiles - not critical
+        } else if (profilesData) {
           profilesData.forEach((profile: any) => {
             userProfilesMap[profile.id] = profile;
           });
@@ -127,7 +145,7 @@ export default function CreditTransactionsPage() {
       }
 
       // Combine transactions with user profiles
-      const transactionsWithProfiles = filteredTransactions.map((transaction: any) => ({
+      const transactionsWithProfiles = transactionsData.map((transaction: any) => ({
         ...transaction,
         user_profile: userProfilesMap[transaction.user_id] || null,
       }));
@@ -135,13 +153,23 @@ export default function CreditTransactionsPage() {
       setTransactions(transactionsWithProfiles as CreditTransaction[]);
     } catch (error: any) {
       console.error("Error fetching transactions:", error);
-      // Provide more helpful error message
-      const errorMessage = error?.code === "42P01" || error?.message?.includes("does not exist")
-        ? "Credit transactions table does not exist. Please run the credits system migration."
-        : "Failed to load credit transactions. Please try again.";
+      
+      // Provide more helpful error message based on error type
+      let errorMessage = "Failed to load credit transactions. Please try again.";
+      let errorTitle = "Error";
+      
+      if (error?.code === "42P01" || error?.message?.includes("does not exist")) {
+        errorTitle = "Migration Required";
+        errorMessage = "Credit transactions table does not exist. Please run the credits system migration (20250114000000_create_credits_system.sql) in Supabase.";
+      } else if (error?.code === "42501" || error?.message?.includes("permission denied")) {
+        errorTitle = "Permission Denied";
+        errorMessage = "You don't have permission to view credit transactions. Please contact an administrator.";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
       
       toast({
-        title: "Error",
+        title: errorTitle,
         description: errorMessage,
         variant: "destructive",
       });

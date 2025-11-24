@@ -74,7 +74,7 @@ export default function CreditTransactionsPage() {
 
       // Build query with proper RLS filtering - filter at database level
       // @ts-ignore - credit_transactions table may not be in types yet
-      let query: any = (supabase.from as any)("credit_transactions").select("*");
+      let query = (supabase as any).from("credit_transactions").select("*");
 
       // Non-admins can only see their own transactions (RLS will also enforce this)
       // But we filter at query level to be explicit and improve performance
@@ -125,7 +125,7 @@ export default function CreditTransactionsPage() {
       }
 
       // Fetch user profiles for admin view
-      const userIds = [...new Set(transactionsData.map((t: any) => t.user_id))];
+      const userIds = [...new Set(transactionsData.map((t: any) => t.user_id))] as string[];
       let userProfilesMap: Record<string, any> = {};
 
       if (userIds.length > 0) {
@@ -153,6 +153,13 @@ export default function CreditTransactionsPage() {
       setTransactions(transactionsWithProfiles as CreditTransaction[]);
     } catch (error: any) {
       console.error("Error fetching transactions:", error);
+      console.error("Error details:", {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        error
+      });
       
       // Provide more helpful error message based on error type
       let errorMessage = "Failed to load credit transactions. Please try again.";
@@ -165,7 +172,9 @@ export default function CreditTransactionsPage() {
         errorTitle = "Permission Denied";
         errorMessage = "You don't have permission to view credit transactions. Please contact an administrator.";
       } else if (error?.message) {
-        errorMessage = error.message;
+        errorMessage = `${error.message}${error?.code ? ` (Code: ${error.code})` : ""}`;
+      } else if (error?.code) {
+        errorMessage = `Database error occurred. Code: ${error.code}`;
       }
       
       toast({

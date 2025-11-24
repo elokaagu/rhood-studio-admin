@@ -316,17 +316,20 @@ function ApplicationsContent() {
         .eq("id", applicationId)
         .single();
 
-      if (fetchBasicError) {
+      if (fetchBasicError || !applicationBasic) {
         console.error("Error fetching application data:", fetchBasicError);
-        throw fetchBasicError;
+        throw fetchBasicError || new Error("Application not found");
       }
 
+      // Type assertion since we've checked for errors and existence
+      const application = applicationBasic as any;
+
       // For brand role validation, fetch opportunity organizer_id separately if needed
-      if (userProfile?.role === "brand" && userId && applicationBasic?.opportunity_id) {
+      if (userProfile?.role === "brand" && userId && application?.opportunity_id) {
         const { data: opportunity } = await supabase
           .from("opportunities")
           .select("organizer_id, title")
-          .eq("id", (applicationBasic as any).opportunity_id)
+          .eq("id", application.opportunity_id)
           .single();
 
         if (opportunity && (opportunity as any).organizer_id !== userId) {
@@ -345,19 +348,19 @@ function ApplicationsContent() {
         supabase
           .from("user_profiles")
           .select("dj_name, first_name, last_name, email")
-          .eq("id", (applicationBasic as any).user_id)
+          .eq("id", application.user_id)
           .single(),
-        applicationBasic?.opportunity_id
+        application?.opportunity_id
           ? supabase
               .from("opportunities")
               .select("title")
-              .eq("id", (applicationBasic as any).opportunity_id)
+              .eq("id", application.opportunity_id)
               .single()
           : Promise.resolve({ data: null, error: null }),
       ]);
 
       const applicationData = {
-        ...applicationBasic,
+        ...application,
         user_profiles: userProfileResult.data,
         opportunities: opportunityResult.data,
       };
@@ -417,12 +420,12 @@ function ApplicationsContent() {
 
       // Create notification for the user
       if (
-        (applicationBasic as any)?.user_id &&
+        application?.user_id &&
         opportunityTitle
       ) {
         try {
           await createApplicationStatusNotification(
-            (applicationBasic as any).user_id,
+            application.user_id,
             applicationId,
             "approved",
             opportunityTitle
@@ -503,17 +506,20 @@ function ApplicationsContent() {
         .eq("id", applicationId)
         .single();
 
-      if (fetchBasicError) {
+      if (fetchBasicError || !applicationBasic) {
         console.error("Error fetching application data:", fetchBasicError);
-        throw fetchBasicError;
+        throw fetchBasicError || new Error("Application not found");
       }
 
+      // Type assertion since we've checked for errors and existence
+      const application = applicationBasic as any;
+
       // For brand role validation, fetch opportunity organizer_id separately if needed
-      if (userProfile?.role === "brand" && userId && applicationBasic?.opportunity_id) {
+      if (userProfile?.role === "brand" && userId && application?.opportunity_id) {
         const { data: opportunity } = await supabase
           .from("opportunities")
           .select("organizer_id, title")
-          .eq("id", (applicationBasic as any).opportunity_id)
+          .eq("id", application.opportunity_id)
           .single();
 
         if (opportunity && (opportunity as any).organizer_id !== userId) {
@@ -532,19 +538,19 @@ function ApplicationsContent() {
         supabase
           .from("user_profiles")
           .select("dj_name, first_name, last_name, email")
-          .eq("id", (applicationBasic as any).user_id)
+          .eq("id", application.user_id)
           .single(),
-        applicationBasic?.opportunity_id
+        application?.opportunity_id
           ? supabase
               .from("opportunities")
               .select("title")
-              .eq("id", (applicationBasic as any).opportunity_id)
+              .eq("id", application.opportunity_id)
               .single()
           : Promise.resolve({ data: null, error: null }),
       ]);
 
       const applicationData = {
-        ...applicationBasic,
+        ...application,
         user_profiles: userProfileResult.data,
         opportunities: opportunityResult.data,
       };
@@ -604,12 +610,12 @@ function ApplicationsContent() {
 
       // Create notification for the user
       if (
-        (applicationBasic as any)?.user_id &&
+        application?.user_id &&
         opportunityTitle
       ) {
         try {
           await createApplicationStatusNotification(
-            (applicationBasic as any).user_id,
+            application.user_id,
             applicationId,
             "rejected",
             opportunityTitle

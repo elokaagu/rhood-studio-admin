@@ -53,9 +53,9 @@ export default function LeaderboardPage() {
       // Try to use RPC function first, fallback to direct query if function doesn't exist
       try {
         // @ts-ignore - RPC function not in types yet (migration needed)
-        // Call with named parameters in the order defined: p_year, p_limit
+        // Call with named parameters - handle NULL year correctly
         const { data, error } = await (supabase.rpc as any)("get_credits_leaderboard", {
-          p_year: year,
+          p_year: year ?? null, // Ensure null is explicitly passed, not undefined
           p_limit: 100,
         });
 

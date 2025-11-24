@@ -54,6 +54,8 @@ export default function CreditTransactionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>("all");
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [schemaCacheError, setSchemaCacheError] = useState(false);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -151,6 +153,8 @@ export default function CreditTransactionsPage() {
       }));
 
       setTransactions(transactionsWithProfiles as CreditTransaction[]);
+      setSchemaCacheError(false); // Clear error state on success
+      setRetryCount(0); // Reset retry count
     } catch (error: any) {
       // Log the error in a way that's visible in console
       const errorInfo = {
@@ -179,9 +183,35 @@ export default function CreditTransactionsPage() {
       let errorMessage = "Failed to load credit transactions. Please try again.";
       let errorTitle = "Error";
       
-      if (error?.code === "42P01" || error?.message?.includes("does not exist")) {
+      // Handle PGRST205 - Schema cache error (most common issue)
+      const isSchemaCacheError = error?.code === "PGRST205" || 
+                                  error?.message?.includes("PGRST205") || 
+                                  error?.message?.includes("schema cache") ||
+                                  error?.message?.includes("Could not find the table");
+      
+      if (isSchemaCacheError) {
+        setSchemaCacheError(true);
+        errorTitle = "Schema Cache Needs Refresh";
+        errorMessage = "The credit_transactions table exists but Supabase hasn't refreshed its cache yet. ";
+        
+        if (retryCount < 3) {
+          // Auto-retry with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 8000); // Max 8 seconds
+          errorMessage += `Retrying in ${delay / 1000} seconds... (Attempt ${retryCount + 1}/3)`;
+          
+          setTimeout(() => {
+            setRetryCount(retryCount + 1);
+            fetchTransactions();
+          }, delay);
+          
+          // Don't show toast for auto-retries
+          return;
+        } else {
+          errorMessage += "Please: 1) Run FIX_SCHEMA_CACHE_PGRST205.sql in Supabase SQL Editor, or 2) Go to Supabase Dashboard → Settings → API → Refresh Schema Cache, then click 'Retry' below.";
+        }
+      } else if (error?.code === "42P01" || error?.message?.includes("does not exist") || error?.message?.includes("relation") && error?.message?.includes("does not exist")) {
         errorTitle = "Migration Required";
-        errorMessage = "Credit transactions table does not exist. Please run the credits system migration (20250114000000_create_credits_system.sql) in Supabase.";
+        errorMessage = "Credit transactions table does not exist. Please run RUN_ALL_CREDITS_MIGRATIONS.sql in Supabase SQL Editor first.";
       } else if (error?.code === "42501" || error?.message?.includes("permission denied")) {
         errorTitle = "Permission Denied";
         errorMessage = "You don't have permission to view credit transactions. Please contact an administrator.";
@@ -191,11 +221,16 @@ export default function CreditTransactionsPage() {
         errorMessage = `Database error occurred. Code: ${error.code}`;
       }
       
-      toast({
-        title: errorTitle,
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Only show toast if it's not a schema cache error being auto-retried
+      // (isSchemaCacheError is already defined above)
+      if (!isSchemaCacheError || retryCount >= 3) {
+        toast({
+          title: errorTitle,
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+      
       setTransactions([]);
     } finally {
       setIsLoading(false);
@@ -362,6 +397,33 @@ export default function CreditTransactionsPage() {
           {isLoading ? (
             <div className="text-center py-8">
               <p className={textStyles.body.regular}>Loading transactions...</p>
+            </div>
+          ) : schemaCacheError && retryCount >= 3 ? (
+            <div className="text-center py-8 space-y-4">
+              <p className={`${textStyles.body.regular} text-red-500 mb-4`}>
+                Schema cache error detected. Please refresh the schema cache in Supabase.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center items-center">
+                <Button
+                  onClick={() => {
+                    setRetryCount(0);
+                    setSchemaCacheError(false);
+                    fetchTransactions();
+                  }}
+                  variant="default"
+                >
+                  Retry
+                </Button>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                >
+                  Refresh Page
+                </Button>
+              </div>
+              <p className={`${textStyles.body.small} text-muted-foreground mt-4`}>
+                Run FIX_SCHEMA_CACHE_PGRST205.sql in Supabase SQL Editor, or go to Dashboard → Settings → API → Refresh Schema Cache
+              </p>
             </div>
           ) : transactions.length === 0 ? (
             <div className="text-center py-8">

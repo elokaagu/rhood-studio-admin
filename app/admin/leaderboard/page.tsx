@@ -63,11 +63,14 @@ export default function LeaderboardPage() {
           // If function doesn't exist or has issues, use fallback
           if (
             error.code === '42883' || 
+            error.code === '42804' || // Structure does not match error
             error.message?.includes('does not exist') ||
             error.message?.includes('Could not find the function') ||
-            error.message?.includes('schema cache')
+            error.message?.includes('schema cache') ||
+            error.message?.includes('structure of query does not match') ||
+            error.message?.includes('function result type')
           ) {
-            console.warn("RPC function not found or schema cache issue, using fallback query:", error.message);
+            console.warn("RPC function issue detected, using fallback query:", error.message);
             await fetchLeaderboardFallback(year);
             return;
           }
@@ -79,11 +82,14 @@ export default function LeaderboardPage() {
         // If RPC fails, try fallback query
         if (
           rpcError.code === '42883' || 
+          rpcError.code === '42804' || // Structure does not match error
           rpcError.message?.includes('does not exist') ||
           rpcError.message?.includes('Could not find the function') ||
-          rpcError.message?.includes('schema cache')
+          rpcError.message?.includes('schema cache') ||
+          rpcError.message?.includes('structure of query does not match') ||
+          rpcError.message?.includes('function result type')
         ) {
-          console.warn("RPC function not found or schema cache issue, using fallback query:", rpcError.message);
+          console.warn("RPC function issue detected, using fallback query:", rpcError.message);
           await fetchLeaderboardFallback(year);
         } else {
           throw rpcError;
@@ -92,15 +98,17 @@ export default function LeaderboardPage() {
     } catch (error: any) {
       console.error("Error fetching leaderboard:", error);
       
-      // Check if it's a function not found error
+      // Check if it's a function error
       if (
         error.message?.includes("Could not find the function") ||
         error.message?.includes("schema cache") ||
-        error.code === '42883'
+        error.message?.includes("structure of query does not match") ||
+        error.code === '42883' ||
+        error.code === '42804'
       ) {
         toast({
-          title: "Migration Required",
-          description: "The leaderboard function is not available. Please run migrations 20250114000000_create_credits_system.sql and 20250116000001_fix_leaderboard_function.sql in Supabase.",
+          title: "Function Error",
+          description: "There's an issue with the leaderboard function. Using fallback query. Please run FIX_LEADERBOARD_FUNCTION_TYPE_ERROR.sql in Supabase to fix this.",
           variant: "destructive",
         });
       } else {
@@ -119,18 +127,27 @@ export default function LeaderboardPage() {
   // Fallback query if RPC function doesn't exist yet
   const fetchLeaderboardFallback = async (year: number | null) => {
     try {
-      // Try to query credits directly
-      // @ts-ignore - credits column may not exist yet
-      let query: any = supabase
-        .from("user_profiles")
-        .select("id, dj_name, brand_name, first_name, last_name, email, credits")
-        .or("role.is.null,role.neq.admin")
-        .limit(100);
+      console.log("Using fallback query to fetch leaderboard directly from database");
       
+      // Query credits directly from user_profiles table
+      // @ts-ignore - credits column may not exist yet
+      let query: any = (supabase as any)
+        .from("user_profiles")
+        .select("id, dj_name, brand_name, first_name, last_name, email, credits");
+      
+      // Filter out admins: role is null OR role != 'admin'
+      query = query.or("role.is.null,role.neq.admin");
+      
+      // Order by credits descending, nulls last
       // @ts-ignore - credits column may not exist yet
       query = query.order("credits", { ascending: false, nullsLast: true });
       
+      // Limit results
+      query = query.limit(100);
+      
       const { data: profiles, error } = await query;
+      
+      console.log("Fallback query result:", { profilesCount: profiles?.length, error });
 
       if (error) {
         // If credits column doesn't exist, return empty array
@@ -148,18 +165,23 @@ export default function LeaderboardPage() {
       }
 
       // Transform to leaderboard format and filter out users with 0 or null credits
-      const entries: LeaderboardEntry[] = (profiles || [])
-        .filter((profile: any) => profile.credits > 0)
-        .map((profile: any, index: number) => ({
-          user_id: profile.id,
-          dj_name: profile.dj_name,
-          brand_name: profile.brand_name,
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          email: profile.email,
-          total_credits: profile.credits || 0,
-          rank_position: index + 1,
-        }));
+      const validProfiles = (profiles || []).filter((profile: any) => {
+        const credits = profile.credits ?? 0;
+        return credits > 0;
+      });
+      
+      console.log(`Found ${validProfiles.length} users with credits`);
+      
+      const entries: LeaderboardEntry[] = validProfiles.map((profile: any, index: number) => ({
+        user_id: profile.id,
+        dj_name: profile.dj_name,
+        brand_name: profile.brand_name,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        email: profile.email,
+        total_credits: profile.credits ?? 0,
+        rank_position: index + 1,
+      }));
 
       // If filtering by year, we can't do it without the function
       // So we'll just show all-time for now with a note

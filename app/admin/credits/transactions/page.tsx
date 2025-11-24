@@ -152,14 +152,28 @@ export default function CreditTransactionsPage() {
 
       setTransactions(transactionsWithProfiles as CreditTransaction[]);
     } catch (error: any) {
-      console.error("Error fetching transactions:", error);
-      console.error("Error details:", {
-        message: error?.message,
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint,
-        error
-      });
+      // Log the error in a way that's visible in console
+      const errorInfo = {
+        message: error?.message || "Unknown error",
+        code: error?.code || "No code",
+        details: error?.details || "No details",
+        hint: error?.hint || "No hint",
+        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+      };
+      
+      console.error("Error fetching transactions:", errorInfo);
+      console.error("Full error object:", error);
+      
+      // Try to get more details from the error
+      if (error?.message) {
+        console.error("Error message:", error.message);
+      }
+      if (error?.code) {
+        console.error("Error code:", error.code);
+      }
+      if (error?.details) {
+        console.error("Error details:", error.details);
+      }
       
       // Provide more helpful error message based on error type
       let errorMessage = "Failed to load credit transactions. Please try again.";

@@ -157,47 +157,81 @@ export default function CreditTransactionsPage() {
       setRetryCount(0); // Reset retry count
     } catch (error: any) {
       // Log the error in a way that's visible in console
+      // Handle cases where error might be null, undefined, or have unexpected structure
+      let errorMessage = "Unknown error";
+      let errorCode: string | undefined;
+      let errorDetails: string | undefined;
+      let errorHint: string | undefined;
+      
+      if (error) {
+        if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error instanceof Error) {
+          errorMessage = error.message || "Unknown error";
+          errorCode = (error as any).code;
+          errorDetails = (error as any).details;
+          errorHint = (error as any).hint;
+        } else if (typeof error === 'object') {
+          errorMessage = error.message || error.toString() || "Unknown error";
+          errorCode = error.code;
+          errorDetails = error.details;
+          errorHint = error.hint;
+        }
+      }
+      
+      // Safe stringify for logging
+      let errorString = "No error details available";
+      try {
+        if (error) {
+          if (typeof error === 'string') {
+            errorString = error;
+          } else if (error instanceof Error) {
+            errorString = error.stack || error.message || String(error);
+          } else {
+            // Try JSON.stringify, but catch if it fails (e.g., circular references)
+            try {
+              errorString = JSON.stringify(error, null, 2);
+            } catch (stringifyError) {
+              errorString = String(error) || "Could not serialize error";
+            }
+          }
+        }
+      } catch (e) {
+        errorString = "Error occurred while processing error: " + String(e);
+      }
+      
       const errorInfo = {
-        message: error?.message || "Unknown error",
-        code: error?.code || "No code",
-        details: error?.details || "No details",
-        hint: error?.hint || "No hint",
-        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+        message: errorMessage,
+        code: errorCode || "No code",
+        details: errorDetails || "No details",
+        hint: errorHint || "No hint",
+        rawError: errorString
       };
       
       console.error("Error fetching transactions:", errorInfo);
-      console.error("Full error object:", error);
-      
-      // Try to get more details from the error
-      if (error?.message) {
-        console.error("Error message:", error.message);
-      }
-      if (error?.code) {
-        console.error("Error code:", error.code);
-      }
-      if (error?.details) {
-        console.error("Error details:", error.details);
+      if (error) {
+        console.error("Full error object:", error);
       }
       
       // Provide more helpful error message based on error type
-      let errorMessage = "Failed to load credit transactions. Please try again.";
+      let userErrorMessage = errorMessage || "Failed to load credit transactions. Please try again.";
       let errorTitle = "Error";
       
       // Handle PGRST205 - Schema cache error (most common issue)
-      const isSchemaCacheError = error?.code === "PGRST205" || 
-                                  error?.message?.includes("PGRST205") || 
-                                  error?.message?.includes("schema cache") ||
-                                  error?.message?.includes("Could not find the table");
+      const isSchemaCacheError = errorCode === "PGRST205" || 
+                                  errorMessage?.includes("PGRST205") || 
+                                  errorMessage?.includes("schema cache") ||
+                                  errorMessage?.includes("Could not find the table");
       
       if (isSchemaCacheError) {
         setSchemaCacheError(true);
         errorTitle = "Schema Cache Needs Refresh";
-        errorMessage = "The credit_transactions table exists but Supabase hasn't refreshed its cache yet. ";
+        userErrorMessage = "The credit_transactions table exists but Supabase hasn't refreshed its cache yet. ";
         
         if (retryCount < 3) {
           // Auto-retry with exponential backoff
           const delay = Math.min(1000 * Math.pow(2, retryCount), 8000); // Max 8 seconds
-          errorMessage += `Retrying in ${delay / 1000} seconds... (Attempt ${retryCount + 1}/3)`;
+          userErrorMessage += `Retrying in ${delay / 1000} seconds... (Attempt ${retryCount + 1}/3)`;
           
           setTimeout(() => {
             setRetryCount(retryCount + 1);
@@ -207,18 +241,18 @@ export default function CreditTransactionsPage() {
           // Don't show toast for auto-retries
           return;
         } else {
-          errorMessage += "Please: 1) Run FIX_SCHEMA_CACHE_PGRST205.sql in Supabase SQL Editor, or 2) Go to Supabase Dashboard → Settings → API → Refresh Schema Cache, then click 'Retry' below.";
+          userErrorMessage += "Please: 1) Run FIX_SCHEMA_CACHE_PGRST205.sql in Supabase SQL Editor, or 2) Go to Supabase Dashboard → Settings → API → Refresh Schema Cache, then click 'Retry' below.";
         }
-      } else if (error?.code === "42P01" || error?.message?.includes("does not exist") || error?.message?.includes("relation") && error?.message?.includes("does not exist")) {
+      } else if (errorCode === "42P01" || errorMessage?.includes("does not exist") || (errorMessage?.includes("relation") && errorMessage?.includes("does not exist"))) {
         errorTitle = "Migration Required";
-        errorMessage = "Credit transactions table does not exist. Please run RUN_ALL_CREDITS_MIGRATIONS.sql in Supabase SQL Editor first.";
-      } else if (error?.code === "42501" || error?.message?.includes("permission denied")) {
+        userErrorMessage = "Credit transactions table does not exist. Please run RUN_ALL_CREDITS_MIGRATIONS.sql in Supabase SQL Editor first.";
+      } else if (errorCode === "42501" || errorMessage?.toLowerCase().includes("permission denied")) {
         errorTitle = "Permission Denied";
-        errorMessage = "You don't have permission to view credit transactions. Please contact an administrator.";
-      } else if (error?.message) {
-        errorMessage = `${error.message}${error?.code ? ` (Code: ${error.code})` : ""}`;
-      } else if (error?.code) {
-        errorMessage = `Database error occurred. Code: ${error.code}`;
+        userErrorMessage = "You don't have permission to view credit transactions. Please contact an administrator.";
+      } else if (errorMessage && errorMessage !== "Unknown error") {
+        userErrorMessage = `${errorMessage}${errorCode ? ` (Code: ${errorCode})` : ""}`;
+      } else if (errorCode) {
+        userErrorMessage = `Database error occurred. Code: ${errorCode}`;
       }
       
       // Only show toast if it's not a schema cache error being auto-retried
@@ -226,7 +260,7 @@ export default function CreditTransactionsPage() {
       if (!isSchemaCacheError || retryCount >= 3) {
         toast({
           title: errorTitle,
-          description: errorMessage,
+          description: userErrorMessage,
           variant: "destructive",
         });
       }

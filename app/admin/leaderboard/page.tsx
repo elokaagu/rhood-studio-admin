@@ -184,14 +184,8 @@ export default function LeaderboardPage() {
       }));
 
       // If filtering by year, we can't do it without the function
-      // So we'll just show all-time for now with a note
-      if (year) {
-        toast({
-          title: "Year Filter Not Available",
-          description: "Year filtering requires the database migration. Showing all-time leaderboard instead.",
-          variant: "default",
-        });
-      }
+      // So we'll just show all-time for now (silently, no notification)
+      // The RPC function should handle year filtering when available
       
       setLeaderboard(entries);
     } catch (error: any) {

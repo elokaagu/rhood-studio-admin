@@ -217,7 +217,7 @@ export default function AdminLayout({
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [userName, setUserName] = useState<string>("RHOOD TEAM");
+  const [userName, setUserName] = useState<string>("R/HOOD TEAM");
   const [userCredits, setUserCredits] = useState<number>(0);
   const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
@@ -225,7 +225,6 @@ export default function AdminLayout({
   const [profileFormData, setProfileFormData] = useState({
     first_name: "",
     last_name: "",
-    dj_name: "",
   });
 
   useEffect(() => {
@@ -251,7 +250,7 @@ export default function AdminLayout({
         if (profileError) {
           console.warn("Unable to fetch user profile:", profileError);
           // Fallback to email username
-          const emailUsername = user.email?.split("@")[0] || "RHOOD TEAM";
+          const emailUsername = user.email?.split("@")[0] || "R/HOOD TEAM";
           setUserName(emailUsername.toUpperCase());
           return;
         }
@@ -269,7 +268,7 @@ export default function AdminLayout({
               .filter(Boolean)
               .join(" ") ||
             user.email?.split("@")[0] ||
-            "RHOOD TEAM";
+            "R/HOOD TEAM";
           setUserName(displayName.toUpperCase());
         }
 
@@ -279,7 +278,7 @@ export default function AdminLayout({
         }
       } catch (error) {
         console.error("Error fetching user name:", error);
-        setUserName("RHOOD TEAM");
+        setUserName("R/HOOD TEAM");
       }
     };
 
@@ -300,7 +299,7 @@ export default function AdminLayout({
 
       const { data: profile, error: profileError } = await supabase
         .from("user_profiles")
-        .select("first_name, last_name, dj_name")
+        .select("first_name, last_name")
         .eq("id", user.id)
         .single();
 
@@ -316,7 +315,7 @@ export default function AdminLayout({
             dj_name: "",
             city: "",
           })
-          .select("first_name, last_name, dj_name")
+          .select("first_name, last_name")
           .single();
 
         if (createError) {
@@ -326,13 +325,11 @@ export default function AdminLayout({
         setProfileFormData({
           first_name: newProfile?.first_name || "",
           last_name: newProfile?.last_name || "",
-          dj_name: newProfile?.dj_name || "",
         });
       } else {
         setProfileFormData({
           first_name: profile?.first_name || "",
           last_name: profile?.last_name || "",
-          dj_name: profile?.dj_name || "",
         });
       }
     } catch (error) {
@@ -369,7 +366,6 @@ export default function AdminLayout({
         .update({
           first_name: profileFormData.first_name.trim(),
           last_name: profileFormData.last_name.trim(),
-          dj_name: profileFormData.dj_name.trim(),
         })
         .eq("id", user.id);
 
@@ -379,13 +375,12 @@ export default function AdminLayout({
 
       // Update the displayed name
       const displayName =
-        profileFormData.dj_name.trim() ||
         [profileFormData.first_name, profileFormData.last_name]
           .map((part) => (part ? part.trim() : ""))
           .filter(Boolean)
           .join(" ") ||
         user.email?.split("@")[0] ||
-        "RHOOD TEAM";
+        "R/HOOD TEAM";
 
       setUserName(displayName.toUpperCase());
 
@@ -517,21 +512,6 @@ export default function AdminLayout({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="dj_name">DJ Name</Label>
-              <Input
-                id="dj_name"
-                placeholder="Your DJ name"
-                value={profileFormData.dj_name}
-                onChange={(e) =>
-                  setProfileFormData({
-                    ...profileFormData,
-                    dj_name: e.target.value,
-                  })
-                }
-                disabled={isLoadingProfile || isSavingProfile}
-              />
-            </div>
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name</Label>
               <Input

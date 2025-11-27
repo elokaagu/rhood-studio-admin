@@ -30,7 +30,6 @@ import {
   X,
   Trophy,
   Clock,
-  DollarSign,
 } from "lucide-react";
 import { textStyles } from "@/lib/typography";
 import LocationAutocomplete from "@/components/location-autocomplete";

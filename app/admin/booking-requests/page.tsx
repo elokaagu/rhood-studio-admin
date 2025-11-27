@@ -12,7 +12,7 @@ import {
   Calendar,
   MapPin,
   Clock,
-  DollarSign,
+  Coins,
   Music,
   CheckCircle,
   XCircle,
@@ -197,10 +197,10 @@ export default function BookingRequestsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-            {isBrand ? "My Booking Requests" : "Booking Requests"}
+          <h1 className={textStyles.headline.section}>
+            {isBrand ? "MY BOOKING REQUESTS" : "BOOKING REQUESTS"}
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             {isBrand
               ? "View and manage your booking requests"
               : "View and respond to booking requests"}
@@ -278,7 +278,7 @@ export default function BookingRequestsPage() {
                       </div>
                       {request.payment_amount && (
                         <div className="flex items-center gap-2 text-muted-foreground">
-                          <DollarSign className="h-4 w-4" />
+                          <Coins className="h-4 w-4" />
                           <span>
                             {request.payment_currency === "GBP"
                               ? "£"

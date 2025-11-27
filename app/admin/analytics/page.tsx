@@ -507,7 +507,7 @@ export default function AnalyticsPage() {
       const link = document.createElement("a");
       const today = new Date().toISOString().split("T")[0];
       link.href = url;
-      link.setAttribute("download", `RHOOD_Analytics_${today}.csv`);
+      link.setAttribute("download", `R-HOOD_Analytics_${today}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -803,7 +803,7 @@ export default function AnalyticsPage() {
       });
 
       const today = new Date().toISOString().split("T")[0];
-      doc.save(`RHOOD_Analytics_${today}.pdf`);
+      doc.save(`R-HOOD_Analytics_${today}.pdf`);
 
       toast({
         title: "PDF Downloaded",

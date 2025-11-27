@@ -256,7 +256,7 @@ export default function AdminLoginPage() {
                 variant="outline"
                 className={`border-primary ${textStyles.headline.badge}`}
               >
-                RHOOD TEAM ONLY
+                R/HOOD TEAM ONLY
               </Badge>
             ) : (
               <Badge

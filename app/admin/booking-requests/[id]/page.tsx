@@ -14,7 +14,7 @@ import {
   Calendar,
   MapPin,
   Clock,
-  DollarSign,
+  Coins,
   Music,
   CheckCircle,
   XCircle,
@@ -349,7 +349,7 @@ export default function BookingRequestDetailPage() {
                 </div>
                 {bookingRequest.payment_amount && (
                   <div className="flex items-center gap-3">
-                    <DollarSign className="h-5 w-5 text-muted-foreground" />
+                    <Coins className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <Label className="text-xs text-muted-foreground">Payment</Label>
                       <p className="text-sm font-medium text-foreground">

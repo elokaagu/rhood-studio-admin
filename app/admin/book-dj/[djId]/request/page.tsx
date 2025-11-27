@@ -25,7 +25,7 @@ import {
   MapPin,
   Clock,
   Music,
-  DollarSign,
+  Coins,
   ArrowLeft,
   Send,
   Star,
@@ -544,7 +544,7 @@ export default function BookingRequestPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="payment_amount" className="text-foreground flex items-center">
-                      <DollarSign className="h-4 w-4 mr-2" />
+                      <Coins className="h-4 w-4 mr-2" />
                       Payment Amount
                     </Label>
                     <Input

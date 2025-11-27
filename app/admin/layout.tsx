@@ -52,6 +52,7 @@ import {
   Calendar,
   Coins,
   Trophy,
+  Building2,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -64,6 +65,12 @@ const allSidebarItems = [
     url: "/admin/dashboard",
     icon: LayoutDashboard,
     roles: ["admin", "brand"] as UserRole[],
+  },
+  {
+    title: "Brand Profile",
+    url: "/admin/brand/profile",
+    icon: Building2,
+    roles: ["brand"] as UserRole[],
   },
   {
     title: "Book a DJ",
@@ -138,19 +145,30 @@ function AppSidebar() {
   const isCollapsed = state === "collapsed";
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [isLoadingRole, setIsLoadingRole] = useState(true);
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      const profile = await getCurrentUserProfile();
-      setUserRole(profile?.role || "admin");
+      setIsLoadingRole(true);
+      try {
+        const profile = await getCurrentUserProfile();
+        setUserRole(profile?.role || "admin");
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+        // Default to admin if there's an error
+        setUserRole("admin");
+      } finally {
+        setIsLoadingRole(false);
+      }
     };
     fetchUserRole();
   }, []);
 
   // Filter sidebar items based on user role
-  const sidebarItems = allSidebarItems.filter((item) =>
-    userRole ? item.roles.includes(userRole) : true
-  );
+  // Don't show any items until role is loaded (prevent flash of all items)
+  const sidebarItems = isLoadingRole || !userRole 
+    ? [] 
+    : allSidebarItems.filter((item) => item.roles.includes(userRole));
 
   return (
     <Sidebar collapsible="icon">
@@ -180,29 +198,37 @@ function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {sidebarItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      href={item.url}
-                      className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
-                        pathname === item.url
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {!isCollapsed && (
-                        <span className={`ml-3 ${textStyles.body.regular}`}>
-                          {item.title}
-                        </span>
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            {isLoadingRole ? (
+              <div className="px-3 py-2">
+                <p className={`text-sm text-muted-foreground ${textStyles.body.small}`}>
+                  Loading...
+                </p>
+              </div>
+            ) : (
+              <SidebarMenu>
+                {sidebarItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        href={item.url}
+                        className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
+                          pathname === item.url
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-accent hover:text-accent-foreground"
+                        }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {!isCollapsed && (
+                          <span className={`ml-3 ${textStyles.body.regular}`}>
+                            {item.title}
+                          </span>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

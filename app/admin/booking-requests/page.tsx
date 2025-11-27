@@ -246,18 +246,15 @@ export default function BookingRequestsPage() {
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                   <div className="flex-1 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-lg text-foreground">
-                          {request.event_title}
-                        </h3>
-                        {isBrand && request.dj_profile && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            DJ: {request.dj_profile.dj_name}
-                          </p>
-                        )}
-                      </div>
-                      {getStatusBadge(request.status)}
+                    <div>
+                      <h3 className="font-semibold text-lg text-foreground">
+                        {request.event_title}
+                      </h3>
+                      {isBrand && request.dj_profile && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          DJ: {request.dj_profile.dj_name}
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -315,14 +312,14 @@ export default function BookingRequestsPage() {
                     )}
                   </div>
 
-                  <div className="flex sm:flex-col gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {getStatusBadge(request.status)}
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() =>
                         router.push(`/admin/booking-requests/${request.id}`)
                       }
-                      className="flex-1 sm:flex-none"
                     >
                       View Details
                       <ArrowRight className="h-4 w-4 ml-2" />

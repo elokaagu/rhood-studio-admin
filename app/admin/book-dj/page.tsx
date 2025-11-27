@@ -30,6 +30,8 @@ import {
   X,
   Trophy,
   Clock,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { textStyles } from "@/lib/typography";
 import LocationAutocomplete from "@/components/location-autocomplete";
@@ -85,6 +87,7 @@ export default function BookDJPage() {
   const [hasMixFilter, setHasMixFilter] = useState<boolean>(false);
   const [creditsFilter, setCreditsFilter] = useState<string>("all"); // 'all', 'top10', 'top50', 'top100'
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all"); // 'all', 'available', 'busy'
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid"); // 'grid' or 'list'
   const [userProfile, setUserProfile] = useState<any>(null);
 
   // Check if user is a brand
@@ -143,14 +146,16 @@ export default function BookDJPage() {
             console.warn("Could not fetch rating for user:", profile.id);
           }
 
-          // Fetch latest mix
+          // Fetch latest approved mix
           let latestMix = null;
           let mixCount = 0;
           try {
+            // Only fetch approved mixes
             const { data: mixData, error: mixError } = await supabase
               .from("mixes")
               .select("id, title, genre, file_url, description")
               .eq("uploaded_by", profile.id)
+              .eq("status", "approved")
               .order("created_at", { ascending: false })
               .limit(1)
               .maybeSingle();
@@ -159,15 +164,18 @@ export default function BookDJPage() {
               latestMix = mixData;
             }
 
-            // Count total mixes
-            const { count } = await supabase
+            // Count only approved mixes
+            const { count, error: countError } = await supabase
               .from("mixes")
               .select("*", { count: "exact", head: true })
-              .eq("uploaded_by", profile.id);
+              .eq("uploaded_by", profile.id)
+              .eq("status", "approved");
 
-            mixCount = count || 0;
+            if (!countError) {
+              mixCount = count || 0;
+            }
           } catch (mixErr) {
-            console.warn("Could not fetch mixes for user:", profile.id);
+            console.warn("Could not fetch mixes for user:", profile.id, mixErr);
           }
 
           // Get credits
@@ -273,9 +281,9 @@ export default function BookDJPage() {
       );
     }
 
-    // Mix filter
+    // Mix filter - only show DJs with at least one approved mix
     if (hasMixFilter) {
-      filtered = filtered.filter((dj) => dj.mixCount > 0);
+      filtered = filtered.filter((dj) => dj.mixCount > 0 || dj.latestMix !== null);
     }
 
     // Credits/Ranking filter
@@ -495,14 +503,34 @@ export default function BookDJPage() {
         </CardContent>
       </Card>
 
-      {/* Results Count */}
+      {/* Results Count and View Toggle */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {filteredDjs.length} {filteredDjs.length === 1 ? "DJ" : "DJs"} found
         </p>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center border border-border rounded-md p-1">
+            <Button
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className="h-8 px-3"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="h-8 px-3"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* DJ Cards Grid */}
+      {/* DJ Cards - Grid or List View */}
       {filteredDjs.length === 0 ? (
         <Card className="bg-card border-border">
           <CardContent className="py-12 text-center">
@@ -511,7 +539,7 @@ export default function BookDJPage() {
             </p>
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredDjs.map((dj) => (
             <Card
@@ -664,6 +692,149 @@ export default function BookDJPage() {
                           <Play className="h-4 w-4 mr-2" />
                           Play Mix
                         </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredDjs.map((dj) => (
+            <Card
+              key={dj.id}
+              className="bg-card border-border hover:shadow-lg transition-shadow"
+            >
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                  {/* Avatar */}
+                  <Avatar className="h-16 w-16 sm:h-20 sm:w-20 flex-shrink-0">
+                    <AvatarImage
+                      src={dj.profile_image_url || "/person1.jpg"}
+                      alt={dj.dj_name}
+                    />
+                    <AvatarFallback>
+                      {dj.dj_name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  {/* Main Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg text-foreground truncate">
+                          {dj.dj_name}
+                        </h3>
+                        <div className="flex items-center gap-4 mt-2 flex-wrap">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                              {dj.city}
+                            </span>
+                          </div>
+                          {dj.rating > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                              <span className="text-sm font-medium text-foreground">
+                                {dj.rating.toFixed(1)}
+                              </span>
+                            </div>
+                          )}
+                          {dj.credits > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Trophy className="h-4 w-4 text-brand-green" />
+                              <span className="text-sm font-medium text-foreground">
+                                {dj.credits} credits
+                              </span>
+                            </div>
+                          )}
+                          {dj.availability && dj.availability !== "unknown" && (
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${
+                                dj.availability === "available"
+                                  ? "border-green-500 text-green-500"
+                                  : "border-orange-500 text-orange-500"
+                              }`}
+                            >
+                              <Clock className="h-3 w-3 mr-1" />
+                              {dj.availability === "available" ? "Available" : "Busy"}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                          onClick={() => handleBookDJ(dj.id)}
+                          className="bg-primary text-primary-foreground hover:bg-primary/90"
+                          size="sm"
+                        >
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Book DJ
+                        </Button>
+                        {dj.latestMix && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const mixUrl = supabase.storage
+                                .from("mixes")
+                                .getPublicUrl(dj.latestMix!.file_url).data.publicUrl;
+                              window.open(mixUrl, "_blank");
+                            }}
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            Play Mix
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Genres */}
+                    {dj.genres.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-3">
+                        {dj.genres.map((genre) => (
+                          <Badge
+                            key={genre}
+                            variant="outline"
+                            className="text-xs border-border text-foreground"
+                          >
+                            {genre}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Mix Info and Bio */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                      {dj.latestMix && (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Music className="h-4 w-4" />
+                            <span>
+                              {dj.mixCount} {dj.mixCount === 1 ? "mix" : "mixes"}
+                            </span>
+                          </div>
+                          {dj.latestMix.title && (
+                            <div className="text-xs font-medium text-foreground truncate">
+                              Latest: {dj.latestMix.title}
+                            </div>
+                          )}
+                          {dj.latestMix.genre && (
+                            <Badge variant="outline" className="text-xs border-border text-foreground mt-1">
+                              {dj.latestMix.genre}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      {dj.bio && (
+                        <div>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {dj.bio}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>

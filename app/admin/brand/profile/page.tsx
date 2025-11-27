@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +69,88 @@ export default function BrandProfilePage() {
     website: "",
   });
 
+  const fetchBrandProfile = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const userId = await getCurrentUserId();
+      if (!userId) return;
+
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("id, brand_name, brand_description, website, first_name, last_name, email, created_at")
+        .eq("id", userId)
+        .single();
+
+      if (error) {
+        // Check if the error is about missing columns (migration not run)
+        if (error.message?.includes("does not exist") || error.code === "42703") {
+          console.warn("Brand profile columns may not exist yet. Migration may need to be run.");
+          // Still try to set profile with available data
+          const { data: basicData, error: basicError } = await supabase
+            .from("user_profiles")
+            .select("id, brand_name, first_name, last_name, email, created_at")
+            .eq("id", userId)
+            .single();
+          
+          if (!basicError && basicData) {
+            setProfile({
+              ...basicData,
+              brand_description: null,
+              website: null,
+            } as BrandProfile);
+            setFormData({
+              brand_name: basicData.brand_name || "",
+              brand_description: "",
+              website: "",
+            });
+            return;
+          }
+        }
+        throw error;
+      }
+
+      if (data && !error) {
+        // Type assertion needed because Supabase types don't always narrow correctly
+        const profileData = data as unknown as {
+          id: string;
+          brand_name: string | null;
+          brand_description?: string | null;
+          website?: string | null;
+          first_name: string;
+          last_name: string;
+          email: string;
+          created_at: string | null;
+        };
+        
+        const brandProfile: BrandProfile = {
+          id: profileData.id,
+          brand_name: profileData.brand_name,
+          brand_description: profileData.brand_description ?? null,
+          website: profileData.website ?? null,
+          first_name: profileData.first_name,
+          last_name: profileData.last_name,
+          email: profileData.email,
+          created_at: profileData.created_at,
+        };
+        setProfile(brandProfile);
+        setFormData({
+          brand_name: brandProfile.brand_name || "",
+          brand_description: brandProfile.brand_description || "",
+          website: brandProfile.website || "",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching brand profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load brand profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
     const checkUserAndFetchProfile = async () => {
       const profile = await getCurrentUserProfile();
@@ -84,45 +166,9 @@ export default function BrandProfilePage() {
       await fetchBrandProfile();
     };
     checkUserAndFetchProfile();
-  }, [router, toast]);
+  }, [router, toast, fetchBrandProfile]);
 
-  const fetchBrandProfile = async () => {
-    try {
-      setIsLoading(true);
-      const userId = await getCurrentUserId();
-      if (!userId) return;
-
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .select("id, brand_name, brand_description, website, first_name, last_name, email, created_at")
-        .eq("id", userId)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        setProfile(data as BrandProfile);
-        setFormData({
-          brand_name: data.brand_name || "",
-          brand_description: data.brand_description || "",
-          website: data.website || "",
-        });
-      }
-    } catch (error: any) {
-      console.error("Error fetching brand profile:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load brand profile. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchContracts = async () => {
+  const fetchContracts = useCallback(async () => {
     try {
       setIsLoadingContracts(true);
       const userId = await getCurrentUserId();
@@ -165,13 +211,13 @@ export default function BrandProfilePage() {
     } finally {
       setIsLoadingContracts(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     if (profile) {
       fetchContracts();
     }
-  }, [profile]);
+  }, [profile, fetchContracts]);
 
   const handleSave = async () => {
     try {

@@ -501,7 +501,7 @@ export default function DashboardPage() {
           </div>
         </>
       ) : (
-        <div className="animate-in fade-in-0 duration-500 space-y-4 sm:space-y-6 md:space-y-8">
+        <div className="space-y-4 sm:space-y-6 md:space-y-8">
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
             {stats.map((stat, index) => (

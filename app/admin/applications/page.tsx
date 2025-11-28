@@ -761,7 +761,8 @@ function ApplicationsContent() {
             <p className={textStyles.body.regular}>No applications found.</p>
           </div>
         ) : (
-          filteredApplications.map((application) => (
+          <div className="space-y-4 stagger-children">
+            {filteredApplications.map((application) => (
             <Card key={application.id} className="bg-card border-border">
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -848,7 +849,8 @@ function ApplicationsContent() {
                 </div>
               </CardContent>
             </Card>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>

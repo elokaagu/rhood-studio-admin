@@ -508,7 +508,7 @@ export default function BookDJPage() {
           </CardContent>
         </Card>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 stagger-children">
           {filteredDjs.map((dj) => (
             <Card
               key={dj.id}
@@ -678,7 +678,7 @@ export default function BookDJPage() {
           ))}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 stagger-children">
           {filteredDjs.map((dj) => (
             <Card
               key={dj.id}

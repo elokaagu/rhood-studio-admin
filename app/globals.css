@@ -2,6 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* Smooth page transitions */
+  .page-transition {
+    animation: fade-in 0.4s ease-in-out;
+  }
+  
+  /* Staggered children animation */
+  .stagger-children > * {
+    animation: fade-in-up 0.5s ease-out;
+  }
+  
+  .stagger-children > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  
+  .stagger-children > *:nth-child(2) {
+    animation-delay: 50ms;
+  }
+  
+  .stagger-children > *:nth-child(3) {
+    animation-delay: 100ms;
+  }
+  
+  .stagger-children > *:nth-child(4) {
+    animation-delay: 150ms;
+  }
+  
+  .stagger-children > *:nth-child(n+5) {
+    animation-delay: 200ms;
+  }
+  
+  /* Image blur-up effect */
+  .blur-up {
+    filter: blur(10px);
+    transition: filter 0.3s;
+  }
+  
+  .blur-up.loaded {
+    filter: blur(0);
+  }
+}
+
 /* R/HOOD Design System - Underground Music Aesthetic */
 
 @layer base {

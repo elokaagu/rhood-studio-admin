@@ -237,7 +237,7 @@ export default function BookingRequestsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 stagger-children">
           {bookingRequests.map((request) => (
             <Card
               key={request.id}

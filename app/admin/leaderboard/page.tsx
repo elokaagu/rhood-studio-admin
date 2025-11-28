@@ -387,7 +387,7 @@ export default function LeaderboardPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 stagger-children">
               {leaderboard.map((entry, index) => {
                 const isCurrentUser = userProfile?.id === entry.user_id;
                 return (

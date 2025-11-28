@@ -84,7 +84,6 @@ export default function BookDJPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<string>("all");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
-  const [hasMixFilter, setHasMixFilter] = useState<boolean>(false);
   const [creditsFilter, setCreditsFilter] = useState<string>("all"); // 'all', 'top10', 'top50', 'top100'
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all"); // 'all', 'available', 'busy'
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid"); // 'grid' or 'list'
@@ -281,11 +280,6 @@ export default function BookDJPage() {
       );
     }
 
-    // Mix filter - only show DJs with at least one approved mix
-    if (hasMixFilter) {
-      filtered = filtered.filter((dj) => dj.mixCount > 0 || dj.latestMix !== null);
-    }
-
     // Credits/Ranking filter
     if (creditsFilter !== "all") {
       const sortedByCredits = [...filtered].sort((a, b) => b.credits - a.credits);
@@ -304,7 +298,7 @@ export default function BookDJPage() {
     }
 
     setFilteredDjs(filtered);
-  }, [searchTerm, selectedGenre, selectedLocation, hasMixFilter, creditsFilter, availabilityFilter, djs]);
+  }, [searchTerm, selectedGenre, selectedLocation, creditsFilter, availabilityFilter, djs]);
 
   const handleBookDJ = (djId: string) => {
     router.push(`/admin/book-dj/${djId}/request`);
@@ -355,7 +349,7 @@ export default function BookDJPage() {
           </div>
 
           {/* Filter Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Genre Filter */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Genre</label>
@@ -449,36 +443,11 @@ export default function BookDJPage() {
               </Select>
             </div>
 
-            {/* Mix Filter */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Has Mix</label>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant={hasMixFilter ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setHasMixFilter(!hasMixFilter)}
-                  className="w-full"
-                >
-                  {hasMixFilter ? (
-                    <>
-                      <X className="h-4 w-4 mr-2" />
-                      Clear
-                    </>
-                  ) : (
-                    <>
-                      <Music className="h-4 w-4 mr-2" />
-                      Has Mix
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
           </div>
 
           {/* Clear Filters */}
           {(selectedGenre !== "all" ||
             selectedLocation ||
-            hasMixFilter ||
             creditsFilter !== "all" ||
             availabilityFilter !== "all" ||
             searchTerm) && (
@@ -490,7 +459,6 @@ export default function BookDJPage() {
                   setSearchTerm("");
                   setSelectedGenre("all");
                   setSelectedLocation("");
-                  setHasMixFilter(false);
                   setCreditsFilter("all");
                   setAvailabilityFilter("all");
                 }}
@@ -670,6 +638,15 @@ export default function BookDJPage() {
                     {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-2 pt-2">
                       <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/admin/members/${dj.id}`)}
+                        className="flex-1"
+                      >
+                        <User className="h-4 w-4 mr-2" />
+                        View Profile
+                      </Button>
+                      <Button
                         onClick={() => handleBookDJ(dj.id)}
                         className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                         size="sm"
@@ -766,6 +743,14 @@ export default function BookDJPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/admin/members/${dj.id}`)}
+                        >
+                          <User className="h-4 w-4 mr-2" />
+                          View Profile
+                        </Button>
                         <Button
                           onClick={() => handleBookDJ(dj.id)}
                           className="bg-primary text-primary-foreground hover:bg-primary/90"

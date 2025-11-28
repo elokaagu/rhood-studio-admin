@@ -329,7 +329,7 @@ export default function BrandProfilePage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="-ml-3 sm:-ml-4 md:-ml-6 pl-3 sm:pl-4 md:pl-6">
           <h1 className={textStyles.headline.section}>
             BRAND PROFILE
           </h1>
@@ -470,7 +470,7 @@ export default function BrandProfilePage() {
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className={textStyles.subheading.small}>
-            Contracts & Agreements
+            Agreements
           </CardTitle>
         </CardHeader>
         <CardContent>

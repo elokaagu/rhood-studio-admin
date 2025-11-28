@@ -35,7 +35,7 @@ export default function LeaderboardPage() {
   const { toast } = useToast();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedYear, setSelectedYear] = useState<number | null>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number | null>(null); // Default to "All Time"
   const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {

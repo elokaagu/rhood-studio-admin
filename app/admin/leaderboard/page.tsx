@@ -1,24 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserProfile } from "@/lib/auth-utils";
 import {
-  Trophy,
-  Medal,
-  Award,
-  Coins,
-  Calendar,
-  Crown,
   Star,
-  TrendingUp,
+  Search,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface LeaderboardEntry {
   user_id: string;
@@ -29,6 +23,7 @@ interface LeaderboardEntry {
   email: string;
   total_credits: number;
   rank_position: number;
+  role?: string | null;
 }
 
 export default function LeaderboardPage() {
@@ -37,6 +32,7 @@ export default function LeaderboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number | null>(null); // Default to "All Time"
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -50,74 +46,16 @@ export default function LeaderboardPage() {
     try {
       setIsLoading(true);
       
-      // Try to use RPC function first, fallback to direct query if function doesn't exist
-      try {
-        // @ts-ignore - RPC function not in types yet (migration needed)
-        // Call with named parameters - handle NULL year correctly
-        const { data, error } = await (supabase.rpc as any)("get_credits_leaderboard", {
-          p_year: year ?? null, // Ensure null is explicitly passed, not undefined
-          p_limit: 100,
-        });
-
-        if (error) {
-          // If function doesn't exist or has issues, use fallback
-          if (
-            error.code === '42883' || 
-            error.code === '42804' || // Structure does not match error
-            error.message?.includes('does not exist') ||
-            error.message?.includes('Could not find the function') ||
-            error.message?.includes('schema cache') ||
-            error.message?.includes('structure of query does not match') ||
-            error.message?.includes('function result type')
-          ) {
-            console.warn("RPC function issue detected, using fallback query:", error.message);
-            await fetchLeaderboardFallback(year);
-            return;
-          }
-          throw error;
-        }
-
-        setLeaderboard((data as LeaderboardEntry[]) || []);
-      } catch (rpcError: any) {
-        // If RPC fails, try fallback query
-        if (
-          rpcError.code === '42883' || 
-          rpcError.code === '42804' || // Structure does not match error
-          rpcError.message?.includes('does not exist') ||
-          rpcError.message?.includes('Could not find the function') ||
-          rpcError.message?.includes('schema cache') ||
-          rpcError.message?.includes('structure of query does not match') ||
-          rpcError.message?.includes('function result type')
-        ) {
-          console.warn("RPC function issue detected, using fallback query:", rpcError.message);
-          await fetchLeaderboardFallback(year);
-        } else {
-          throw rpcError;
-        }
-      }
+      // Use direct query to show all users with credits (including admins)
+      // This ensures we see everyone who has credits in the system
+      await fetchLeaderboardFallback(year);
     } catch (error: any) {
       console.error("Error fetching leaderboard:", error);
-      
-      // Check if it's a function error
-      if (
-        error.message?.includes("Could not find the function") ||
-        error.message?.includes("schema cache") ||
-        error.message?.includes("structure of query does not match") ||
-        error.code === '42883' ||
-        error.code === '42804'
-      ) {
-        toast({
-          title: "Function Error",
-          description: "There's an issue with the leaderboard function. Using fallback query. Please run FIX_LEADERBOARD_FUNCTION_TYPE_ERROR.sql in Supabase to fix this.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to load leaderboard. Please try again.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load leaderboard. Please try again.",
+        variant: "destructive",
+      });
       setLeaderboard([]);
     } finally {
       setIsLoading(false);
@@ -133,10 +71,10 @@ export default function LeaderboardPage() {
       // @ts-ignore - credits column may not exist yet
       let query: any = (supabase as any)
         .from("user_profiles")
-        .select("id, dj_name, brand_name, first_name, last_name, email, credits");
+        .select("id, dj_name, brand_name, first_name, last_name, email, credits, role");
       
-      // Filter out admins: role is null OR role != 'admin'
-      query = query.or("role.is.null,role.neq.admin");
+      // Show all users with credits (including admins)
+      // No admin filter - we want to show everyone with credits
       
       // Order by credits descending, nulls last
       // @ts-ignore - credits column may not exist yet
@@ -181,6 +119,7 @@ export default function LeaderboardPage() {
         email: profile.email,
         total_credits: profile.credits ?? 0,
         rank_position: index + 1,
+        role: profile.role || null,
       }));
 
       // If filtering by year, we can't do it without the function
@@ -204,27 +143,6 @@ export default function LeaderboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear]);
 
-  const getRankIcon = (rank: number) => {
-    if (rank === 1) {
-      return <Crown className="h-6 w-6 text-yellow-500" />;
-    } else if (rank === 2) {
-      return <Medal className="h-6 w-6 text-gray-400" />;
-    } else if (rank === 3) {
-      return <Medal className="h-6 w-6 text-amber-600" />;
-    }
-    return <Badge variant="outline" className="w-8 h-8 flex items-center justify-center">
-      {rank}
-    </Badge>;
-  };
-
-  const getRankBadge = (rank: number) => {
-    if (rank === 1) return "🏆 Champion";
-    if (rank === 2) return "🥈 Runner-up";
-    if (rank === 3) return "🥉 Third Place";
-    if (rank <= 10) return "⭐ Top 10";
-    return null;
-  };
-
   const getDisplayName = (entry: LeaderboardEntry) => {
     return (
       entry.dj_name ||
@@ -233,6 +151,40 @@ export default function LeaderboardPage() {
       entry.email
     );
   };
+
+  // Filter leaderboard based on search term
+  const filteredLeaderboard = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return leaderboard;
+    }
+
+    const searchLower = searchTerm.toLowerCase().trim();
+    return leaderboard.filter((entry) => {
+      // Get all searchable fields
+      const displayName = (
+        entry.dj_name ||
+        entry.brand_name ||
+        `${entry.first_name || ""} ${entry.last_name || ""}`.trim() ||
+        entry.email
+      ).toLowerCase();
+      const email = entry.email.toLowerCase();
+      const djName = (entry.dj_name || "").toLowerCase();
+      const brandName = (entry.brand_name || "").toLowerCase();
+      const firstName = (entry.first_name || "").toLowerCase();
+      const lastName = (entry.last_name || "").toLowerCase();
+      const credits = entry.total_credits.toString();
+
+      return (
+        displayName.includes(searchLower) ||
+        email.includes(searchLower) ||
+        djName.includes(searchLower) ||
+        brandName.includes(searchLower) ||
+        firstName.includes(searchLower) ||
+        lastName.includes(searchLower) ||
+        credits.includes(searchLower)
+      );
+    });
+  }, [leaderboard, searchTerm]);
 
   const currentYear = new Date().getFullYear();
 
@@ -245,7 +197,7 @@ export default function LeaderboardPage() {
             Credits Leaderboard
           </h1>
           <p className={`${textStyles.body.regular} text-sm sm:text-base mt-1`}>
-            Top DJs ranked by credits earned
+            All users ranked by credits earned
           </p>
         </div>
 
@@ -270,110 +222,25 @@ export default function LeaderboardPage() {
         </div>
       </div>
 
-      {/* Top 3 Podium */}
-      {!isLoading && leaderboard.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* 2nd Place */}
-          {leaderboard[1] && (
-            <Card className="bg-card border-border order-2 md:order-1">
-              <CardHeader className="text-center pb-2">
-                <div className="flex justify-center mb-2">
-                  <Medal className="h-8 w-8 text-gray-400" />
-                </div>
-                <div className="text-2xl font-bold text-gray-400">2nd</div>
-              </CardHeader>
-              <CardContent className="text-center space-y-2">
-                <Avatar className="h-16 w-16 mx-auto">
-                  <AvatarFallback className="text-lg">
-                    {getDisplayName(leaderboard[1])
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()
-                      .slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <h3 className="font-semibold text-base truncate">
-                  {getDisplayName(leaderboard[1])}
-                </h3>
-                <div className="flex items-center justify-center gap-1 text-brand-green">
-                  <Coins className="h-4 w-4" />
-                  <span className="font-bold">{leaderboard[1].total_credits}</span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* 1st Place */}
-          {leaderboard[0] && (
-            <Card className="bg-card border-border border-2 border-yellow-500 order-1 md:order-2">
-              <CardHeader className="text-center pb-2">
-                <div className="flex justify-center mb-2">
-                  <Crown className="h-10 w-10 text-yellow-500" />
-                </div>
-                <div className="text-3xl font-bold text-yellow-500">1st</div>
-              </CardHeader>
-              <CardContent className="text-center space-y-2">
-                <Avatar className="h-20 w-20 mx-auto border-2 border-yellow-500">
-                  <AvatarFallback className="text-xl">
-                    {getDisplayName(leaderboard[0])
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()
-                      .slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <h3 className="font-bold text-lg truncate">
-                  {getDisplayName(leaderboard[0])}
-                </h3>
-                <div className="flex items-center justify-center gap-1 text-brand-green">
-                  <Coins className="h-5 w-5" />
-                  <span className="font-bold text-lg">{leaderboard[0].total_credits}</span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* 3rd Place */}
-          {leaderboard[2] && (
-            <Card className="bg-card border-border order-3">
-              <CardHeader className="text-center pb-2">
-                <div className="flex justify-center mb-2">
-                  <Medal className="h-8 w-8 text-amber-600" />
-                </div>
-                <div className="text-2xl font-bold text-amber-600">3rd</div>
-              </CardHeader>
-              <CardContent className="text-center space-y-2">
-                <Avatar className="h-16 w-16 mx-auto">
-                  <AvatarFallback className="text-lg">
-                    {getDisplayName(leaderboard[2])
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()
-                      .slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <h3 className="font-semibold text-base truncate">
-                  {getDisplayName(leaderboard[2])}
-                </h3>
-                <div className="flex items-center justify-center gap-1 text-brand-green">
-                  <Coins className="h-4 w-4" />
-                  <span className="font-bold">{leaderboard[2].total_credits}</span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Full Leaderboard List */}
+      {/* Leaderboard List */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className={textStyles.subheading.small}>
-            {selectedYear ? `${selectedYear} Leaderboard` : "All-Time Leaderboard"}
-          </CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className={textStyles.subheading.small}>
+              {selectedYear ? `${selectedYear} Leaderboard` : "All-Time Leaderboard"}
+            </CardTitle>
+            
+            {/* Search Bar */}
+            <div className="relative w-full sm:w-auto sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-secondary border-border text-foreground w-full"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -386,9 +253,15 @@ export default function LeaderboardPage() {
                 No data available for {selectedYear || "all-time"}.
               </p>
             </div>
+          ) : filteredLeaderboard.length === 0 ? (
+            <div className="text-center py-8">
+              <p className={textStyles.body.regular}>
+                No users found matching "{searchTerm}".
+              </p>
+            </div>
           ) : (
             <div className="space-y-2 stagger-children">
-              {leaderboard.map((entry, index) => {
+              {filteredLeaderboard.map((entry, index) => {
                 const isCurrentUser = userProfile?.id === entry.user_id;
                 return (
                   <div
@@ -400,8 +273,8 @@ export default function LeaderboardPage() {
                     }`}
                   >
                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="flex-shrink-0">
-                        {getRankIcon(entry.rank_position)}
+                      <div className="flex-shrink-0 w-8 text-muted-foreground">
+                        #{entry.rank_position}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -417,18 +290,17 @@ export default function LeaderboardPage() {
                               You
                             </Badge>
                           )}
-                          {getRankBadge(entry.rank_position) && (
+                          {entry.role === 'admin' && (
                             <Badge variant="outline" className="text-xs">
-                              {getRankBadge(entry.rank_position)}
+                              Admin
                             </Badge>
                           )}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <Coins className="h-4 w-4 text-brand-green" />
                       <span className={`font-bold ${isCurrentUser ? "text-brand-green" : "text-foreground"}`}>
-                        {entry.total_credits}
+                        {entry.total_credits} credits
                       </span>
                     </div>
                   </div>
@@ -443,8 +315,7 @@ export default function LeaderboardPage() {
       {selectedYear === currentYear && (
         <Card className="bg-card border-border border-brand-green/20">
           <CardHeader>
-            <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
-              <Trophy className="h-5 w-5 text-brand-green" />
+            <CardTitle className={textStyles.subheading.small}>
               Year-End Rewards
             </CardTitle>
           </CardHeader>

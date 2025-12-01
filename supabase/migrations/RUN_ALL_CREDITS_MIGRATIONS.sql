@@ -124,6 +124,10 @@ CREATE TABLE IF NOT EXISTS public.opportunities (
   created_by UUID REFERENCES user_profiles(id) ON DELETE SET NULL
 );
 
+-- Add created_by column if it doesn't exist (in case table already exists)
+ALTER TABLE public.opportunities 
+ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES user_profiles(id) ON DELETE SET NULL;
+
 -- Create indexes for opportunities
 CREATE INDEX IF NOT EXISTS idx_opportunities_is_active ON opportunities(is_active);
 CREATE INDEX IF NOT EXISTS idx_opportunities_genre ON opportunities(genre);
@@ -413,6 +417,7 @@ TO authenticated
 WITH CHECK (user_id = auth.uid());
 
 -- Brands and admins can view all boosts for their opportunities
+-- Note: Using organizer_id as fallback in case created_by is not populated
 DROP POLICY IF EXISTS "Brands can view boosts for their opportunities" ON opportunity_boosts;
 CREATE POLICY "Brands can view boosts for their opportunities"
 ON opportunity_boosts
@@ -421,7 +426,7 @@ TO authenticated
 USING (
   EXISTS (
     SELECT 1 FROM opportunities o
-    JOIN user_profiles up ON o.created_by = up.id
+    JOIN user_profiles up ON COALESCE(o.created_by, o.organizer_id) = up.id
     WHERE o.id = opportunity_boosts.opportunity_id
     AND up.id = auth.uid()
     AND up.role IN ('brand', 'admin')

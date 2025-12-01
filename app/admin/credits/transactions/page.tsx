@@ -10,17 +10,8 @@ import { formatDate } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
 import {
-  Coins,
-  TrendingUp,
-  TrendingDown,
   ArrowRight,
-  Filter,
   Download,
-  CheckCircle,
-  Rocket,
-  Star,
-  Gift,
-  Sparkles,
 } from "lucide-react";
 import {
   Select,
@@ -74,15 +65,12 @@ export default function CreditTransactionsPage() {
         return;
       }
 
-      // Build query with proper RLS filtering - filter at database level
+      // Build query to fetch ALL transactions (ledger view)
       // @ts-ignore - credit_transactions table may not be in types yet
       let query = (supabase as any).from("credit_transactions").select("*");
 
-      // Non-admins can only see their own transactions (RLS will also enforce this)
-      // But we filter at query level to be explicit and improve performance
-      if (userProfile?.role !== "admin") {
-        query = query.eq("user_id", userId);
-      }
+      // Show all transactions - no user filtering for ledger view
+      // Note: RLS policies will still enforce permissions
 
       // Apply transaction type filter at database level
       if (filterType !== "all") {
@@ -95,10 +83,10 @@ export default function CreditTransactionsPage() {
         }
       }
 
-      // Execute query with ordering and limit
+      // Execute query with ordering and limit (increased for ledger view)
       const { data: transactionsData, error: transactionsError } = await query
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(500); // Increased limit for comprehensive ledger view
 
       if (transactionsError) {
         // If table doesn't exist, show empty state
@@ -126,14 +114,14 @@ export default function CreditTransactionsPage() {
         return;
       }
 
-      // Fetch user profiles for admin view
+      // Fetch user profiles for ALL transactions in ledger view
       const userIds = [...new Set(transactionsData.map((t: any) => t.user_id))] as string[];
       let userProfilesMap: Record<string, any> = {};
 
       if (userIds.length > 0) {
         const { data: profilesData, error: profilesError } = await supabase
           .from("user_profiles")
-          .select("id, dj_name, brand_name, first_name, last_name, email")
+          .select("id, dj_name, brand_name, first_name, last_name, email, role")
           .in("id", userIds);
 
         if (profilesError) {
@@ -146,7 +134,7 @@ export default function CreditTransactionsPage() {
         }
       }
 
-      // Combine transactions with user profiles
+      // Combine transactions with user profiles for ledger view
       const transactionsWithProfiles = transactionsData.map((transaction: any) => ({
         ...transaction,
         user_profile: userProfilesMap[transaction.user_id] || null,
@@ -217,11 +205,19 @@ export default function CreditTransactionsPage() {
       let userErrorMessage = errorMessage || "Failed to load credit transactions. Please try again.";
       let errorTitle = "Error";
       
-      // Handle PGRST205 - Schema cache error (most common issue)
-      const isSchemaCacheError = errorCode === "PGRST205" || 
-                                  errorMessage?.includes("PGRST205") || 
-                                  errorMessage?.includes("schema cache") ||
-                                  errorMessage?.includes("Could not find the table");
+      // Check if error string contains schema cache indicators (even if error object is empty)
+      const errorStringLower = JSON.stringify(error || {}).toLowerCase();
+      const isSchemaCacheError = 
+        errorCode === "PGRST205" || 
+        errorCode === "PGRST" ||
+        errorMessage?.toLowerCase().includes("pgrst205") || 
+        errorMessage?.toLowerCase().includes("schema cache") ||
+        errorMessage?.toLowerCase().includes("could not find the table") ||
+        (errorMessage?.toLowerCase().includes("credit_transactions") && errorMessage?.toLowerCase().includes("schema cache")) ||
+        errorStringLower.includes("pgrst205") ||
+        errorStringLower.includes("schema cache") ||
+        errorDetails?.toLowerCase().includes("schema cache") ||
+        errorHint?.toLowerCase().includes("schema cache");
       
       if (isSchemaCacheError) {
         setSchemaCacheError(true);
@@ -278,30 +274,6 @@ export default function CreditTransactionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType, userProfile]);
 
-  const getTransactionIcon = (type: string, amount: number) => {
-    if (amount > 0) {
-      switch (type) {
-        case "gig_completed":
-          return <CheckCircle className="h-5 w-5 text-green-500" />;
-        case "rating_received":
-          return <Star className="h-5 w-5 text-yellow-500" />;
-        case "endorsement":
-          return <Gift className="h-5 w-5 text-purple-500" />;
-        case "streak_bonus":
-          return <Sparkles className="h-5 w-5 text-blue-500" />;
-        default:
-          return <TrendingUp className="h-5 w-5 text-green-500" />;
-      }
-    } else {
-      switch (type) {
-        case "boost_used":
-          return <Rocket className="h-5 w-5 text-orange-500" />;
-        default:
-          return <TrendingDown className="h-5 w-5 text-red-500" />;
-      }
-    }
-  };
-
   const getTransactionTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
       gig_completed: "Gig Completed",
@@ -315,8 +287,8 @@ export default function CreditTransactionsPage() {
   };
 
   const getDisplayName = (transaction: CreditTransaction) => {
-    if (!transaction.user_profile || userProfile?.role === "admin") {
-      return "Your Account";
+    if (!transaction.user_profile) {
+      return "Unknown User";
     }
     return (
       transaction.user_profile.dj_name ||
@@ -340,10 +312,10 @@ export default function CreditTransactionsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className={`${textStyles.headline.section} text-xl sm:text-2xl md:text-3xl`}>
-            Credit Transactions
+            Credit Transactions Ledger
           </h1>
           <p className={`${textStyles.body.regular} text-sm sm:text-base mt-1`}>
-            View your credit transaction history
+            Complete ledger of all credit transactions in the system
           </p>
         </div>
 
@@ -351,7 +323,6 @@ export default function CreditTransactionsPage() {
         <div className="flex items-center gap-2">
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-[180px]">
-              <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
@@ -370,16 +341,14 @@ export default function CreditTransactionsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-card border-border">
           <CardHeader className="pb-2">
-            <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
-              <TrendingUp className="h-4 w-4 text-green-500" />
-              Total Earned
+            <CardTitle className={textStyles.subheading.small}>
+              System Total Earned
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Coins className="h-5 w-5 text-brand-green" />
               <span className={`${textStyles.subheading.large} text-brand-green`}>
-                +{totalEarned}
+                +{totalEarned.toLocaleString()}
               </span>
             </div>
           </CardContent>
@@ -387,16 +356,14 @@ export default function CreditTransactionsPage() {
 
         <Card className="bg-card border-border">
           <CardHeader className="pb-2">
-            <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
-              <TrendingDown className="h-4 w-4 text-red-500" />
-              Total Spent
+            <CardTitle className={textStyles.subheading.small}>
+              System Total Spent
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Coins className="h-5 w-5 text-red-500" />
               <span className={`${textStyles.subheading.large} text-red-500`}>
-                -{totalSpent}
+                -{totalSpent.toLocaleString()}
               </span>
             </div>
           </CardContent>
@@ -404,16 +371,14 @@ export default function CreditTransactionsPage() {
 
         <Card className="bg-card border-border">
           <CardHeader className="pb-2">
-            <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
-              <Coins className="h-4 w-4 text-brand-green" />
-              Net Credits
+            <CardTitle className={textStyles.subheading.small}>
+              System Net Credits
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Coins className="h-5 w-5 text-brand-green" />
               <span className={`${textStyles.subheading.large} ${netCredits >= 0 ? "text-brand-green" : "text-red-500"}`}>
-                {netCredits >= 0 ? "+" : ""}{netCredits}
+                {netCredits >= 0 ? "+" : ""}{netCredits.toLocaleString()}
               </span>
             </div>
           </CardContent>
@@ -424,7 +389,7 @@ export default function CreditTransactionsPage() {
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className={textStyles.subheading.small}>
-            Transaction History
+            Transaction Ledger
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -473,12 +438,6 @@ export default function CreditTransactionsPage() {
                   className="flex items-center justify-between p-4 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/50 transition-colors"
                 >
                   <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="flex-shrink-0">
-                      {getTransactionIcon(
-                        transaction.transaction_type,
-                        transaction.amount
-                      )}
-                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className={`${textStyles.subheading.small} truncate`}>
@@ -496,9 +455,12 @@ export default function CreditTransactionsPage() {
                       <p className={`${textStyles.body.small} text-muted-foreground`}>
                         {formatDate(transaction.created_at)}
                       </p>
-                      {userProfile?.role === "admin" && transaction.user_profile && (
+                      {transaction.user_profile && (
                         <p className={`${textStyles.body.small} text-muted-foreground`}>
                           User: {getDisplayName(transaction)}
+                          {transaction.user_profile.email && (
+                            <span className="text-muted-foreground/70"> • {transaction.user_profile.email}</span>
+                          )}
                         </p>
                       )}
                     </div>
@@ -514,11 +476,6 @@ export default function CreditTransactionsPage() {
                       {transaction.amount > 0 ? "+" : ""}
                       {transaction.amount}
                     </span>
-                    <Coins
-                      className={`h-5 w-5 ${
-                        transaction.amount > 0 ? "text-green-500" : "text-red-500"
-                      }`}
-                    />
                   </div>
                 </div>
               ))}

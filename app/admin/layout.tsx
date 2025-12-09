@@ -132,12 +132,6 @@ const allSidebarItems = [
     icon: Trophy,
     roles: ["admin"] as UserRole[],
   },
-  {
-    title: "Credit Transactions",
-    url: "/admin/credits/transactions",
-    icon: Coins,
-    roles: ["admin"] as UserRole[],
-  },
 ];
 
 function AppSidebar() {

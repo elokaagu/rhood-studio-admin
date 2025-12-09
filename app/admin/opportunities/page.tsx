@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Plus,
   Calendar,
@@ -54,6 +61,9 @@ export default function OpportunitiesPage() {
   const [userCredits, setUserCredits] = useState<number>(0);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [boostingOpportunityId, setBoostingOpportunityId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft" | "completed" | "closed" | "archived">("all");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "pay_high" | "pay_low" | "applicants_high" | "applicants_low">("newest");
 
   // Fetch opportunities from database
   const fetchOpportunities = async () => {
@@ -502,6 +512,39 @@ export default function OpportunitiesPage() {
     }
   };
 
+  const getPayValue = (opportunity: any) => {
+    const value = opportunity.payment ?? opportunity.pay ?? "";
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const numeric = parseFloat(value.replace(/[^0-9.]/g, ""));
+      return isNaN(numeric) ? 0 : numeric;
+    }
+    return 0;
+  };
+
+  const filteredOpportunities = useMemo(() => {
+    let list = opportunities.filter((opp) => (showArchived ? true : !opp.is_archived));
+
+    if (statusFilter !== "all") {
+      list = list.filter((opp) =>
+        statusFilter === "archived"
+          ? opp.is_archived
+          : !opp.is_archived && opp.status === statusFilter
+      );
+    }
+
+    const sorter = {
+      newest: (a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+      oldest: (a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
+      pay_high: (a: any, b: any) => getPayValue(b) - getPayValue(a),
+      pay_low: (a: any, b: any) => getPayValue(a) - getPayValue(b),
+      applicants_high: (a: any, b: any) => (b.applicants || 0) - (a.applicants || 0),
+      applicants_low: (a: any, b: any) => (a.applicants || 0) - (b.applicants || 0),
+    }[sortBy];
+
+    return [...list].sort(sorter);
+  }, [opportunities, showArchived, statusFilter, sortBy]);
+
   return (
     <div className="space-y-4 sm:space-y-6 animate-blur-in">
       {/* Header */}
@@ -523,6 +566,56 @@ export default function OpportunitiesPage() {
           <span className="sm:hidden">Create</span>
         </Button>
       </div>
+
+      {/* Filters */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Sort by</p>
+              <Select value={sortBy} onValueChange={(val) => setSortBy(val as typeof sortBy)}>
+                <SelectTrigger className="w-44 bg-secondary border-border">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="oldest">Oldest</SelectItem>
+                  <SelectItem value="pay_high">Pay: High to Low</SelectItem>
+                  <SelectItem value="pay_low">Pay: Low to High</SelectItem>
+                  <SelectItem value="applicants_high">Applicants: High to Low</SelectItem>
+                  <SelectItem value="applicants_low">Applicants: Low to High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Status</p>
+              <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as typeof statusFilter)}>
+                <SelectTrigger className="w-40 bg-secondary border-border">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Button
+            variant={showArchived ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowArchived((prev) => !prev)}
+            className="w-full sm:w-auto"
+          >
+            {showArchived ? "Hide Archived" : "Show Archived"}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
@@ -606,14 +699,14 @@ export default function OpportunitiesPage() {
           <div className="text-center py-8">
             <p className={textStyles.body.regular}>Loading opportunities...</p>
           </div>
-        ) : opportunities.filter((opp) => !opp.is_archived).length === 0 ? (
+        ) : filteredOpportunities.length === 0 ? (
           <div className="text-center py-8">
             <p className={textStyles.body.regular}>
               No opportunities found. Create your first opportunity!
             </p>
           </div>
         ) : (
-          opportunities.filter((opp) => !opp.is_archived).map((opportunity) => (
+          filteredOpportunities.map((opportunity) => (
             <Card
               key={opportunity.id}
               className={`bg-card border-border ${

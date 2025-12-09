@@ -193,7 +193,7 @@ export default function BookingRequestsPage() {
   const isBrand = userProfile?.role === "brand";
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 animate-blur-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
@@ -241,7 +241,7 @@ export default function BookingRequestsPage() {
           {bookingRequests.map((request) => (
             <Card
               key={request.id}
-              className="bg-card border-border hover:shadow-lg transition-shadow"
+              className="bg-card border-border hover:shadow-lg transition-shadow stagger-item"
             >
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">

@@ -501,11 +501,11 @@ export default function DashboardPage() {
           </div>
         </>
       ) : (
-        <div className="space-y-4 sm:space-y-6 md:space-y-8">
+        <div className="space-y-4 sm:space-y-6 md:space-y-8 animate-blur-in">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 stagger-children">
             {stats.map((stat, index) => (
-              <Card key={index} className="bg-card border-border">
+              <Card key={index} className="bg-card border-border stagger-item">
                 <CardHeader className="pb-2">
                   <CardTitle className={textStyles.subheading.small}>
                     {stat.title}
@@ -523,9 +523,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Activity and Upcoming Events */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 stagger-children">
             {/* Recent Activity */}
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-border stagger-item">
               <CardHeader className="pb-4">
                 <CardTitle
                   className={`${textStyles.headline.section} text-left`}
@@ -536,9 +536,9 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-4">
+                <div className="space-y-4 stagger-children">
                   {recentActivity.map((activity, index) => (
-                    <Card key={index} className="bg-card border-border">
+                    <Card key={index} className="bg-card border-border stagger-item">
                       <CardContent className="p-4">
                         <div className="flex-1 min-w-0">
                           <p className={textStyles.body.regular}>
@@ -556,7 +556,7 @@ export default function DashboardPage() {
             </Card>
 
             {/* Upcoming Events */}
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-border stagger-item">
               <CardHeader className="pb-4">
                 <CardTitle
                   className={`${textStyles.headline.section} text-left`}
@@ -567,10 +567,10 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-4">
+                <div className="space-y-4 stagger-children">
                   {upcomingEvents.length > 0 ? (
                     upcomingEvents.map((event, index) => (
-                      <Card key={index} className="bg-card border-border">
+                      <Card key={index} className="bg-card border-border stagger-item">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">

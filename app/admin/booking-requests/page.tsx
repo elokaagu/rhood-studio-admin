@@ -237,11 +237,11 @@ export default function BookingRequestsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4 stagger-children">
+        <div className="space-y-4">
           {bookingRequests.map((request) => (
             <Card
               key={request.id}
-              className="bg-card border-border hover:shadow-lg transition-shadow stagger-item"
+              className="bg-card border-border hover:shadow-lg transition-shadow"
             >
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">

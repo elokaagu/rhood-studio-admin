@@ -606,14 +606,14 @@ export default function OpportunitiesPage() {
           <div className="text-center py-8">
             <p className={textStyles.body.regular}>Loading opportunities...</p>
           </div>
-        ) : opportunities.length === 0 ? (
+        ) : opportunities.filter((opp) => !opp.is_archived).length === 0 ? (
           <div className="text-center py-8">
             <p className={textStyles.body.regular}>
               No opportunities found. Create your first opportunity!
             </p>
           </div>
         ) : (
-          opportunities.map((opportunity) => (
+          opportunities.filter((opp) => !opp.is_archived).map((opportunity) => (
             <Card
               key={opportunity.id}
               className={`bg-card border-border ${

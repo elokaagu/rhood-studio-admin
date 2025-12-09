@@ -33,7 +33,7 @@ async function getAllUsers() {
     let query: any = supabase
       .from("user_profiles")
       .select("id, dj_name, brand_name, first_name, last_name, email, credits, role")
-      .order("credits", { ascending: false, nullsLast: true });
+      .order("credits", { ascending: false, nullsFirst: false });
 
     const { data: profiles, error } = await query;
 

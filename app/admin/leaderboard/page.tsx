@@ -68,26 +68,40 @@ export default function LeaderboardPage() {
       console.log("Using fallback query to fetch leaderboard directly from database");
       
       // Query credits directly from user_profiles table
+      // Filter to only show DJs (exclude brands)
       // @ts-ignore - credits column may not exist yet
       let query: any = (supabase as any)
         .from("user_profiles")
-        .select("id, dj_name, brand_name, first_name, last_name, email, credits, role");
+        .select("id, dj_name, brand_name, first_name, last_name, email, credits, role")
+        .or("role.is.null,role.neq.brand")
+        .neq("role", "brand");
       
-      // Show all users with credits (including admins)
-      // No admin filter - we want to show everyone with credits
+      // Show only DJs with credits (exclude brands and admins from leaderboard)
+      // Brands should not appear in the DJ leaderboard
       
       // Order by credits descending, nulls last
       // @ts-ignore - credits column may not exist yet
-      query = query.order("credits", { ascending: false, nullsLast: true });
+      query = query.order("credits", { ascending: false, nullsFirst: false });
       
       // Limit results
       query = query.limit(100);
       
       const { data: profiles, error } = await query;
       
-      console.log("Fallback query result:", { profilesCount: profiles?.length, error });
+      console.log("Fallback query result:", { 
+        profilesCount: profiles?.length, 
+        error,
+        sampleProfile: profiles?.[0] 
+      });
 
       if (error) {
+        console.error("Query error details:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        
         // If credits column doesn't exist, return empty array
         if (error.code === '42703' || error.message?.includes('column "credits" does not exist')) {
           console.warn("Credits column doesn't exist yet - migration needed");
@@ -99,16 +113,58 @@ export default function LeaderboardPage() {
           setLeaderboard([]);
           return;
         }
+        
+        // If it's a schema cache error
+        if (error.code === 'PGRST205') {
+          console.warn("Schema cache error - table not found in cache");
+          toast({
+            title: "Schema Cache Error",
+            description: "The database schema cache needs to be refreshed. Please contact an administrator or wait a few minutes and refresh the page.",
+            variant: "destructive",
+          });
+          setLeaderboard([]);
+          return;
+        }
+        
         throw error;
       }
 
-      // Transform to leaderboard format and filter out users with 0 or null credits
+      // Log all profiles and their credits for debugging
+      console.log("All profiles fetched:", profiles?.map((p: any) => ({
+        id: p.id,
+        email: p.email,
+        credits: p.credits,
+        creditsType: typeof p.credits
+      })));
+
+      // Transform to leaderboard format and filter out:
+      // 1. Users with 0 or null credits
+      // 2. Brands (role = 'brand') - double check to be safe
       const validProfiles = (profiles || []).filter((profile: any) => {
+        // Exclude brands
+        if (profile.role === 'brand') {
+          console.log(`Excluding brand: ${profile.email}`);
+          return false;
+        }
+        
+        // Only include users with credits > 0
         const credits = profile.credits ?? 0;
-        return credits > 0;
+        const hasCredits = credits > 0;
+        console.log(`Profile ${profile.email}: role=${profile.role}, credits=${credits}, hasCredits=${hasCredits}`);
+        return hasCredits;
       });
       
-      console.log(`Found ${validProfiles.length} users with credits`);
+      console.log(`Found ${validProfiles.length} users with credits out of ${profiles?.length || 0} total profiles`);
+      
+      // Show helpful message if we got profiles but none have credits
+      if ((profiles || []).length > 0 && validProfiles.length === 0) {
+        console.warn("No users with credits > 0 found. All profiles have 0 or null credits.");
+        toast({
+          title: "No Credits Found",
+          description: `Found ${profiles.length} users but none have credits yet. Credits need to be assigned to users first.`,
+          variant: "default",
+        });
+      }
       
       const entries: LeaderboardEntry[] = validProfiles.map((profile: any, index: number) => ({
         user_id: profile.id,
@@ -197,7 +253,7 @@ export default function LeaderboardPage() {
             Credits Leaderboard
           </h1>
           <p className={`${textStyles.body.regular} text-sm sm:text-base mt-1`}>
-            All users ranked by credits earned
+            Top DJs ranked by credits earned
           </p>
         </div>
 
@@ -256,7 +312,7 @@ export default function LeaderboardPage() {
           ) : filteredLeaderboard.length === 0 ? (
             <div className="text-center py-8">
               <p className={textStyles.body.regular}>
-                No users found matching "{searchTerm}".
+                No users found matching &ldquo;{searchTerm}&rdquo;.
               </p>
             </div>
           ) : (

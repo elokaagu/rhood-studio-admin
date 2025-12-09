@@ -93,10 +93,27 @@ export default function AdminLoginPage() {
           }
         }
 
+        // Get the callback URL for email confirmation
+        const getCallbackUrl = () => {
+          if (typeof window !== "undefined") {
+            // Get the base URL from environment variables or use current origin
+            const baseUrl =
+              process.env.NEXT_PUBLIC_APP_URL ||
+              process.env.NEXT_PUBLIC_SITE_URL ||
+              window.location.origin;
+            return `${baseUrl}/auth/callback`;
+          }
+          // Fallback for SSR (shouldn't happen in this client component)
+          return "http://localhost:3000/auth/callback";
+        };
+
         // Sign up new user
         const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
+          options: {
+            emailRedirectTo: getCallbackUrl(),
+          },
         });
 
         if (error) {

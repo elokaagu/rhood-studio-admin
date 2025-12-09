@@ -326,7 +326,7 @@ export default function BrandProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-blur-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="-ml-3 sm:-ml-4 md:-ml-6 pl-3 sm:pl-4 md:pl-6">

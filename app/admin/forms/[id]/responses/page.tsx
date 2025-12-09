@@ -230,7 +230,7 @@ export default function FormResponsesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-blur-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

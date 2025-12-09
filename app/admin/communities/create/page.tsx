@@ -291,7 +291,7 @@ export default function CreateCommunityPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="space-y-8 p-6">
+      <div className="space-y-8 p-6 animate-blur-in">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">

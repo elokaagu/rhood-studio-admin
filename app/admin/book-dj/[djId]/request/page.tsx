@@ -305,7 +305,7 @@ export default function BookingRequestPage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 animate-blur-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:space-x-4">

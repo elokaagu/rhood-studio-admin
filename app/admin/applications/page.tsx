@@ -1,11 +1,19 @@
 "use client";
 
-import React, { Suspense, useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/date-utils";
@@ -21,6 +29,8 @@ import {
   Clock,
   Eye,
   User,
+  Search,
+  Filter,
 } from "lucide-react";
 
 function ApplicationsContent() {
@@ -29,6 +39,9 @@ function ApplicationsContent() {
   const { toast } = useToast();
   const [applications, setApplications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name_asc" | "name_desc" | "opportunity_asc" | "opportunity_desc">("newest");
 
   // Fetch applications from database
   const fetchApplications = async () => {
@@ -258,12 +271,59 @@ function ApplicationsContent() {
     fetchApplications();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Filter applications by opportunity if specified
-  const filteredApplications = opportunityId
-    ? applications.filter(
+  // Filter and sort applications
+  const filteredApplications = useMemo(() => {
+    let filtered = applications;
+
+    // Filter by opportunity if specified in URL
+    if (opportunityId) {
+      filtered = filtered.filter(
         (app) => app.opportunityId === parseInt(opportunityId)
-      )
-    : applications;
+      );
+    }
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((app) => app.status === statusFilter);
+    }
+
+    // Filter by search term (name, opportunity, location)
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter((app) => {
+        const applicantName = (app.applicant?.name || "").toLowerCase();
+        const opportunity = (app.opportunity || "").toLowerCase();
+        const location = (app.applicant?.location || "").toLowerCase();
+        return (
+          applicantName.includes(searchLower) ||
+          opportunity.includes(searchLower) ||
+          location.includes(searchLower)
+        );
+      });
+    }
+
+    // Sort applications
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime();
+        case "oldest":
+          return new Date(a.appliedDate).getTime() - new Date(b.appliedDate).getTime();
+        case "name_asc":
+          return (a.applicant?.name || "").localeCompare(b.applicant?.name || "");
+        case "name_desc":
+          return (b.applicant?.name || "").localeCompare(a.applicant?.name || "");
+        case "opportunity_asc":
+          return (a.opportunity || "").localeCompare(b.opportunity || "");
+        case "opportunity_desc":
+          return (b.opportunity || "").localeCompare(a.opportunity || "");
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }, [applications, opportunityId, statusFilter, searchTerm, sortBy]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -750,6 +810,62 @@ function ApplicationsContent() {
         </Card>
       </div>
 
+      {/* Filters and Sort */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            {/* Search */}
+            <div className="flex-1 w-full sm:max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by applicant name, opportunity, or location..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-secondary border-border text-foreground"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+              {/* Status Filter */}
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Status</p>
+                <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as typeof statusFilter)}>
+                  <SelectTrigger className="w-full sm:w-32 bg-secondary border-border">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sort */}
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Sort By</p>
+                <Select value={sortBy} onValueChange={(val) => setSortBy(val as typeof sortBy)}>
+                  <SelectTrigger className="w-full sm:w-40 bg-secondary border-border">
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="name_asc">Name (A-Z)</SelectItem>
+                    <SelectItem value="name_desc">Name (Z-A)</SelectItem>
+                    <SelectItem value="opportunity_asc">Opportunity (A-Z)</SelectItem>
+                    <SelectItem value="opportunity_desc">Opportunity (Z-A)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Applications List */}
       <div className="space-y-4">
         {isLoading ? (
@@ -761,7 +877,7 @@ function ApplicationsContent() {
             <p className={textStyles.body.regular}>No applications found.</p>
           </div>
         ) : (
-          <div className="space-y-4 stagger-children">
+          <div className="space-y-4">
             {filteredApplications.map((application) => (
             <Card key={application.id} className="bg-card border-border">
               <CardContent className="p-4">

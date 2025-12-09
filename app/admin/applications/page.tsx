@@ -30,7 +30,6 @@ import {
   Eye,
   User,
   Search,
-  Filter,
 } from "lucide-react";
 
 function ApplicationsContent() {
@@ -813,55 +812,47 @@ function ApplicationsContent() {
       {/* Filters and Sort */}
       <Card className="bg-card border-border">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             {/* Search */}
-            <div className="flex-1 w-full sm:max-w-md">
+            <div className="flex-1 w-full">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by applicant name, opportunity, or location..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-secondary border-border text-foreground"
+                  className="pl-10 bg-secondary border-border text-foreground h-10"
                 />
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
-              {/* Status Filter */}
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Status</p>
-                <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as typeof statusFilter)}>
-                  <SelectTrigger className="w-full sm:w-32 bg-secondary border-border">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as typeof statusFilter)}>
+              <SelectTrigger className="w-full sm:w-32 bg-secondary border-border h-10">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
 
-              {/* Sort */}
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Sort By</p>
-                <Select value={sortBy} onValueChange={(val) => setSortBy(val as typeof sortBy)}>
-                  <SelectTrigger className="w-full sm:w-40 bg-secondary border-border">
-                    <SelectValue placeholder="Sort" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="oldest">Oldest First</SelectItem>
-                    <SelectItem value="name_asc">Name (A-Z)</SelectItem>
-                    <SelectItem value="name_desc">Name (Z-A)</SelectItem>
-                    <SelectItem value="opportunity_asc">Opportunity (A-Z)</SelectItem>
-                    <SelectItem value="opportunity_desc">Opportunity (Z-A)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {/* Sort */}
+            <Select value={sortBy} onValueChange={(val) => setSortBy(val as typeof sortBy)}>
+              <SelectTrigger className="w-full sm:w-40 bg-secondary border-border h-10">
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="name_asc">Name (A-Z)</SelectItem>
+                <SelectItem value="name_desc">Name (Z-A)</SelectItem>
+                <SelectItem value="opportunity_asc">Opportunity (A-Z)</SelectItem>
+                <SelectItem value="opportunity_desc">Opportunity (Z-A)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

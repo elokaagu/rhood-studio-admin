@@ -563,7 +563,7 @@ export default function ApplicationDetailsPage() {
                   <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
                     <p className="text-sm text-destructive font-medium">No Mix Available</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      This user hasn't uploaded any mixes yet.
+                      This user hasn&apos;t uploaded any mixes yet.
                     </p>
                   </div>
                 )}

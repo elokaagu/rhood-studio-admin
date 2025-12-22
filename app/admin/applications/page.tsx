@@ -454,8 +454,9 @@ function ApplicationsContent() {
           ? "admin_update_form_response_status"
           : "admin_update_application_status";
       
+      // Use type assertion since these RPC functions are newly created and not in types yet
       const { data: rpcResult, error: rpcError } = await supabase.rpc(
-        rpcFunctionName,
+        rpcFunctionName as any,
         {
           p_application_id: applicationId,
           p_new_status: newStatus,
@@ -482,11 +483,13 @@ function ApplicationsContent() {
 
       if (error) {
         console.error("Error updating application:", error);
+        // Check if error has Supabase error properties
+        const supabaseError = error as any;
         console.error("Error details:", {
-          code: error.code,
+          code: supabaseError.code,
           message: error.message,
-          details: error.details,
-          hint: error.hint,
+          details: supabaseError.details,
+          hint: supabaseError.hint,
         });
         
         // If error is about venue field, provide helpful message
@@ -671,8 +674,9 @@ function ApplicationsContent() {
           ? "admin_update_form_response_status"
           : "admin_update_application_status";
       
+      // Use type assertion since these RPC functions are newly created and not in types yet
       const { data: rpcResult, error: rpcError } = await supabase.rpc(
-        rpcFunctionName,
+        rpcFunctionName as any,
         {
           p_application_id: applicationId,
           p_new_status: newStatus,
@@ -699,11 +703,13 @@ function ApplicationsContent() {
 
       if (error) {
         console.error("Error updating application:", error);
+        // Check if error has Supabase error properties
+        const supabaseError = error as any;
         console.error("Error details:", {
-          code: error.code,
+          code: supabaseError.code,
           message: error.message,
-          details: error.details,
-          hint: error.hint,
+          details: supabaseError.details,
+          hint: supabaseError.hint,
         });
         
         // If error is about venue field, provide helpful message

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatTimeRange } from "@/lib/date-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { LinkText } from "@/components/ui/link-text";
+import { BriefRenderer } from "@/components/ui/brief-renderer";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -168,7 +169,8 @@ export default function OpportunityDetailsPage() {
             ? "active"
             : ((data as { status?: string | null }).status ?? "draft"),
           genre: data.genre,
-          description: data.description,
+          description: data.description, // Full brief (visible after acceptance)
+          short_summary: (data as any).short_summary || data.description?.substring(0, 300) || "", // Public summary
           requirements: data.skill_level,
           additionalInfo: "", // This field might need to be added to the database
           image_url: data.image_url,
@@ -554,10 +556,31 @@ export default function OpportunityDetailsPage() {
               </div>
 
               <div className="space-y-2">
-                <h3 className={textStyles.subheading.small}>Description</h3>
-                <p className={textStyles.body.regular}>
-                  <LinkText text={opportunity.description} />
-                </p>
+                <h3 className={textStyles.subheading.small}>
+                  {opportunity.short_summary ? "Summary" : "Brief"}
+                </h3>
+                {/* Show short summary if available, otherwise show full brief */}
+                {opportunity.short_summary ? (
+                  <>
+                    <p className={textStyles.body.regular}>
+                      <LinkText text={opportunity.short_summary} />
+                    </p>
+                    <div className="mt-4 p-3 bg-muted/50 border border-border rounded-md">
+                      <p className={`${textStyles.body.small} text-muted-foreground`}>
+                        💡 Full brief will be visible after your application is accepted
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  /* Check if description contains markdown sections (brief format) */
+                  opportunity.description.includes("**") && opportunity.description.includes("---") ? (
+                    <BriefRenderer text={opportunity.description} />
+                  ) : (
+                    <p className={textStyles.body.regular}>
+                      <LinkText text={opportunity.description} />
+                    </p>
+                  )
+                )}
               </div>
 
               {opportunity.requirements && (

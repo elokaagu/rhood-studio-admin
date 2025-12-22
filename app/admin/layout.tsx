@@ -103,9 +103,15 @@ const allSidebarItems = [
     roles: ["admin"] as UserRole[],
   },
   {
-    title: "Members",
-    url: "/admin/members",
+    title: "DJs",
+    url: "/admin/djs",
     icon: Users,
+    roles: ["admin"] as UserRole[],
+  },
+  {
+    title: "Brands",
+    url: "/admin/brands",
+    icon: Building2,
     roles: ["admin"] as UserRole[],
   },
   {

@@ -628,7 +628,16 @@ export default function MixesPage() {
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    console.log("Image selection triggered:", { file, files: event.target.files });
+    
     if (file) {
+      console.log("File selected:", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+      });
+
       // Validate file type
       const allowedTypes = [
         "image/jpeg",
@@ -637,6 +646,7 @@ export default function MixesPage() {
         "image/webp",
       ];
       if (!allowedTypes.includes(file.type)) {
+        console.warn("Invalid file type:", file.type);
         toast({
           title: "Invalid Image Type",
           description: "Please select a valid JPEG, PNG, or WebP image.",
@@ -647,6 +657,7 @@ export default function MixesPage() {
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
+        console.warn("File too large:", file.size);
         toast({
           title: "Image Too Large",
           description: "Please select an image smaller than 5MB.",
@@ -656,12 +667,15 @@ export default function MixesPage() {
       }
 
       setSelectedImage(file);
+      console.log("Image set in state:", file.name);
       toast({
         title: "Image Selected",
         description: `${file.name} (${(file.size / 1024 / 1024).toFixed(
           2
         )} MB)`,
       });
+    } else {
+      console.log("No file selected");
     }
   };
 
@@ -675,6 +689,14 @@ export default function MixesPage() {
       });
       return;
     }
+
+    console.log("Upload form submitted:", {
+      hasSelectedFile: !!selectedFile,
+      hasSelectedImage: !!selectedImage,
+      selectedImageName: selectedImage?.name,
+      selectedImageSize: selectedImage?.size,
+      selectedImageType: selectedImage?.type,
+    });
 
     setIsUploading(true);
     try {
@@ -746,28 +768,75 @@ export default function MixesPage() {
       // Upload image file if provided, using mix ID
       let imageUrl = null;
       if (selectedImage) {
-        const imageExt = selectedImage.name.split(".").pop();
-        const imagePath = `${mixId}/artwork.${imageExt}`;
+        try {
+          // Get file extension from filename, or derive from MIME type
+          let imageExt = selectedImage.name.split(".").pop()?.toLowerCase();
+          
+          // Fallback: derive extension from MIME type if filename doesn't have one
+          if (!imageExt || imageExt === selectedImage.name) {
+            const mimeToExt: Record<string, string> = {
+              'image/jpeg': 'jpg',
+              'image/jpg': 'jpg',
+              'image/png': 'png',
+              'image/webp': 'webp',
+              'image/gif': 'gif',
+            };
+            imageExt = mimeToExt[selectedImage.type] || 'jpg';
+          }
+          
+          const imagePath = `${mixId}/artwork.${imageExt}`;
 
-        const { error: imageUploadError } = await supabase.storage
-          .from("mixes")
-          .upload(imagePath, selectedImage);
+          console.log("Uploading image:", {
+            fileName: selectedImage.name,
+            fileSize: selectedImage.size,
+            fileType: selectedImage.type,
+            path: imagePath,
+            mixId: mixId,
+          });
 
-        if (imageUploadError) {
-          console.error("Image upload error:", imageUploadError);
+          const { data: uploadData, error: imageUploadError } = await supabase.storage
+            .from("mixes")
+            .upload(imagePath, selectedImage, {
+              cacheControl: "3600",
+              upsert: false,
+            });
+
+          if (imageUploadError) {
+            console.error("Image upload error details:", {
+              message: imageUploadError.message,
+              error: imageUploadError,
+              path: imagePath,
+              fileName: selectedImage.name,
+              fileType: selectedImage.type,
+              fileSize: selectedImage.size,
+            });
+            
+            toast({
+              title: "Image Upload Failed",
+              description: `Failed to upload image: ${imageUploadError.message || "Unknown error"}. Mix uploaded successfully but without artwork.`,
+              variant: "destructive",
+            });
+          } else {
+            console.log("Image uploaded successfully:", uploadData);
+            
+            // Get the public URL for the uploaded image
+            const {
+              data: { publicUrl: imagePublicUrl },
+            } = supabase.storage.from("mixes").getPublicUrl(imagePath);
+            
+            console.log("Image public URL:", imagePublicUrl);
+            imageUrl = imagePublicUrl;
+          }
+        } catch (imageError) {
+          console.error("Unexpected error during image upload:", imageError);
           toast({
-            title: "Image Upload Warning",
-            description:
-              "Mix uploaded but image failed. You can add artwork later.",
+            title: "Image Upload Error",
+            description: `Unexpected error: ${imageError instanceof Error ? imageError.message : "Unknown error"}. Mix uploaded successfully but without artwork.`,
             variant: "destructive",
           });
-        } else {
-          // Get the public URL for the uploaded image
-          const {
-            data: { publicUrl: imagePublicUrl },
-          } = supabase.storage.from("mixes").getPublicUrl(imagePath);
-          imageUrl = imagePublicUrl;
         }
+      } else {
+        console.log("No image selected for upload");
       }
 
       let formattedDuration: string | null = null;

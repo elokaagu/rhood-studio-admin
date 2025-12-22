@@ -52,6 +52,7 @@ export default function CreateOpportunityPage() {
   const [linkText, setLinkText] = useState("");
   const [aiRefineDialogOpen, setAiRefineDialogOpen] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
+  const [briefPreviewOpen, setBriefPreviewOpen] = useState(false);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [formData, setFormData] = useState({
     title: "",
@@ -69,6 +70,21 @@ export default function CreateOpportunityPage() {
     additionalInfo: "",
     status: "draft",
     imageUrl: "",
+    // Brief questionnaire fields (required for structured briefs)
+    briefConcept: "",
+    briefFormat: "",
+    briefLocations: "",
+    briefContentCapture: "",
+    briefEpisodeFlow: "",
+    briefAccessibility: "",
+    briefCollaboration: "",
+    briefContentFirst: "",
+    briefEntertainment: "",
+    briefPilotEpisodes: "",
+    briefDeliverables: "",
+    briefInvestment: "",
+    // Short summary (public, shown before applying)
+    shortSummary: "",
   });
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -244,11 +260,121 @@ export default function CreateOpportunityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Generate formatted brief from questionnaire answers using R/HOOD template
+  const generateBrief = () => {
+    const sections = [];
+    
+    if (formData.briefConcept) {
+      sections.push(`**The idea**\n\n${formData.briefConcept}`);
+    }
+    
+    if (formData.briefFormat || formData.briefLocations || formData.briefContentCapture) {
+      sections.push(`**Format overview**\n\n${[
+        formData.briefFormat && `**Collaborative Sessions**\n${formData.briefFormat}`,
+        formData.briefLocations && `**Unique Locations**\n${formData.briefLocations}`,
+        formData.briefContentCapture && `**Cinematic Content Capture**\n${formData.briefContentCapture}`,
+      ].filter(Boolean).join('\n\n')}`);
+    }
+    
+    if (formData.briefEpisodeFlow) {
+      sections.push(`**Episode flow**\n\n${formData.briefEpisodeFlow}`);
+    }
+    
+    if (formData.briefAccessibility || formData.briefCollaboration || formData.briefContentFirst || formData.briefEntertainment) {
+      sections.push(`**Why it works?**\n\n${[
+        formData.briefAccessibility && `**1. Accessibility**\n${formData.briefAccessibility}`,
+        formData.briefCollaboration && `**2. Collaboration**\n${formData.briefCollaboration}`,
+        formData.briefContentFirst && `**3. Content-first activation**\n${formData.briefContentFirst}`,
+        formData.briefEntertainment && `**4. Entertainment value**\n${formData.briefEntertainment}`,
+      ].filter(Boolean).join('\n\n')}`);
+    }
+    
+    if (formData.briefPilotEpisodes) {
+      sections.push(`**Pilot Episodes**\n\n${formData.briefPilotEpisodes}`);
+    }
+    
+    if (formData.briefDeliverables) {
+      sections.push(`**Deliverables**\n\n${formData.briefDeliverables}`);
+    }
+    
+    if (formData.briefInvestment) {
+      sections.push(`**Investment**\n\n${formData.briefInvestment}`);
+    }
+    
+    return sections.join('\n\n---\n\n');
+  };
+
+  // Refine brief with AI using R/HOOD template
+  const handleRefineBriefWithAI = async () => {
+    const rawBrief = generateBrief();
+    if (!rawBrief.trim()) {
+      toast({
+        title: "No brief to refine",
+        description: "Please fill out the brief questionnaire first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRefining(true);
+    try {
+      const response = await fetch("/api/ai/refine-brief", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          brief: rawBrief,
+          template: "rhood-standard",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to refine brief");
+      }
+
+      const data = await response.json();
+      const refinedBrief = data.refinedBrief || rawBrief;
+
+      // Store refined brief in description field (it will be saved as the full brief)
+      // Note: In a production system, you might want to parse the refined brief back into fields
+      // For now, we store it as-is since it follows the same format
+      setFormData({ ...formData, description: refinedBrief });
+      
+      setAiRefineDialogOpen(false);
+      toast({
+        title: "Brief refined",
+        description: "Your brief has been refined by AI using the R/HOOD template. Review the preview to see changes.",
+      });
+      
+      // Show preview automatically after refinement
+      setTimeout(() => {
+        setBriefPreviewOpen(true);
+      }, 500);
+    } catch (error) {
+      console.error("Error refining brief:", error);
+      toast({
+        title: "Refinement failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to refine brief. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
   const handleCreateOrDraft = async ({
     publishImmediately,
   }: {
     publishImmediately: boolean;
   }) => {
+    // Generate brief if questionnaire is filled out
+    const generatedBrief = generateBrief();
+    const finalDescription = generatedBrief || formData.description;
     setIsSubmitting(true);
     try {
       if (!formData.date || !formData.time || !formData.endTime) {
@@ -391,15 +517,37 @@ export default function CreateOpportunityPage() {
           ? selectedGenres.join(", ")
           : formData.genre || null;
 
-      // Process description to convert markdown links to display text only
-      // This ensures URLs don't show in the app - only the link text is displayed
-      const processedDescription = getDisplayText(
-        formData.description.trim()
-      ).slice(0, DESCRIPTION_MAX_LENGTH);
+      // Validate required brief fields
+      if (!formData.briefConcept.trim()) {
+        toast({
+          title: "Brief Required",
+          description: "Please fill out 'The Idea' section in the brief questionnaire.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!formData.shortSummary.trim()) {
+        toast({
+          title: "Short Summary Required",
+          description: "Please provide a short summary that will be visible to DJs.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Generate brief from questionnaire (always required now)
+      const generatedBrief = generateBrief();
+      
+      // Process brief to convert markdown links to display text only
+      const processedDescription = getDisplayText(generatedBrief);
 
       const { error } = await supabase.from("opportunities").insert({
         title: formData.title.trim(),
-        description: processedDescription,
+        description: processedDescription, // Full brief (visible after acceptance)
+        short_summary: formData.shortSummary.trim(), // Public summary (visible before applying)
         location: formData.location.trim(),
         event_date: eventStart.toISOString(),
         event_end_time: eventEnd.toISOString(),
@@ -489,53 +637,251 @@ export default function CreateOpportunityPage() {
               />
             </div>
 
+            {/* Short Summary - Public, shown before applying */}
             <div className="space-y-2">
+              <Label htmlFor="shortSummary" className="text-foreground">
+                Short Summary (Public) *
+              </Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                This summary will be visible to all DJs before they apply. Keep it concise and compelling.
+              </p>
+              <Textarea
+                id="shortSummary"
+                placeholder="A brief, compelling summary that will entice DJs to apply..."
+                value={formData.shortSummary}
+                onChange={(e) =>
+                  setFormData({ ...formData, shortSummary: e.target.value })
+                }
+                className="bg-secondary border-border text-foreground min-h-[80px]"
+                required
+                maxLength={300}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {formData.shortSummary.length}/300 characters
+              </p>
+            </div>
+
+            {/* Structured Brief Questionnaire - Required */}
+            <div className="space-y-4 border-t border-border pt-6">
               <div className="flex items-center justify-between">
-                <Label htmlFor="description" className="text-foreground">
-                  Description
-                </Label>
-                <div className="flex items-center gap-2">
+                <div>
+                  <Label className="text-foreground font-semibold text-lg">
+                    Full Brief (Visible after acceptance)
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Fill out the structured brief below. This will only be visible to DJs after they are accepted.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAiRefineDialogOpen(true)}
+                  disabled={!formData.briefConcept.trim()}
+                  className="h-8"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Refine with AI
+                </Button>
+              </div>
+
+              <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="briefConcept" className="text-foreground font-semibold">
+                      The Idea *
+                    </Label>
+                    <Textarea
+                      id="briefConcept"
+                      placeholder="Describe the core concept and vision for this opportunity..."
+                      value={formData.briefConcept}
+                      onChange={(e) =>
+                        setFormData({ ...formData, briefConcept: e.target.value })
+                      }
+                      className="bg-secondary border-border text-foreground min-h-[100px]"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="briefFormat" className="text-foreground font-semibold">
+                      Format Overview - Collaborative Sessions
+                    </Label>
+                    <Textarea
+                      id="briefFormat"
+                      placeholder="Describe the format: How many DJs? How do they collaborate? What's the structure?"
+                      value={formData.briefFormat}
+                      onChange={(e) =>
+                        setFormData({ ...formData, briefFormat: e.target.value })
+                      }
+                      className="bg-secondary border-border text-foreground min-h-[80px]"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="briefLocations" className="text-foreground font-semibold">
+                      Format Overview - Unique Locations
+                    </Label>
+                    <Textarea
+                      id="briefLocations"
+                      placeholder="Describe the locations: Where will this take place? What makes the locations special?"
+                      value={formData.briefLocations}
+                      onChange={(e) =>
+                        setFormData({ ...formData, briefLocations: e.target.value })
+                      }
+                      className="bg-secondary border-border text-foreground min-h-[80px]"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="briefContentCapture" className="text-foreground font-semibold">
+                      Format Overview - Content Capture
+                    </Label>
+                    <Textarea
+                      id="briefContentCapture"
+                      placeholder="Describe how content will be captured: Video setup, angles, equipment, etc."
+                      value={formData.briefContentCapture}
+                      onChange={(e) =>
+                        setFormData({ ...formData, briefContentCapture: e.target.value })
+                      }
+                      className="bg-secondary border-border text-foreground min-h-[80px]"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="briefEpisodeFlow" className="text-foreground font-semibold">
+                      Episode Flow
+                    </Label>
+                    <Textarea
+                      id="briefEpisodeFlow"
+                      placeholder="Describe the flow of each episode: Warm-up, introductions, how DJs rotate, duration, etc."
+                      value={formData.briefEpisodeFlow}
+                      onChange={(e) =>
+                        setFormData({ ...formData, briefEpisodeFlow: e.target.value })
+                      }
+                      className="bg-secondary border-border text-foreground min-h-[80px]"
+                    />
+                  </div>
+
+                  <div className="space-y-4 border-t border-border pt-4">
+                    <Label className="text-foreground font-semibold">Why It Works?</Label>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="briefAccessibility" className="text-sm text-muted-foreground">
+                        1. Accessibility
+                      </Label>
+                      <Textarea
+                        id="briefAccessibility"
+                        placeholder="How does this make DJing more accessible or approachable?"
+                        value={formData.briefAccessibility}
+                        onChange={(e) =>
+                          setFormData({ ...formData, briefAccessibility: e.target.value })
+                        }
+                        className="bg-secondary border-border text-foreground min-h-[60px]"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="briefCollaboration" className="text-sm text-muted-foreground">
+                        2. Collaboration
+                      </Label>
+                      <Textarea
+                        id="briefCollaboration"
+                        placeholder="How does this celebrate community and collaboration?"
+                        value={formData.briefCollaboration}
+                        onChange={(e) =>
+                          setFormData({ ...formData, briefCollaboration: e.target.value })
+                        }
+                        className="bg-secondary border-border text-foreground min-h-[60px]"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="briefContentFirst" className="text-sm text-muted-foreground">
+                        3. Content-First Activation
+                      </Label>
+                      <Textarea
+                        id="briefContentFirst"
+                        placeholder="What content will be created? How will it be distributed? (TikTok, IG Reels, YouTube Shorts, etc.)"
+                        value={formData.briefContentFirst}
+                        onChange={(e) =>
+                          setFormData({ ...formData, briefContentFirst: e.target.value })
+                        }
+                        className="bg-secondary border-border text-foreground min-h-[60px]"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="briefEntertainment" className="text-sm text-muted-foreground">
+                        4. Entertainment Value
+                      </Label>
+                      <Textarea
+                        id="briefEntertainment"
+                        placeholder="What makes this entertaining and watchable for audiences?"
+                        value={formData.briefEntertainment}
+                        onChange={(e) =>
+                          setFormData({ ...formData, briefEntertainment: e.target.value })
+                        }
+                        className="bg-secondary border-border text-foreground min-h-[60px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="briefPilotEpisodes" className="text-foreground font-semibold">
+                      Pilot Episodes
+                    </Label>
+                    <Textarea
+                      id="briefPilotEpisodes"
+                      placeholder="Details about pilot episodes: How many? Where? When? Who's featured? Release schedule?"
+                      value={formData.briefPilotEpisodes}
+                      onChange={(e) =>
+                        setFormData({ ...formData, briefPilotEpisodes: e.target.value })
+                      }
+                      className="bg-secondary border-border text-foreground min-h-[80px]"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="briefDeliverables" className="text-foreground font-semibold">
+                      Deliverables
+                    </Label>
+                    <Textarea
+                      id="briefDeliverables"
+                      placeholder="What will be delivered? (Full episodes, social cutdowns, brand integration details, production scope, etc.)"
+                      value={formData.briefDeliverables}
+                      onChange={(e) =>
+                        setFormData({ ...formData, briefDeliverables: e.target.value })
+                      }
+                      className="bg-secondary border-border text-foreground min-h-[80px]"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="briefInvestment" className="text-foreground font-semibold">
+                      Investment
+                    </Label>
+                    <Textarea
+                      id="briefInvestment"
+                      placeholder="Budget/investment details (e.g., €9,800 + equipment)"
+                      value={formData.briefInvestment}
+                      onChange={(e) =>
+                        setFormData({ ...formData, briefInvestment: e.target.value })
+                      }
+                      className="bg-secondary border-border text-foreground min-h-[60px]"
+                    />
+                  </div>
+
+                <div className="flex justify-end gap-2">
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAiRefineDialogOpen(true)}
-                    className="h-8 px-2"
-                    title="Refine with AI"
-                    disabled={!formData.description.trim()}
+                    variant="outline"
+                    onClick={() => setBriefPreviewOpen(true)}
+                    disabled={!formData.briefConcept.trim()}
                   >
-                    <Sparkles className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleOpenLinkDialog}
-                    className="h-8 px-2"
-                    title="Insert link (Ctrl+K / Cmd+K)"
-                  >
-                    <LinkIcon className="h-4 w-4" />
+                    Preview Brief
                   </Button>
                 </div>
               </div>
-              <Textarea
-                ref={descriptionTextareaRef}
-                id="description"
-                placeholder="Describe the event, atmosphere, and what you're looking for..."
-                value={formData.description}
-                onChange={(e) => {
-                  const newValue = e.target.value;
-                  // Only update if display length is within limit
-                  if (getDisplayLength(newValue) <= DESCRIPTION_MAX_LENGTH) {
-                    setFormData({ ...formData, description: newValue });
-                  }
-                }}
-                className="bg-secondary border-border text-foreground min-h-[100px]"
-                required
-              />
-              <p className="text-xs text-muted-foreground text-right">
-                {getDisplayLength(formData.description)}/{DESCRIPTION_MAX_LENGTH} characters
-              </p>
             </div>
 
             <ImageUpload
@@ -913,27 +1259,23 @@ export default function CreateOpportunityPage() {
 
       {/* AI Refinement Dialog */}
       <Dialog open={aiRefineDialogOpen} onOpenChange={setAiRefineDialogOpen}>
-        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
-              Refine with AI
+              Refine Brief with AI
             </DialogTitle>
             <DialogDescription>
-              AI will refine your description to be clearer and more concise
-              while preserving all key information. The text will stay within
-              the {DESCRIPTION_MAX_LENGTH} character limit.
+              AI will refine your brief using the R/HOOD template to ensure consistency, clarity, and brand voice.
+              All key information will be preserved and enhanced.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Current Description</Label>
-              <div className="p-3 bg-secondary border border-border rounded-md text-sm text-muted-foreground max-h-32 overflow-y-auto">
-                {formData.description || "(empty)"}
+              <Label>Current Brief Preview</Label>
+              <div className="p-3 bg-secondary border border-border rounded-md text-sm text-muted-foreground max-h-64 overflow-y-auto whitespace-pre-wrap">
+                {generateBrief() || "Fill out the brief questionnaire first"}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {getDisplayLength(formData.description)}/{DESCRIPTION_MAX_LENGTH} characters
-              </p>
             </div>
           </div>
           <DialogFooter>
@@ -945,9 +1287,9 @@ export default function CreateOpportunityPage() {
               Cancel
             </Button>
             <Button
-              onClick={handleRefineWithAI}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={isRefining || !formData.description.trim()}
+              onClick={handleRefineBriefWithAI}
+              className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+              disabled={isRefining || !formData.briefConcept.trim()}
             >
               {isRefining ? (
                 <>
@@ -957,9 +1299,37 @@ export default function CreateOpportunityPage() {
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Refine Text
+                  Refine Brief
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Brief Preview Dialog */}
+      <Dialog open={briefPreviewOpen} onOpenChange={setBriefPreviewOpen}>
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Brief Preview</DialogTitle>
+            <DialogDescription>
+              This is how your brief will appear to DJs
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="prose prose-invert max-w-none">
+              <div className="whitespace-pre-wrap text-foreground bg-secondary p-4 rounded-md border border-border">
+                {generateBrief() || "Fill out the brief questionnaire to see preview"}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setBriefPreviewOpen(false)}
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

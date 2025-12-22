@@ -467,7 +467,7 @@ function ApplicationsContent() {
           console.error("Venue field error detected. This might be due to a view or RLS policy referencing a non-existent field.");
           toast({
             title: "Update Error",
-            description: "There was an issue with the database schema. Please run the latest migration to fix this issue.",
+            description: "Database schema issue detected. Please run the migration: supabase/migrations/20250122000000_fix_application_venue_error.sql in your Supabase SQL Editor.",
             variant: "destructive",
           });
           return;
@@ -657,7 +657,7 @@ function ApplicationsContent() {
           console.error("Venue field error detected. This might be due to a view or RLS policy referencing a non-existent field.");
           toast({
             title: "Update Error",
-            description: "There was an issue with the database schema. Please run the latest migration to fix this issue.",
+            description: "Database schema issue detected. Please run the migration: supabase/migrations/20250122000000_fix_application_venue_error.sql in your Supabase SQL Editor.",
             variant: "destructive",
           });
           return;

@@ -19,16 +19,22 @@ DROP POLICY IF EXISTS "Brands can update form responses for their opportunities"
 
 -- Create a helper function to check if user owns an opportunity
 -- This avoids PostgREST trying to materialize all opportunity fields
+-- By using SECURITY DEFINER and only selecting specific columns, we prevent
+-- PostgREST from trying to create views with all fields including non-existent 'venue'
 CREATE OR REPLACE FUNCTION user_owns_opportunity(p_opportunity_id UUID, p_user_id UUID)
 RETURNS BOOLEAN AS $$
+DECLARE
+  v_organizer_id UUID;
 BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM opportunities 
-    WHERE id = p_opportunity_id 
-    AND organizer_id = p_user_id
-  );
+  -- Only select the organizer_id field, not all fields
+  -- This prevents PostgREST from trying to materialize all opportunity columns
+  SELECT organizer_id INTO v_organizer_id
+  FROM opportunities 
+  WHERE id = p_opportunity_id;
+  
+  RETURN v_organizer_id = p_user_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 -- Recreate policies using the helper function to avoid venue field issues
 CREATE POLICY "Brands can view applications for their opportunities" 
@@ -200,5 +206,29 @@ BEGIN
     AND column_name = 'location'
   ) THEN
     RAISE NOTICE 'WARNING: opportunities table is missing location column.';
+  END IF;
+  
+  -- Verify the helper function was created
+  IF EXISTS (
+    SELECT 1 
+    FROM pg_proc 
+    WHERE proname = 'user_owns_opportunity'
+  ) THEN
+    RAISE NOTICE 'SUCCESS: user_owns_opportunity function created successfully.';
+  ELSE
+    RAISE WARNING 'ERROR: user_owns_opportunity function was not created.';
+  END IF;
+  
+  -- Verify policies were recreated
+  IF EXISTS (
+    SELECT 1 
+    FROM pg_policies 
+    WHERE schemaname = 'public' 
+    AND tablename = 'applications' 
+    AND policyname = 'Brands can update applications for their opportunities'
+  ) THEN
+    RAISE NOTICE 'SUCCESS: RLS policies for applications have been updated.';
+  ELSE
+    RAISE WARNING 'ERROR: RLS policies for applications may not have been updated correctly.';
   END IF;
 END $$;

@@ -934,7 +934,7 @@ function ApplicationsContent() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-brand-green hover:text-brand-green/80 text-xs sm:text-sm flex-1 sm:flex-initial"
+                            className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black text-xs sm:text-sm flex-1 sm:flex-initial transition-colors"
                             onClick={() =>
                               handleApprove(application.id, application.type)
                             }

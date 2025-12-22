@@ -137,6 +137,7 @@ export default function MixesPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [mixes, setMixes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [mixToDelete, setMixToDelete] = useState<{
     id: number;
@@ -1238,17 +1239,49 @@ export default function MixesPage() {
           <Button
             variant="outline"
             size="sm"
-            className="bg-brand-green text-brand-black hover:bg-brand-green/90 text-xs sm:text-sm"
+            onClick={() => setStatusFilter("all")}
+            className={`text-xs sm:text-sm transition-colors ${
+              statusFilter === "all"
+                ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
           >
             All
           </Button>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setStatusFilter("pending")}
+            className={`text-xs sm:text-sm transition-colors ${
+              statusFilter === "pending"
+                ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+          >
             Pending
           </Button>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setStatusFilter("approved")}
+            className={`text-xs sm:text-sm transition-colors ${
+              statusFilter === "approved"
+                ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+          >
             Approved
           </Button>
-          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setStatusFilter("rejected")}
+            className={`text-xs sm:text-sm transition-colors ${
+              statusFilter === "rejected"
+                ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+          >
             Rejected
           </Button>
         </div>
@@ -1278,7 +1311,12 @@ export default function MixesPage() {
             </div>
           </div>
         ) : (
-          mixes.map((mix) => (
+          mixes
+            .filter((mix) => {
+              if (statusFilter === "all") return true;
+              return mix.status === statusFilter;
+            })
+            .map((mix) => (
             <Card
               key={mix.id}
               className="bg-card border-border hover:border-brand-green/30 transition-all duration-300"

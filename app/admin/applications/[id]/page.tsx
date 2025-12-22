@@ -381,7 +381,7 @@ export default function ApplicationDetailsPage() {
             <>
               <Button
                 variant="outline"
-                className="text-brand-green hover:text-brand-green/80"
+                className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-colors"
                 onClick={handleApprove}
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -519,6 +519,35 @@ export default function ApplicationDetailsPage() {
                   {application.opportunity}
                 </p>
               </div>
+              
+              {/* Listen to Audio ID */}
+              <div>
+                <h4 className={textStyles.subheading.small}>Audio ID</h4>
+                <Button
+                  variant="outline"
+                  className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-colors"
+                  onClick={() => {
+                    const playbackUrl =
+                      userMix?.playback_url || userMix?.file_url || null;
+                    if (playbackUrl) {
+                      window.open(playbackUrl, "_blank");
+                      return;
+                    }
+                    if (userMix?.id) {
+                      router.push(`/admin/mixes/${userMix.id}`);
+                      return;
+                    }
+                    toast({
+                      title: "No Mix Available",
+                      description: "This user hasn't uploaded any mixes yet.",
+                      variant: "destructive",
+                    });
+                  }}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Listen to Audio ID
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -566,30 +595,6 @@ export default function ApplicationDetailsPage() {
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 View Opportunity
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => {
-                  const playbackUrl =
-                    userMix?.playback_url || userMix?.file_url || null;
-                  if (playbackUrl) {
-                    window.open(playbackUrl, "_blank");
-                    return;
-                  }
-                  if (userMix?.id) {
-                    router.push(`/admin/mixes/${userMix.id}`);
-                    return;
-                  }
-                  toast({
-                    title: "No Mix Available",
-                    description: "This user hasn't uploaded any mixes yet.",
-                    variant: "destructive",
-                  });
-                }}
-              >
-                <Play className="h-4 w-4 mr-2" />
-                Listen to Audio ID
               </Button>
               <Button
                 variant="outline"

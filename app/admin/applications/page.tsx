@@ -447,11 +447,38 @@ function ApplicationsContent() {
 
       console.log("Updating with data:", updateData);
 
-      // Update without select to avoid trigger/view issues with missing fields
-      const { error } = await supabase
-        .from(tableName as any)
-        .update(updateData)
-        .eq("id", applicationId);
+      // Try using RPC function first to bypass RLS (avoids venue field error)
+      const newStatus = updateData.status;
+      const rpcFunctionName = 
+        applicationType === "form_response" 
+          ? "admin_update_form_response_status"
+          : "admin_update_application_status";
+      
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        rpcFunctionName,
+        {
+          p_application_id: applicationId,
+          p_new_status: newStatus,
+        }
+      );
+
+      let error = null;
+      
+      // If RPC works, use it; otherwise fall back to direct update
+      if (!rpcError && rpcResult?.success) {
+        console.log("Application updated via RPC function (bypassed RLS)");
+      } else if (rpcError) {
+        console.warn("RPC function not available, falling back to direct update:", rpcError);
+        // Fall back to direct update
+        const updateResult = await supabase
+          .from(tableName as any)
+          .update(updateData)
+          .eq("id", applicationId);
+        error = updateResult.error;
+      } else {
+        // RPC returned but wasn't successful
+        error = new Error(rpcResult?.error || "RPC function returned unsuccessful result");
+      }
 
       if (error) {
         console.error("Error updating application:", error);
@@ -467,7 +494,7 @@ function ApplicationsContent() {
           console.error("Venue field error detected. This might be due to a view or RLS policy referencing a non-existent field.");
           toast({
             title: "Update Error",
-            description: "Database schema issue detected. Please run the migration: supabase/migrations/20250122000005_fix_venue_error_final_working.sql in your Supabase SQL Editor. Also verify your user has role='admin' in user_profiles.",
+            description: "Database schema issue detected. Please run the migration: supabase/migrations/20250122000006_fix_venue_error_rpc_bypass.sql in your Supabase SQL Editor. Also verify your user has role='admin' in user_profiles.",
             variant: "destructive",
           });
           return;
@@ -637,11 +664,38 @@ function ApplicationsContent() {
 
       console.log("Updating with data:", updateData);
 
-      // Update without select to avoid trigger/view issues with missing fields
-      const { error } = await supabase
-        .from(tableName as any)
-        .update(updateData)
-        .eq("id", applicationId);
+      // Try using RPC function first to bypass RLS (avoids venue field error)
+      const newStatus = updateData.status;
+      const rpcFunctionName = 
+        applicationType === "form_response" 
+          ? "admin_update_form_response_status"
+          : "admin_update_application_status";
+      
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        rpcFunctionName,
+        {
+          p_application_id: applicationId,
+          p_new_status: newStatus,
+        }
+      );
+
+      let error = null;
+      
+      // If RPC works, use it; otherwise fall back to direct update
+      if (!rpcError && rpcResult?.success) {
+        console.log("Application updated via RPC function (bypassed RLS)");
+      } else if (rpcError) {
+        console.warn("RPC function not available, falling back to direct update:", rpcError);
+        // Fall back to direct update
+        const updateResult = await supabase
+          .from(tableName as any)
+          .update(updateData)
+          .eq("id", applicationId);
+        error = updateResult.error;
+      } else {
+        // RPC returned but wasn't successful
+        error = new Error(rpcResult?.error || "RPC function returned unsuccessful result");
+      }
 
       if (error) {
         console.error("Error updating application:", error);
@@ -657,7 +711,7 @@ function ApplicationsContent() {
           console.error("Venue field error detected. This might be due to a view or RLS policy referencing a non-existent field.");
           toast({
             title: "Update Error",
-            description: "Database schema issue detected. Please run the migration: supabase/migrations/20250122000005_fix_venue_error_final_working.sql in your Supabase SQL Editor. Also verify your user has role='admin' in user_profiles.",
+            description: "Database schema issue detected. Please run the migration: supabase/migrations/20250122000006_fix_venue_error_rpc_bypass.sql in your Supabase SQL Editor. Also verify your user has role='admin' in user_profiles.",
             variant: "destructive",
           });
           return;
@@ -934,12 +988,11 @@ function ApplicationsContent() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black text-xs sm:text-sm flex-1 sm:flex-initial transition-colors"
-                            onClick={() =>
-                              handleApprove(application.id, application.type)
-                            }
+                            className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-200 text-xs sm:text-sm flex-1 sm:flex-initial font-medium"
+                            onClick={() => handleApprove(application.id, application.type)}
+                            disabled={isLoading}
                           >
-                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
                             <span className="hidden sm:inline">Approve</span>
                             <span className="sm:hidden">✓</span>
                           </Button>

@@ -160,13 +160,24 @@ export default function ApplicationDetailsPage() {
               .eq("uploaded_by", data.user_id)
               .order("created_at", { ascending: false })
               .limit(1)
-              .single();
+              .maybeSingle(); // Use maybeSingle() instead of single() to handle no results gracefully
 
-            if (!mixError && mixData) {
+            if (mixError) {
+              console.error("Error fetching user mix:", mixError);
+              console.error("Mix error details:", {
+                code: mixError.code,
+                message: mixError.message,
+                details: mixError.details,
+                hint: mixError.hint,
+              });
+            } else if (mixData) {
+              console.log("Found user mix:", mixData);
               userMixData = mixData;
+            } else {
+              console.log("No mix found for user:", data.user_id);
             }
           } catch (mixErr) {
-            console.warn("Could not fetch user mix:", mixErr);
+            console.error("Exception fetching user mix:", mixErr);
           }
         }
 
@@ -523,30 +534,39 @@ export default function ApplicationDetailsPage() {
               {/* Listen to Audio ID */}
               <div>
                 <h4 className={textStyles.subheading.small}>Audio ID</h4>
-                <Button
-                  variant="outline"
-                  className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-colors"
-                  onClick={() => {
-                    const playbackUrl =
-                      userMix?.playback_url || userMix?.file_url || null;
-                    if (playbackUrl) {
-                      window.open(playbackUrl, "_blank");
-                      return;
-                    }
-                    if (userMix?.id) {
-                      router.push(`/admin/mixes/${userMix.id}`);
-                      return;
-                    }
-                    toast({
-                      title: "No Mix Available",
-                      description: "This user hasn't uploaded any mixes yet.",
-                      variant: "destructive",
-                    });
-                  }}
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Listen to Audio ID
-                </Button>
+                {userMix ? (
+                  <Button
+                    variant="outline"
+                    className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-colors"
+                    onClick={() => {
+                      // Use file_url since playback_url doesn't exist in the schema
+                      const fileUrl = userMix?.file_url || null;
+                      if (fileUrl) {
+                        window.open(fileUrl, "_blank");
+                        return;
+                      }
+                      if (userMix?.id) {
+                        router.push(`/admin/mixes/${userMix.id}`);
+                        return;
+                      }
+                      toast({
+                        title: "Mix URL Missing",
+                        description: "This mix doesn't have a valid file URL.",
+                        variant: "destructive",
+                      });
+                    }}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Listen to Audio ID
+                  </Button>
+                ) : (
+                  <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <p className="text-sm text-destructive font-medium">No Mix Available</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This user hasn't uploaded any mixes yet.
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

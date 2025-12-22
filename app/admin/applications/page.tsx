@@ -80,6 +80,12 @@ function ApplicationsContent() {
           `
         );
 
+      // Filter by specific opportunity if specified in URL
+      if (opportunityId) {
+        applicationsQuery = applicationsQuery.eq("opportunity_id", opportunityId);
+        formResponsesQuery = formResponsesQuery.eq("opportunity_id", opportunityId);
+      }
+
       // Filter by brand's opportunities if user is a brand
       if (userProfile?.role === "brand" && brandOpportunityIds) {
         if (brandOpportunityIds.length === 0) {
@@ -274,10 +280,10 @@ function ApplicationsContent() {
   const filteredApplications = useMemo(() => {
     let filtered = applications;
 
-    // Filter by opportunity if specified in URL
+    // Filter by opportunity if specified in URL (already filtered in query, but keep for consistency)
     if (opportunityId) {
       filtered = filtered.filter(
-        (app) => app.opportunityId === parseInt(opportunityId)
+        (app) => app.opportunityId === opportunityId
       );
     }
 

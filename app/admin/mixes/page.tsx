@@ -252,12 +252,13 @@ export default function MixesPage() {
                   if (!listError && files && files.length > 0) {
                     const artworkFile = findImageFile(files);
                     if (artworkFile) {
-                      const {
-                        data: { publicUrl },
-                      } = supabase.storage
+                      const { data: signed } = await supabase.storage
                         .from("mixes")
-                        .getPublicUrl(`${mix.id}/${artworkFile.name}`);
-                      return publicUrl;
+                        .createSignedUrl(
+                          `${mix.id}/${artworkFile.name}`,
+                          60 * 60 * 24 * 7
+                        ); // 7 days
+                      if (signed?.signedUrl) return signed.signedUrl;
                     }
                   }
                 }
@@ -275,12 +276,13 @@ export default function MixesPage() {
                     if (!legacyListError && files && files.length > 0) {
                       const artworkFile = findImageFile(files);
                       if (artworkFile) {
-                        const {
-                          data: { publicUrl },
-                        } = supabase.storage
+                        const { data: signed } = await supabase.storage
                           .from("mixes")
-                          .getPublicUrl(`${folderPath}/${artworkFile.name}`);
-                        return publicUrl;
+                          .createSignedUrl(
+                            `${folderPath}/${artworkFile.name}`,
+                            60 * 60 * 24 * 7
+                          );
+                        if (signed?.signedUrl) return signed.signedUrl;
                       }
                     }
                   }

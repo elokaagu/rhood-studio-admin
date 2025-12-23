@@ -634,7 +634,8 @@ function ApplicationsContent() {
       const application = applicationBasic as any;
 
       // For brand role validation, fetch opportunity organizer_id separately if needed
-      if (userProfile?.role === "brand" && userId && application?.opportunity_id) {
+      const userRole = (userProfile as any)?.role;
+      if (userRole === "brand" && userId && application?.opportunity_id) {
         const { data: opportunity } = await supabase
           .from("opportunities")
           .select("organizer_id, title")

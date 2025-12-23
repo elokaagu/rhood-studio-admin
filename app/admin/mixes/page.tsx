@@ -146,7 +146,8 @@ export default function MixesPage() {
   const [isRefreshingArtwork, setIsRefreshingArtwork] = useState(false);
 
   // Fetch mixes from database
-  const fetchMixes = async () => {
+  const fetchMixes = async (options?: { forceRefreshArtwork?: boolean }) => {
+    const forceRefreshArtwork = options?.forceRefreshArtwork ?? false;
     try {
       const { data, error } = await supabase
         .from("mixes")
@@ -317,13 +318,14 @@ export default function MixesPage() {
               }
             };
 
-            if (!imageUrl) {
-              imageUrl = await resolveArtworkUrl();
-
-              if (imageUrl) {
+            const shouldRefreshArtwork = forceRefreshArtwork || !imageUrl;
+            if (shouldRefreshArtwork) {
+              const refreshedUrl = await resolveArtworkUrl();
+              if (refreshedUrl && refreshedUrl !== imageUrl) {
+                imageUrl = refreshedUrl;
                 await supabase
                   .from("mixes")
-                  .update({ image_url: imageUrl })
+                  .update({ image_url: refreshedUrl })
                   .eq("id", mix.id);
               }
             }
@@ -372,26 +374,16 @@ export default function MixesPage() {
   const handleRefreshArtwork = async () => {
     setIsRefreshingArtwork(true);
     try {
-      const { error } = await supabase
-        .from("mixes")
-        .update({ image_url: null })
-        .neq("image_url", null);
-
-      if (error) {
-        throw error;
-      }
-
+      await fetchMixes({ forceRefreshArtwork: true });
       toast({
-        title: "Artwork Reset",
-        description: "Cleared stored artwork URLs. Reloading fresh images...",
+        title: "Artwork Refreshed",
+        description: "Pulled latest artwork from storage for all mixes.",
       });
-
-      await fetchMixes();
     } catch (refreshError) {
       console.error("Error refreshing artwork:", refreshError);
       toast({
         title: "Artwork Refresh Failed",
-        description: "Unable to reset artwork. Please try again.",
+        description: "Unable to refresh artwork. Please try again.",
         variant: "destructive",
       });
     } finally {

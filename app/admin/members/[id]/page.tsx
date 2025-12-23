@@ -70,13 +70,14 @@ export default function MemberDetailsPage() {
       }
 
       if (data) {
-        // Calculate gigs from applications table
+        // Calculate gigs from approved applications only (actual completed gigs)
         let gigsCount = 0;
         try {
           const { count, error: countError } = await supabase
             .from("applications")
             .select("*", { count: "exact", head: true })
-            .eq("user_id", data.id);
+            .eq("user_id", data.id)
+            .eq("status", "approved");
 
           if (!countError && count !== null) {
             gigsCount = count;

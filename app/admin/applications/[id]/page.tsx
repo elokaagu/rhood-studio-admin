@@ -541,7 +541,7 @@ export default function ApplicationDetailsPage() {
                 </p>
               </div>
 
-              <div>
+              <div className="pb-3">
                 <h4 className={textStyles.subheading.small}>Genres</h4>
                 <div className="flex flex-wrap gap-2">
                   {application.applicant.genres.map((genre: string) => (
@@ -614,7 +614,7 @@ export default function ApplicationDetailsPage() {
               </div>
               
               {/* Listen to Audio ID */}
-              <div>
+              <div className="pb-3">
                 <h4 className={textStyles.subheading.small}>Audio ID</h4>
                 {userMix ? (
                   <Button

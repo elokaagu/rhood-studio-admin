@@ -109,8 +109,13 @@ export default function MemberDetailsPage() {
         // Transform the data to match the expected format
         const transformedMember = {
           id: data.id,
+          role: data.role || null,
           name:
-            data.dj_name || `${data.first_name} ${data.last_name}` || "Unknown",
+            data.dj_name ||
+            data.brand_name ||
+            `${data.first_name} ${data.last_name}` ||
+            "Unknown",
+          brandName: data.brand_name || null,
           email: data.email || "No email",
           location: data.city || "Unknown",
           joinDate: data.created_at
@@ -470,15 +475,20 @@ export default function MemberDetailsPage() {
     );
   }
 
+  const isBrand = member.role === "brand";
+  const displayName = member.brandName || member.name;
+
   return (
     <div className="space-y-6 animate-blur-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
-            {member.name}
+            {displayName}
           </h1>
-          <p className={textStyles.body.regular}>Member profile and details</p>
+          <p className={textStyles.body.regular}>
+            {isBrand ? "Brand profile and details" : "Member profile and details"}
+          </p>
         </div>
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -535,10 +545,12 @@ export default function MemberDetailsPage() {
                   <Calendar className="h-4 w-4 mr-2" />
                   Joined {member.joinDate}
                 </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Music className="h-4 w-4 mr-2" />
-                  {member.gigs} gigs
-                </div>
+                {!isBrand && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Music className="h-4 w-4 mr-2" />
+                    {member.gigs} gigs
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -586,8 +598,8 @@ export default function MemberDetailsPage() {
                           : url;
 
                         return (
-                          <div key={platform} className="flex items-center">
-                            <span className="capitalize text-sm text-muted-foreground w-20">
+                          <div key={platform} className="flex flex-col gap-1">
+                            <span className="capitalize text-sm text-muted-foreground">
                               {platform}:
                             </span>
                             {handle ? (
@@ -595,7 +607,7 @@ export default function MemberDetailsPage() {
                                 href={fullUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={`${textStyles.body.regular} text-brand-green hover:text-brand-green/80 underline hover:no-underline transition-colors`}
+                                className={`${textStyles.body.regular} text-brand-green hover:text-brand-green/80 underline hover:no-underline transition-colors break-words`}
                               >
                                 {handle as string}
                               </a>
@@ -778,35 +790,39 @@ export default function MemberDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Music className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className={textStyles.body.regular}>Total Gigs</span>
-                </div>
-                <span className={textStyles.subheading.small}>
-                  {member.gigs}
-                </span>
-              </div>
+                {!isBrand && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Music className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className={textStyles.body.regular}>Total Gigs</span>
+                    </div>
+                    <span className={textStyles.subheading.small}>
+                      {member.gigs}
+                    </span>
+                  </div>
+                )}
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Star className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className={textStyles.body.regular}>Rating</span>
-                </div>
-                <span className={textStyles.subheading.small}>
-                  {member.rating || 0.0}
-                </span>
-              </div>
+                {!isBrand && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Star className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className={textStyles.body.regular}>Rating</span>
+                    </div>
+                    <span className={textStyles.subheading.small}>
+                      {member.rating || 0.0}
+                    </span>
+                  </div>
+                )}
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Coins className="h-4 w-4 mr-2 text-brand-green" />
-                  <span className={textStyles.body.regular}>Credits</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Coins className="h-4 w-4 mr-2 text-brand-green" />
+                    <span className={textStyles.body.regular}>Credits</span>
+                  </div>
+                  <span className={`${textStyles.subheading.small} text-brand-green`}>
+                    {member.credits || 0}
+                  </span>
                 </div>
-                <span className={`${textStyles.subheading.small} text-brand-green`}>
-                  {member.credits || 0}
-                </span>
-              </div>
             </CardContent>
           </Card>
         </div>

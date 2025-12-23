@@ -54,6 +54,7 @@ interface Community {
 
 export default function CommunitiesPage() {
   const [communities, setCommunities] = useState<Community[]>([]);
+  const [totalMembers, setTotalMembers] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -150,6 +151,16 @@ export default function CommunitiesPage() {
         transformedCommunities.map((c) => c.id)
       );
       setCommunities(transformedCommunities);
+
+      // Fetch total members on the platform (count of user_profiles)
+      const { count: totalUserCount, error: totalUserError } = await supabase
+        .from("user_profiles")
+        .select("*", { count: "exact", head: true });
+      if (totalUserError) {
+        console.error("Error fetching total members:", totalUserError);
+      } else if (totalUserCount !== null) {
+        setTotalMembers(totalUserCount);
+      }
     } catch (error) {
       console.error("Error:", error);
       toast({
@@ -323,10 +334,7 @@ export default function CommunitiesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Members</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {communities.reduce(
-                    (sum, community) => sum + (community.member_count || 0),
-                    0
-                  )}
+                  {totalMembers}
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">

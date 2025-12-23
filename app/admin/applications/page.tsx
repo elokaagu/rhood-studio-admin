@@ -373,6 +373,17 @@ function ApplicationsContent() {
       // Get user profile first for role checking
       const userProfile = await getCurrentUserProfile();
       const userId = await getCurrentUserId();
+      
+      // Verify admin role before proceeding
+      if (userProfile?.role !== 'admin') {
+        console.error("User role check failed:", { role: userProfile?.role, userId });
+        toast({
+          title: "Access Denied",
+          description: `Your role is '${userProfile?.role || 'unknown'}'. Only admins can approve applications. Please verify your user has role='admin' in user_profiles.`,
+          variant: "destructive",
+        });
+        return;
+      }
 
       // First, get the application details - fetch without joins to avoid venue field issues
       const { data: applicationBasic, error: fetchBasicError } = await supabase
@@ -454,6 +465,8 @@ function ApplicationsContent() {
           ? "admin_update_form_response_status"
           : "admin_update_application_status";
       
+      console.log("Attempting RPC call:", { rpcFunctionName, applicationId, newStatus });
+      
       // Use type assertion since these RPC functions are newly created and not in types yet
       const { data: rpcResult, error: rpcError } = await supabase.rpc(
         rpcFunctionName as any,
@@ -463,47 +476,46 @@ function ApplicationsContent() {
         }
       );
 
-      let error = null;
-      
-      // If RPC works, use it; otherwise fall back to direct update
-      if (!rpcError && rpcResult?.success) {
-        console.log("Application updated via RPC function (bypassed RLS)");
-      } else if (rpcError) {
-        console.warn("RPC function not available, falling back to direct update:", rpcError);
-        // Fall back to direct update
-        const updateResult = await supabase
-          .from(tableName as any)
-          .update(updateData)
-          .eq("id", applicationId);
-        error = updateResult.error;
-      } else {
-        // RPC returned but wasn't successful
-        error = new Error(rpcResult?.error || "RPC function returned unsuccessful result");
-      }
+      console.log("RPC response:", { rpcResult, rpcError });
 
-      if (error) {
-        console.error("Error updating application:", error);
-        // Check if error has Supabase error properties
-        const supabaseError = error as any;
-        console.error("Error details:", {
-          code: supabaseError.code,
-          message: error.message,
-          details: supabaseError.details,
-          hint: supabaseError.hint,
+      // Check if RPC call itself failed (network/function doesn't exist)
+      if (rpcError) {
+        console.error("RPC call failed:", rpcError);
+        toast({
+          title: "Update Error",
+          description: `RPC function error: ${rpcError.message}. Please verify the migration was run and your user has role='admin' in user_profiles.`,
+          variant: "destructive",
         });
-        
-        // If error is about venue field, provide helpful message
-        if (error.message?.includes("venue") || error.message?.includes("v_opportunity")) {
-          console.error("Venue field error detected. This might be due to a view or RLS policy referencing a non-existent field.");
+        return;
+      }
+      
+      // Check if RPC returned successfully but with an error message
+      if (rpcResult && typeof rpcResult === 'object') {
+        if (rpcResult.success === true) {
+          console.log("Application updated via RPC function (bypassed RLS)");
+          // Success! Continue with notification logic below
+        } else {
+          // RPC function returned but indicated failure
+          const errorMsg = rpcResult.error || "RPC function returned unsuccessful result";
+          console.error("RPC function returned error:", errorMsg);
           toast({
             title: "Update Error",
-            description: "Database schema issue detected. Please run the migration: supabase/migrations/20250122000006_fix_venue_error_rpc_bypass.sql in your Supabase SQL Editor. Also verify your user has role='admin' in user_profiles.",
+            description: errorMsg === "Only admins can use this function" 
+              ? "You don't have admin permissions. Please verify your user has role='admin' in user_profiles."
+              : errorMsg,
             variant: "destructive",
           });
           return;
         }
-        
-        throw error;
+      } else {
+        // Unexpected response format
+        console.error("Unexpected RPC response format:", rpcResult);
+        toast({
+          title: "Update Error",
+          description: "Unexpected response from RPC function. Please check the console for details.",
+          variant: "destructive",
+        });
+        return;
       }
 
       console.log("Application updated successfully");
@@ -593,6 +605,17 @@ function ApplicationsContent() {
       // Get user profile first for role checking
       const userProfile = await getCurrentUserProfile();
       const userId = await getCurrentUserId();
+      
+      // Verify admin role before proceeding
+      if (userProfile?.role !== 'admin') {
+        console.error("User role check failed:", { role: userProfile?.role, userId });
+        toast({
+          title: "Access Denied",
+          description: `Your role is '${userProfile?.role || 'unknown'}'. Only admins can approve applications. Please verify your user has role='admin' in user_profiles.`,
+          variant: "destructive",
+        });
+        return;
+      }
 
       // First, get the application details - fetch without joins to avoid venue field issues
       const { data: applicationBasic, error: fetchBasicError } = await supabase
@@ -674,6 +697,8 @@ function ApplicationsContent() {
           ? "admin_update_form_response_status"
           : "admin_update_application_status";
       
+      console.log("Attempting RPC call:", { rpcFunctionName, applicationId, newStatus });
+      
       // Use type assertion since these RPC functions are newly created and not in types yet
       const { data: rpcResult, error: rpcError } = await supabase.rpc(
         rpcFunctionName as any,
@@ -683,47 +708,46 @@ function ApplicationsContent() {
         }
       );
 
-      let error = null;
-      
-      // If RPC works, use it; otherwise fall back to direct update
-      if (!rpcError && rpcResult?.success) {
-        console.log("Application updated via RPC function (bypassed RLS)");
-      } else if (rpcError) {
-        console.warn("RPC function not available, falling back to direct update:", rpcError);
-        // Fall back to direct update
-        const updateResult = await supabase
-          .from(tableName as any)
-          .update(updateData)
-          .eq("id", applicationId);
-        error = updateResult.error;
-      } else {
-        // RPC returned but wasn't successful
-        error = new Error(rpcResult?.error || "RPC function returned unsuccessful result");
-      }
+      console.log("RPC response:", { rpcResult, rpcError });
 
-      if (error) {
-        console.error("Error updating application:", error);
-        // Check if error has Supabase error properties
-        const supabaseError = error as any;
-        console.error("Error details:", {
-          code: supabaseError.code,
-          message: error.message,
-          details: supabaseError.details,
-          hint: supabaseError.hint,
+      // Check if RPC call itself failed (network/function doesn't exist)
+      if (rpcError) {
+        console.error("RPC call failed:", rpcError);
+        toast({
+          title: "Update Error",
+          description: `RPC function error: ${rpcError.message}. Please verify the migration was run and your user has role='admin' in user_profiles.`,
+          variant: "destructive",
         });
-        
-        // If error is about venue field, provide helpful message
-        if (error.message?.includes("venue") || error.message?.includes("v_opportunity")) {
-          console.error("Venue field error detected. This might be due to a view or RLS policy referencing a non-existent field.");
+        return;
+      }
+      
+      // Check if RPC returned successfully but with an error message
+      if (rpcResult && typeof rpcResult === 'object') {
+        if (rpcResult.success === true) {
+          console.log("Application updated via RPC function (bypassed RLS)");
+          // Success! Continue with notification logic below
+        } else {
+          // RPC function returned but indicated failure
+          const errorMsg = rpcResult.error || "RPC function returned unsuccessful result";
+          console.error("RPC function returned error:", errorMsg);
           toast({
             title: "Update Error",
-            description: "Database schema issue detected. Please run the migration: supabase/migrations/20250122000006_fix_venue_error_rpc_bypass.sql in your Supabase SQL Editor. Also verify your user has role='admin' in user_profiles.",
+            description: errorMsg === "Only admins can use this function" 
+              ? "You don't have admin permissions. Please verify your user has role='admin' in user_profiles."
+              : errorMsg,
             variant: "destructive",
           });
           return;
         }
-        
-        throw error;
+      } else {
+        // Unexpected response format
+        console.error("Unexpected RPC response format:", rpcResult);
+        toast({
+          title: "Update Error",
+          description: "Unexpected response from RPC function. Please check the console for details.",
+          variant: "destructive",
+        });
+        return;
       }
 
       console.log("Application updated successfully");

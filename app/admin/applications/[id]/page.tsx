@@ -37,17 +37,45 @@ export default function ApplicationDetailsPage() {
   // Handle application approval
   const handleApprove = async () => {
     try {
-      // Update application status
-      const { error } = await supabase
-        .from("applications")
-        .update({ status: "approved", updated_at: new Date().toISOString() })
-        .eq("id", applicationId as string);
+      console.log("Attempting to approve application:", applicationId);
+      
+      // Use RPC function to bypass RLS (avoids venue field error)
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        "admin_update_application_status" as any,
+        {
+          p_application_id: applicationId as string,
+          p_new_status: "approved",
+        }
+      );
 
-      if (error) {
-        throw error;
+      console.log("RPC response:", { rpcResult, rpcError });
+
+      // Check if RPC call failed
+      if (rpcError) {
+        console.error("RPC call failed:", rpcError);
+        toast({
+          title: "Update Error",
+          description: `RPC function error: ${rpcError.message}. Please verify the migration was run and your user has role='admin' in user_profiles.`,
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Create notification for the user
+      // Check if RPC returned an error
+      if (rpcResult && typeof rpcResult === 'object' && rpcResult.success !== true) {
+        const errorMsg = rpcResult.error || "RPC function returned unsuccessful result";
+        console.error("RPC function returned error:", errorMsg);
+        toast({
+          title: "Update Error",
+          description: errorMsg === "Only admins can use this function" 
+            ? "You don't have admin permissions. Please verify your user has role='admin' in user_profiles."
+            : errorMsg,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Success - create notification
       if (application?.user_id && application?.opportunity) {
         await createApplicationStatusNotification(
           application.user_id,
@@ -78,17 +106,45 @@ export default function ApplicationDetailsPage() {
   // Handle application rejection
   const handleReject = async () => {
     try {
-      // Update application status
-      const { error } = await supabase
-        .from("applications")
-        .update({ status: "rejected" })
-        .eq("id", applicationId as string);
+      console.log("Attempting to reject application:", applicationId);
+      
+      // Use RPC function to bypass RLS (avoids venue field error)
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        "admin_update_application_status" as any,
+        {
+          p_application_id: applicationId as string,
+          p_new_status: "rejected",
+        }
+      );
 
-      if (error) {
-        throw error;
+      console.log("RPC response:", { rpcResult, rpcError });
+
+      // Check if RPC call failed
+      if (rpcError) {
+        console.error("RPC call failed:", rpcError);
+        toast({
+          title: "Update Error",
+          description: `RPC function error: ${rpcError.message}. Please verify the migration was run and your user has role='admin' in user_profiles.`,
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Create notification for the user
+      // Check if RPC returned an error
+      if (rpcResult && typeof rpcResult === 'object' && rpcResult.success !== true) {
+        const errorMsg = rpcResult.error || "RPC function returned unsuccessful result";
+        console.error("RPC function returned error:", errorMsg);
+        toast({
+          title: "Update Error",
+          description: errorMsg === "Only admins can use this function" 
+            ? "You don't have admin permissions. Please verify your user has role='admin' in user_profiles."
+            : errorMsg,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Success - create notification
       if (application?.user_id && application?.opportunity) {
         await createApplicationStatusNotification(
           application.user_id,
@@ -150,7 +206,7 @@ export default function ApplicationDetailsPage() {
           throw error;
         }
       } else if (data) {
-        // Fetch user's mix
+        // Fetch user's mix (primary attempt by uploaded_by)
         let userMixData = null;
         if (data.user_id) {
           try {
@@ -160,10 +216,10 @@ export default function ApplicationDetailsPage() {
               .eq("uploaded_by", data.user_id)
               .order("created_at", { ascending: false })
               .limit(1)
-              .maybeSingle(); // Use maybeSingle() instead of single() to handle no results gracefully
+              .maybeSingle(); // Use maybeSingle() to handle zero results gracefully
 
             if (mixError) {
-              console.error("Error fetching user mix:", mixError);
+              console.error("Error fetching user mix (uploaded_by):", mixError);
               console.error("Mix error details:", {
                 code: mixError.code,
                 message: mixError.message,
@@ -171,13 +227,39 @@ export default function ApplicationDetailsPage() {
                 hint: mixError.hint,
               });
             } else if (mixData) {
-              console.log("Found user mix:", mixData);
+              console.log("Found user mix by uploaded_by:", mixData);
               userMixData = mixData;
             } else {
-              console.log("No mix found for user:", data.user_id);
+              console.log("No mix found by uploaded_by for user:", data.user_id);
             }
           } catch (mixErr) {
-            console.error("Exception fetching user mix:", mixErr);
+            console.error("Exception fetching user mix (uploaded_by):", mixErr);
+          }
+
+          // Fallback attempt: some datasets might use user_id instead of uploaded_by
+          if (!userMixData) {
+            try {
+              const { data: altMixData, error: altMixError } = await supabase
+                .from("mixes")
+                .select("*")
+                // @ts-ignore fallback for schemas that use user_id instead of uploaded_by
+                .eq("user_id", data.user_id)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (altMixError) {
+                // It's possible this errors if column doesn't exist; log and move on
+                console.warn("Fallback mix lookup by user_id failed:", altMixError.message);
+              } else if (altMixData) {
+                console.log("Found user mix by user_id fallback:", altMixData);
+                userMixData = altMixData;
+              } else {
+                console.log("No mix found by user_id fallback for user:", data.user_id);
+              }
+            } catch (altErr) {
+              console.warn("Exception during fallback mix lookup (user_id):", altErr);
+            }
           }
         }
 

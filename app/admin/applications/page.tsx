@@ -822,6 +822,58 @@ function ApplicationsContent() {
     }
   };
 
+  // Mark gig as completed (brand confirms the DJ performed)
+  const handleCompleteGig = async (
+    applicationId: string,
+    applicationType: string
+  ) => {
+    try {
+      const userProfile = await getCurrentUserProfile();
+      const userRole = (userProfile as any)?.role;
+
+      if (userRole !== "admin" && userRole !== "brand") {
+        toast({
+          title: "Access Denied",
+          description:
+            "Only admins or brands can mark gigs as completed.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const tableName =
+        applicationType === "form_response"
+          ? "application_form_responses"
+          : "applications";
+
+      const { error } = await supabase
+        .from(tableName as any)
+        .update({
+          gig_completed: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", applicationId);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Gig Marked Completed",
+        description: "This applicant has been marked as having performed the gig.",
+      });
+
+      fetchApplications();
+    } catch (error) {
+      console.error("Error marking gig as completed:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark gig as completed. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   console.log(
     "ApplicationsPage render - isLoading:",
     isLoading,
@@ -1041,6 +1093,21 @@ function ApplicationsContent() {
                             <span className="sm:hidden">✗</span>
                           </Button>
                         </>
+                      )}
+                      {application.status === "approved" && !application.gig_completed && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-200 text-xs sm:text-sm flex-1 sm:flex-initial font-medium"
+                          onClick={() =>
+                            handleCompleteGig(application.id, application.type)
+                          }
+                          disabled={isLoading}
+                        >
+                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
+                          <span className="hidden sm:inline">Mark Gig Done</span>
+                          <span className="sm:hidden">✓ Gig</span>
+                        </Button>
                       )}
                     </div>
                   </div>

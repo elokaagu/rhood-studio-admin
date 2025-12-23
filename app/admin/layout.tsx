@@ -299,8 +299,15 @@ export default function AdminLayout({
         }
 
         // Set user credits (credits column may not exist in types yet - migration needed)
-        if (profile && (profile as any).credits !== undefined && (profile as any).credits !== null) {
+        if (
+          profile &&
+          profile.role !== "brand" &&
+          (profile as any).credits !== undefined &&
+          (profile as any).credits !== null
+        ) {
           setUserCredits((profile as any).credits);
+        } else {
+          setUserCredits(0);
         }
       } catch (error) {
         console.error("Error fetching user name:", error);
@@ -485,7 +492,7 @@ export default function AdminLayout({
               >
                 {userName}
               </Badge>
-              {/* Credits Badge - only show for DJs */}
+              {/* Credits Badge - only show for DJs (not brands) */}
               {userCredits > 0 && (
                 <Badge
                   variant="outline"

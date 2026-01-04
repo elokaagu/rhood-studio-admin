@@ -149,7 +149,7 @@ export default function FormResponsesPage() {
         );
       case "under_review":
         return (
-          <Badge className="bg-blue-500 text-white text-xs">
+          <Badge className="bg-brand-green text-brand-black text-xs">
             <Eye className="h-3 w-3 mr-1" />
             Under Review
           </Badge>

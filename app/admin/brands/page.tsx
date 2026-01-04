@@ -664,7 +664,7 @@ export default function BrandsPage() {
                     {totalStats.totalApplications}
                   </p>
                 </div>
-                <FileText className="h-8 w-8 text-purple-500 opacity-50" />
+                <FileText className="h-8 w-8 text-brand-green opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -845,7 +845,7 @@ export default function BrandsPage() {
                           <span className="text-muted-foreground">Opportunities</span>
                         </div>
                         <div className="flex items-center gap-1 text-xs sm:text-sm">
-                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-brand-green" />
                           <span className="text-foreground font-semibold">{member.totalApplications || 0}</span>
                           <span className="text-muted-foreground">Applications</span>
                         </div>

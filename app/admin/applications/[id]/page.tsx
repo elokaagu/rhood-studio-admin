@@ -289,10 +289,9 @@ export default function ApplicationDetailsPage() {
         
         // Check for existing brand rating (DJ rating the brand)
         let existingRating = null;
-        if (gigCompleted && userProfile?.role === "dj") {
+        if (gigCompleted && (userProfile as any)?.role === "dj") {
           const userId = await getCurrentUserId();
-          const { data: ratingData } = await supabase
-            .from("ratings")
+          const { data: ratingData } = await (supabase.from as any)("ratings")
             .select("*")
             .eq("application_id", data.id)
             .eq("rating_type", "brand_rating")
@@ -896,8 +895,7 @@ export default function ApplicationDetailsPage() {
                   }
 
                   // Create brand rating
-                  const { error: ratingError } = await supabase
-                    .from("ratings")
+                  const { error: ratingError } = await (supabase.from as any)("ratings")
                     .insert({
                       application_id: application.id,
                       rater_id: userId,

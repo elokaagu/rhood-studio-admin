@@ -896,8 +896,7 @@ function ApplicationsContent() {
       }
 
       // Create DJ rating
-      const { error: ratingError } = await supabase
-        .from("ratings")
+      const { error: ratingError } = await (supabase.from as any)("ratings")
         .insert({
           application_id: selectedApplication.id,
           rater_id: userId,

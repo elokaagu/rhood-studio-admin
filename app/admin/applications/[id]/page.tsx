@@ -750,7 +750,7 @@ export default function ApplicationDetailsPage() {
                         </div>
                         {existingBrandRating.comment && (
                           <p className="text-sm text-muted-foreground italic">
-                            "{existingBrandRating.comment}"
+                            &quot;{existingBrandRating.comment}&quot;
                           </p>
                         )}
                       </div>

@@ -50,6 +50,7 @@ import {
   Upload,
   Plus,
   MoreVertical,
+  Image as ImageIcon,
 } from "lucide-react";
 
 const formatSecondsToTimestamp = (seconds: number) => {
@@ -144,6 +145,11 @@ export default function MixesPage() {
     title: string;
   } | null>(null);
   const [isRefreshingArtwork, setIsRefreshingArtwork] = useState(false);
+  const [assignArtworkDialogOpen, setAssignArtworkDialogOpen] = useState(false);
+  const [selectedMixForArtwork, setSelectedMixForArtwork] = useState<any>(null);
+  const [storageImages, setStorageImages] = useState<any[]>([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
+  const [selectedImagePath, setSelectedImagePath] = useState<string | null>(null);
 
   // Fetch mixes from database
   const fetchMixes = async (options?: { forceRefreshArtwork?: boolean }) => {
@@ -390,6 +396,140 @@ export default function MixesPage() {
       });
     } finally {
       setIsRefreshingArtwork(false);
+    }
+  };
+
+  // Recursively fetch all images from storage (including nested folders)
+  const fetchStorageImages = async () => {
+    setIsLoadingImages(true);
+    try {
+      const imageExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+      const allImages: any[] = [];
+
+      // Recursive function to list files in folders
+      const listFolderRecursive = async (folderPath: string = "") => {
+        const { data: files, error } = await supabase.storage
+          .from("mixes")
+          .list(folderPath, {
+            limit: 1000,
+            offset: 0,
+            sortBy: { column: "created_at", order: "desc" },
+          });
+
+        if (error) {
+          console.warn(`Error listing folder ${folderPath}:`, error);
+          return;
+        }
+
+        if (!files) return;
+
+        for (const file of files) {
+          const fullPath = folderPath ? `${folderPath}/${file.name}` : file.name;
+          
+          // Check if it's a folder (no extension or metadata indicates folder)
+          const isImage = imageExtensions.some((ext) =>
+            file.name.toLowerCase().endsWith(ext)
+          );
+
+          if (isImage) {
+            // Get signed URL for preview
+            let signedUrl = null;
+            try {
+              const { data: signed } = await supabase.storage
+                .from("mixes")
+                .createSignedUrl(fullPath, 60 * 60 * 24); // 24 hours
+              signedUrl = signed?.signedUrl || null;
+            } catch (urlError) {
+              console.warn(`Could not get URL for ${fullPath}:`, urlError);
+            }
+
+            allImages.push({
+              name: file.name,
+              path: fullPath,
+              size: file.metadata?.size || 0,
+              created_at: file.created_at,
+              signedUrl,
+            });
+          } else if (!file.name.includes(".") || file.metadata?.mimetype?.startsWith("audio/")) {
+            // Likely a folder or audio file, recurse into folders
+            // Skip audio files but recurse into folders
+            if (!file.name.includes(".") || file.metadata?.mimetype === null) {
+              await listFolderRecursive(fullPath);
+            }
+          }
+        }
+      };
+
+      await listFolderRecursive("");
+
+      setStorageImages(allImages);
+    } catch (error) {
+      console.error("Error fetching storage images:", error);
+      toast({
+        title: "Error Loading Images",
+        description: "Failed to load images from storage.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingImages(false);
+    }
+  };
+
+  // Open assign artwork dialog for a specific mix
+  const handleAssignArtwork = async (mix: any) => {
+    setSelectedMixForArtwork(mix);
+    setSelectedImagePath(null);
+    setAssignArtworkDialogOpen(true);
+    await fetchStorageImages();
+  };
+
+  // Assign selected image to mix
+  const handleConfirmArtworkAssignment = async () => {
+    if (!selectedMixForArtwork || !selectedImagePath) {
+      toast({
+        title: "Selection Required",
+        description: "Please select both a mix and an image.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Get signed URL for the selected image
+      const { data: signed, error: urlError } = await supabase.storage
+        .from("mixes")
+        .createSignedUrl(selectedImagePath, 60 * 60 * 24 * 365); // 1 year for permanent storage
+
+      if (urlError || !signed?.signedUrl) {
+        throw new Error("Could not get image URL");
+      }
+
+      // Update mix with the image URL
+      const { error: updateError } = await supabase
+        .from("mixes")
+        .update({ image_url: signed.signedUrl })
+        .eq("id", selectedMixForArtwork.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      toast({
+        title: "Artwork Assigned",
+        description: `Image assigned to "${selectedMixForArtwork.title}" successfully.`,
+      });
+
+      setAssignArtworkDialogOpen(false);
+      setSelectedMixForArtwork(null);
+      setSelectedImagePath(null);
+      fetchMixes(); // Refresh the mixes list
+    } catch (error) {
+      console.error("Error assigning artwork:", error);
+      toast({
+        title: "Assignment Failed",
+        description: "Failed to assign image to mix. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1430,6 +1570,13 @@ export default function MixesPage() {
                         className="bg-card border-border shadow-lg"
                       >
                         <DropdownMenuItem
+                          onClick={() => handleAssignArtwork(mix)}
+                          className="text-foreground hover:bg-accent cursor-pointer"
+                        >
+                          <ImageIcon className="h-4 w-4 mr-2" />
+                          Assign Artwork
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() => handleDelete(mix.id, mix.title)}
                           className="text-red-500 hover:bg-red-50 hover:text-red-600 cursor-pointer"
                         >
@@ -1475,6 +1622,96 @@ export default function MixesPage() {
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Artwork Dialog */}
+      <Dialog open={assignArtworkDialogOpen} onOpenChange={setAssignArtworkDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className={textStyles.subheading.large}>
+              Assign Artwork to Mix
+            </DialogTitle>
+            <DialogDescription className={textStyles.body.regular}>
+              {selectedMixForArtwork && (
+                <>Select an image from storage to assign to &quot;{selectedMixForArtwork.title}&quot; by {selectedMixForArtwork.artist}</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {isLoadingImages ? (
+              <div className="text-center py-8">
+                <p className={textStyles.body.regular}>Loading images from storage...</p>
+              </div>
+            ) : storageImages.length === 0 ? (
+              <div className="text-center py-8">
+                <p className={textStyles.body.regular}>No images found in storage.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {storageImages.map((image) => (
+                  <div
+                    key={image.path}
+                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedImagePath === image.path
+                        ? "border-brand-green ring-2 ring-brand-green/50"
+                        : "border-border hover:border-brand-green/50"
+                    }`}
+                    onClick={() => setSelectedImagePath(image.path)}
+                  >
+                    {image.signedUrl ? (
+                      <Image
+                        src={image.signedUrl}
+                        alt={image.name}
+                        width={200}
+                        height={200}
+                        className="w-full h-32 object-cover"
+                        unoptimized={true}
+                      />
+                    ) : (
+                      <div className="w-full h-32 bg-secondary flex items-center justify-center">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2">
+                      <p className="text-xs text-white truncate" title={image.name}>
+                        {image.name}
+                      </p>
+                    </div>
+                    {selectedImagePath === image.path && (
+                      <div className="absolute top-2 right-2">
+                        <CheckCircle className="h-6 w-6 text-brand-green bg-black/50 rounded-full" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAssignArtworkDialogOpen(false);
+                setSelectedMixForArtwork(null);
+                setSelectedImagePath(null);
+                setStorageImages([]);
+              }}
+              className="border-border text-foreground hover:bg-secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmArtworkAssignment}
+              className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+              disabled={!selectedImagePath || !selectedMixForArtwork}
+            >
+              <ImageIcon className="h-4 w-4 mr-2" />
+              Assign Image
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,6 +40,11 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Briefcase,
+  FileText,
+  CheckCircle,
+  Clock,
+  XCircle,
 } from "lucide-react";
 
 export default function BrandsPage() {
@@ -63,6 +68,12 @@ export default function BrandsPage() {
   const [messageModalOpen, setMessageModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [messageContent, setMessageContent] = useState("");
+  const [totalStats, setTotalStats] = useState({
+    totalBrands: 0,
+    totalOpportunities: 0,
+    totalApplications: 0,
+    totalPending: 0,
+  });
 
   // Get sort order based on current sort option
   const getSortOrder = () => {
@@ -80,7 +91,7 @@ export default function BrandsPage() {
     }
   };
 
-  // Fetch Brands from database (filter for brands only)
+  // Fetch Brands from database (filter for brands only) with activity stats
   const fetchMembers = async () => {
     try {
       const sortOrder = getSortOrder();
@@ -109,28 +120,116 @@ export default function BrandsPage() {
           throw error;
         }
       } else {
-        // Transform the data to match the expected format
-        const transformedMembers = (data || []).map((member: any) => {
-          return {
-            id: member.id,
-            name: member.brand_name || `${member.first_name} ${member.last_name}`,
-            email: member.email,
-            location: member.city,
-            joinedDate: member.created_at
-              ? (() => {
-                  const formatted = formatDate(member.created_at);
-                  return formatted === "Invalid Date" ? "Unknown" : formatted;
-                })()
-              : "Unknown",
-            status: "active", // Default status
-            lastActive: "Unknown", // This field might need to be tracked
-            brandName: member.brand_name,
-            bio: member.bio,
-            profileImageUrl: member.profile_image_url,
-          };
-        });
+        // Fetch activity stats for each brand
+        const transformedMembers = await Promise.all(
+          (data || []).map(async (member: any) => {
+            // Get opportunities created by this brand
+            const { count: opportunitiesCount } = await supabase
+              .from("opportunities")
+              .select("*", { count: "exact", head: true })
+              .eq("organizer_id", member.id);
+
+            // Get opportunity IDs for this brand
+            const { data: brandOpportunities } = await supabase
+              .from("opportunities")
+              .select("id")
+              .eq("organizer_id", member.id);
+
+            const opportunityIds = brandOpportunities?.map((opp) => opp.id) || [];
+
+            // Get applications for this brand's opportunities
+            let totalApplications = 0;
+            let pendingApplications = 0;
+            let approvedApplications = 0;
+            let rejectedApplications = 0;
+
+            if (opportunityIds.length > 0) {
+              const { count: totalApps } = await supabase
+                .from("applications")
+                .select("*", { count: "exact", head: true })
+                .in("opportunity_id", opportunityIds);
+              totalApplications = totalApps || 0;
+
+              const { count: pendingApps } = await supabase
+                .from("applications")
+                .select("*", { count: "exact", head: true })
+                .in("opportunity_id", opportunityIds)
+                .eq("status", "pending");
+              pendingApplications = pendingApps || 0;
+
+              const { count: approvedApps } = await supabase
+                .from("applications")
+                .select("*", { count: "exact", head: true })
+                .in("opportunity_id", opportunityIds)
+                .eq("status", "approved");
+              approvedApplications = approvedApps || 0;
+
+              const { count: rejectedApps } = await supabase
+                .from("applications")
+                .select("*", { count: "exact", head: true })
+                .in("opportunity_id", opportunityIds)
+                .eq("status", "rejected");
+              rejectedApplications = rejectedApps || 0;
+            }
+
+            // Get most recent opportunity
+            const { data: recentOpportunity } = await supabase
+              .from("opportunities")
+              .select("title, created_at")
+              .eq("organizer_id", member.id)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            return {
+              id: member.id,
+              name: member.brand_name || `${member.first_name} ${member.last_name}`,
+              email: member.email,
+              location: member.city,
+              joinedDate: member.created_at
+                ? (() => {
+                    const formatted = formatDate(member.created_at);
+                    return formatted === "Invalid Date" ? "Unknown" : formatted;
+                  })()
+                : "Unknown",
+              status: "active", // Default status
+              lastActive: member.updated_at
+                ? (() => {
+                    const formatted = formatDate(member.updated_at);
+                    return formatted === "Invalid Date" ? "Unknown" : formatted;
+                  })()
+                : "Unknown",
+              brandName: member.brand_name,
+              bio: member.bio,
+              profileImageUrl: member.profile_image_url,
+              // Activity stats
+              opportunitiesCount: opportunitiesCount || 0,
+              totalApplications: totalApplications,
+              pendingApplications: pendingApplications,
+              approvedApplications: approvedApplications,
+              rejectedApplications: rejectedApplications,
+              recentOpportunity: recentOpportunity?.title || null,
+              recentOpportunityDate: recentOpportunity?.created_at
+                ? formatDate(recentOpportunity.created_at)
+                : null,
+            };
+          })
+        );
 
         setMembers(transformedMembers);
+        
+        // Calculate total stats
+        const stats = transformedMembers.reduce(
+          (acc, member) => ({
+            totalBrands: acc.totalBrands + 1,
+            totalOpportunities: acc.totalOpportunities + (member.opportunitiesCount || 0),
+            totalApplications: acc.totalApplications + (member.totalApplications || 0),
+            totalPending: acc.totalPending + (member.pendingApplications || 0),
+          }),
+          { totalBrands: 0, totalOpportunities: 0, totalApplications: 0, totalPending: 0 }
+        );
+        setTotalStats(stats);
+        
         setIsLoading(false);
         return; // Exit early if successful
       }
@@ -420,7 +519,7 @@ export default function BrandsPage() {
             BRANDS
           </h1>
           <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
-            Manage R/HOOD brand accounts
+            View brand activity, opportunities, and applications
           </p>
         </div>
         <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
@@ -525,6 +624,64 @@ export default function BrandsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Summary Stats */}
+      {!isLoading && members.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="bg-card border-border">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`${textStyles.body.small} text-muted-foreground`}>Total Brands</p>
+                  <p className={`${textStyles.headline.section} text-foreground mt-1`}>
+                    {totalStats.totalBrands}
+                  </p>
+                </div>
+                <Building2 className="h-8 w-8 text-brand-green opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`${textStyles.body.small} text-muted-foreground`}>Opportunities</p>
+                  <p className={`${textStyles.headline.section} text-foreground mt-1`}>
+                    {totalStats.totalOpportunities}
+                  </p>
+                </div>
+                <Briefcase className="h-8 w-8 text-blue-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`${textStyles.body.small} text-muted-foreground`}>Applications</p>
+                  <p className={`${textStyles.headline.section} text-foreground mt-1`}>
+                    {totalStats.totalApplications}
+                  </p>
+                </div>
+                <FileText className="h-8 w-8 text-purple-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`${textStyles.body.small} text-muted-foreground`}>Pending</p>
+                  <p className={`${textStyles.headline.section} text-foreground mt-1`}>
+                    {totalStats.totalPending}
+                  </p>
+                </div>
+                <Clock className="h-8 w-8 text-yellow-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Search and Filter Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:space-x-4">
@@ -677,6 +834,41 @@ export default function BrandsPage() {
                           <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                           <span className="truncate">Joined {member.joinedDate}</span>
                         </div>
+                      </div>
+
+                      {/* Activity Stats Row */}
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-3 pt-3 border-t border-border">
+                        <div className="flex items-center gap-1 text-xs sm:text-sm">
+                          <Briefcase className="h-3 w-3 sm:h-4 sm:w-4 text-brand-green" />
+                          <span className="text-foreground font-semibold">{member.opportunitiesCount || 0}</span>
+                          <span className="text-muted-foreground">Opportunities</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs sm:text-sm">
+                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                          <span className="text-foreground font-semibold">{member.totalApplications || 0}</span>
+                          <span className="text-muted-foreground">Applications</span>
+                        </div>
+                        {member.pendingApplications > 0 && (
+                          <div className="flex items-center gap-1 text-xs sm:text-sm">
+                            <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
+                            <span className="text-foreground font-semibold">{member.pendingApplications}</span>
+                            <span className="text-muted-foreground">Pending</span>
+                          </div>
+                        )}
+                        {member.approvedApplications > 0 && (
+                          <div className="flex items-center gap-1 text-xs sm:text-sm">
+                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                            <span className="text-foreground font-semibold">{member.approvedApplications}</span>
+                            <span className="text-muted-foreground">Approved</span>
+                          </div>
+                        )}
+                        {member.recentOpportunity && (
+                          <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                            <span className="truncate max-w-[150px] sm:max-w-none">
+                              Latest: {member.recentOpportunity}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

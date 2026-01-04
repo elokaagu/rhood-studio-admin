@@ -72,17 +72,12 @@ export default function CreateOpportunityPage() {
     imageUrl: "",
     // Brief questionnaire fields (required for structured briefs)
     briefConcept: "",
-    briefFormat: "",
-    briefLocations: "",
-    briefContentCapture: "",
-    briefEpisodeFlow: "",
-    briefAccessibility: "",
-    briefCollaboration: "",
-    briefContentFirst: "",
-    briefEntertainment: "",
-    briefPilotEpisodes: "",
+    briefEventDetails: "",
+    briefRequirements: "",
+    briefBrandIntegration: "",
+    briefWhyThisOpportunity: "",
     briefDeliverables: "",
-    briefInvestment: "",
+    briefCompensation: "",
     // Short summary (public, shown before applying)
     shortSummary: "",
   });
@@ -261,7 +256,7 @@ export default function CreateOpportunityPage() {
   }, []);
 
   // Generate formatted brief from questionnaire answers using R/HOOD template
-  // Matches the style of example briefs like "CROSSFADE x HERCULES"
+  // Designed for gigs, brand sponsorships, and opportunities
   const generateBrief = () => {
     const sections = [];
     
@@ -270,49 +265,24 @@ export default function CreateOpportunityPage() {
       sections.push(`**Concept proposal: ${formData.title || 'OPPORTUNITY'}\n\n**The idea**\n\n${formData.briefConcept}`);
     }
     
-    // Format overview with sub-sections
-    const formatParts = [];
-    if (formData.briefFormat) {
-      formatParts.push(`**Collaborative B2B2B2B session**\n\n${formData.briefFormat}`);
-    }
-    if (formData.briefLocations) {
-      formatParts.push(`**Unique locations**\n\n${formData.briefLocations}`);
-    }
-    if (formData.briefContentCapture) {
-      formatParts.push(`**Cinematic content capture**\n\n${formData.briefContentCapture}`);
+    // Event/Gig Details
+    if (formData.briefEventDetails) {
+      sections.push(`**Event details**\n\n${formData.briefEventDetails}`);
     }
     
-    if (formatParts.length > 0) {
-      sections.push(`**Format overview**\n\n${formatParts.join('\n\n')}`);
+    // Requirements & Expectations
+    if (formData.briefRequirements) {
+      sections.push(`**Requirements & expectations**\n\n${formData.briefRequirements}`);
     }
     
-    // Episode flow
-    if (formData.briefEpisodeFlow) {
-      sections.push(`**Episode flow**\n\n${formData.briefEpisodeFlow}`);
+    // Brand Integration
+    if (formData.briefBrandIntegration) {
+      sections.push(`**Brand integration**\n\n${formData.briefBrandIntegration}`);
     }
     
-    // Why it works? (numbered points)
-    const whyItWorksParts = [];
-    if (formData.briefAccessibility) {
-      whyItWorksParts.push(`**1. Accessibility**\n\n${formData.briefAccessibility}`);
-    }
-    if (formData.briefCollaboration) {
-      whyItWorksParts.push(`**2. Collaboration**\n\n${formData.briefCollaboration}`);
-    }
-    if (formData.briefContentFirst) {
-      whyItWorksParts.push(`**3. Content-first activation**\n\n${formData.briefContentFirst}`);
-    }
-    if (formData.briefEntertainment) {
-      whyItWorksParts.push(`**4. Entertainment value**\n\n${formData.briefEntertainment}`);
-    }
-    
-    if (whyItWorksParts.length > 0) {
-      sections.push(`**Why it works?**\n\n${whyItWorksParts.join('\n\n')}`);
-    }
-    
-    // Pilot Episodes
-    if (formData.briefPilotEpisodes) {
-      sections.push(`**Pilot Episodes**\n\n${formData.briefPilotEpisodes}`);
+    // Why This Opportunity
+    if (formData.briefWhyThisOpportunity) {
+      sections.push(`**Why this opportunity?**\n\n${formData.briefWhyThisOpportunity}`);
     }
     
     // Deliverables
@@ -320,9 +290,9 @@ export default function CreateOpportunityPage() {
       sections.push(`**Deliverables**\n\n${formData.briefDeliverables}`);
     }
     
-    // Investment
-    if (formData.briefInvestment) {
-      sections.push(`**Investment**\n\n${formData.briefInvestment}`);
+    // Compensation
+    if (formData.briefCompensation) {
+      sections.push(`**Compensation**\n\n${formData.briefCompensation}`);
     }
     
     return sections.join('\n\n');
@@ -544,17 +514,12 @@ export default function CreateOpportunityPage() {
       // Validate required brief fields - all sections must be filled
       const requiredFields = [
         { field: 'briefConcept', label: 'The Idea' },
-        { field: 'briefFormat', label: 'Format Overview - Collaborative Sessions' },
-        { field: 'briefLocations', label: 'Format Overview - Unique Locations' },
-        { field: 'briefContentCapture', label: 'Format Overview - Cinematic Content Capture' },
-        { field: 'briefEpisodeFlow', label: 'Episode Flow' },
-        { field: 'briefAccessibility', label: 'Why It Works - Accessibility' },
-        { field: 'briefCollaboration', label: 'Why It Works - Collaboration' },
-        { field: 'briefContentFirst', label: 'Why It Works - Content-First Activation' },
-        { field: 'briefEntertainment', label: 'Why It Works - Entertainment Value' },
-        { field: 'briefPilotEpisodes', label: 'Pilot Episodes' },
+        { field: 'briefEventDetails', label: 'Event Details' },
+        { field: 'briefRequirements', label: 'Requirements & Expectations' },
+        { field: 'briefBrandIntegration', label: 'Brand Integration' },
+        { field: 'briefWhyThisOpportunity', label: 'Why This Opportunity?' },
         { field: 'briefDeliverables', label: 'Deliverables' },
-        { field: 'briefInvestment', label: 'Investment' },
+        { field: 'briefCompensation', label: 'Compensation' },
       ];
 
       for (const { field, label } of requiredFields) {
@@ -718,7 +683,7 @@ export default function CreateOpportunityPage() {
                   variant="outline"
                     size="sm"
                     onClick={() => setAiRefineDialogOpen(true)}
-                  disabled={!formData.briefConcept.trim() || !formData.briefFormat.trim() || !formData.briefLocations.trim() || !formData.briefContentCapture.trim() || !formData.briefEpisodeFlow.trim() || !formData.briefAccessibility.trim() || !formData.briefCollaboration.trim() || !formData.briefContentFirst.trim() || !formData.briefEntertainment.trim() || !formData.briefPilotEpisodes.trim() || !formData.briefDeliverables.trim() || !formData.briefInvestment.trim()}
+                  disabled={!formData.briefConcept.trim() || !formData.briefEventDetails.trim() || !formData.briefRequirements.trim() || !formData.briefBrandIntegration.trim() || !formData.briefWhyThisOpportunity.trim() || !formData.briefDeliverables.trim() || !formData.briefCompensation.trim()}
                   className="h-8"
                   >
                   <Sparkles className="h-4 w-4 mr-2" />
@@ -733,7 +698,7 @@ export default function CreateOpportunityPage() {
                     </Label>
               <Textarea
                       id="briefConcept"
-                      placeholder="e.g., DJing is no longer confined to dark booths or club stages. It's become a social, shareable experience that can happen anywhere. Together with [Brand] and the launch of their [Product], we will showcase just how easy, mobile, and collaborative DJing can be. Our format: fun, cinematic jam sessions where DJs play back-to-back in unexpected, immersive locations. Bringing music and culture directly to the people."
+                      placeholder="Describe the core concept and vision for this opportunity. What is the brand trying to achieve? What makes this opportunity unique? What's the overall goal and message?"
                       value={formData.briefConcept}
                       onChange={(e) =>
                         setFormData({ ...formData, briefConcept: e.target.value })
@@ -744,149 +709,65 @@ export default function CreateOpportunityPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="briefFormat" className="text-foreground font-semibold">
-                      Format Overview - Collaborative Sessions *
+                    <Label htmlFor="briefEventDetails" className="text-foreground font-semibold">
+                      Event Details *
                     </Label>
                     <Textarea
-                      id="briefFormat"
-                      placeholder="e.g., 4 DJs play one track each, passing the decks in real time. The challenge: keep the energy alive while blending genres, personalities, and vibes. The result: part jam session, part hangout, part social experiment."
-                      value={formData.briefFormat}
+                      id="briefEventDetails"
+                      placeholder="Provide details about the event or gig: Date, time, duration, venue/location, expected audience size, event type (club night, festival, brand activation, etc.), and any special requirements or unique aspects of the event."
+                      value={formData.briefEventDetails}
                       onChange={(e) =>
-                        setFormData({ ...formData, briefFormat: e.target.value })
+                        setFormData({ ...formData, briefEventDetails: e.target.value })
                       }
-                      className="bg-secondary border-border text-foreground min-h-[100px]"
+                      className="bg-secondary border-border text-foreground min-h-[120px]"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="briefLocations" className="text-foreground font-semibold">
-                      Format Overview - Unique Locations *
+                    <Label htmlFor="briefRequirements" className="text-foreground font-semibold">
+                      Requirements & Expectations *
                     </Label>
                     <Textarea
-                      id="briefLocations"
-                      placeholder="e.g., From the back of a Mercedes van cruising through London, to intimate living rooms, rooftops, or surprise pop-up spots. The space becomes both a stage and a character in the experience."
-                      value={formData.briefLocations}
+                      id="briefRequirements"
+                      placeholder="What are the specific requirements for the DJ? Equipment needed, set duration, genre preferences, technical requirements, dress code, arrival time, soundcheck details, and any other expectations or obligations."
+                      value={formData.briefRequirements}
                       onChange={(e) =>
-                        setFormData({ ...formData, briefLocations: e.target.value })
+                        setFormData({ ...formData, briefRequirements: e.target.value })
                       }
-                      className="bg-secondary border-border text-foreground min-h-[100px]"
+                      className="bg-secondary border-border text-foreground min-h-[120px]"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="briefContentCapture" className="text-foreground font-semibold">
-                      Format Overview - Cinematic Content Capture *
+                    <Label htmlFor="briefBrandIntegration" className="text-foreground font-semibold">
+                      Brand Integration *
                     </Label>
                     <Textarea
-                      id="briefContentCapture"
-                      placeholder="e.g., Professional videographer + multi-angle GoPros. 360° GoPro mounted on the roof to capture the journey through the city. Dynamic storytelling that blends music, community, and location into one."
-                      value={formData.briefContentCapture}
+                      id="briefBrandIntegration"
+                      placeholder="How will the brand be integrated? Product placement, brand mentions, social media requirements, content creation expectations, exclusivity agreements, and any brand guidelines or messaging that needs to be followed."
+                      value={formData.briefBrandIntegration}
                       onChange={(e) =>
-                        setFormData({ ...formData, briefContentCapture: e.target.value })
+                        setFormData({ ...formData, briefBrandIntegration: e.target.value })
                       }
-                      className="bg-secondary border-border text-foreground min-h-[100px]"
+                      className="bg-secondary border-border text-foreground min-h-[120px]"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="briefEpisodeFlow" className="text-foreground font-semibold">
-                      Episode Flow *
+                    <Label htmlFor="briefWhyThisOpportunity" className="text-foreground font-semibold">
+                      Why This Opportunity? *
                     </Label>
                     <Textarea
-                      id="briefEpisodeFlow"
-                      placeholder="e.g., Warm-up + introductions. DJs rotate tracks, passing the decks. Set builds organically. Capturing both the music and the vibe of DJs hanging out. One-hour episode: entertaining, social, and easy to binge."
-                      value={formData.briefEpisodeFlow}
+                      id="briefWhyThisOpportunity"
+                      placeholder="What makes this opportunity valuable for DJs? Exposure, networking, career growth, creative freedom, audience reach, media coverage, or other benefits. Why should DJs be excited about this opportunity?"
+                      value={formData.briefWhyThisOpportunity}
                       onChange={(e) =>
-                        setFormData({ ...formData, briefEpisodeFlow: e.target.value })
+                        setFormData({ ...formData, briefWhyThisOpportunity: e.target.value })
                       }
-                      className="bg-secondary border-border text-foreground min-h-[100px]"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-4 border-t border-border pt-4">
-                    <Label className="text-foreground font-semibold">Why It Works?</Label>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="briefAccessibility" className="text-sm text-muted-foreground">
-                        1. Accessibility *
-                      </Label>
-                      <Textarea
-                        id="briefAccessibility"
-                        placeholder="e.g., DJing becomes less intimidating, more playful. Positioned as the tool that makes it possible. Simple, mobile and for everyone."
-                        value={formData.briefAccessibility}
-                        onChange={(e) =>
-                          setFormData({ ...formData, briefAccessibility: e.target.value })
-                        }
-                        className="bg-secondary border-border text-foreground min-h-[80px]"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="briefCollaboration" className="text-sm text-muted-foreground">
-                        2. Collaboration *
-                      </Label>
-                      <Textarea
-                        id="briefCollaboration"
-                        placeholder="e.g., Celebrates the community side of DJ culture. Not just '1 star DJ' but a collective moment where differences meet on the decks."
-                        value={formData.briefCollaboration}
-                        onChange={(e) =>
-                          setFormData({ ...formData, briefCollaboration: e.target.value })
-                        }
-                        className="bg-secondary border-border text-foreground min-h-[80px]"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="briefContentFirst" className="text-sm text-muted-foreground">
-                        3. Content-First Activation *
-                      </Label>
-                      <Textarea
-                        id="briefContentFirst"
-                        placeholder="e.g., 3 X premium episodes with short form cut downs for TikTok, IG Reels, and YouTube Shorts. Ready for brand channels, DJ self-promotion, and social amplification."
-                        value={formData.briefContentFirst}
-                        onChange={(e) =>
-                          setFormData({ ...formData, briefContentFirst: e.target.value })
-                        }
-                        className="bg-secondary border-border text-foreground min-h-[80px]"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="briefEntertainment" className="text-sm text-muted-foreground">
-                        4. Entertainment Value *
-                      </Label>
-                      <Textarea
-                        id="briefEntertainment"
-                        placeholder="e.g., Spontaneous, raw, and unpredictable. Watchable not just for DJs, but for wider audiences who enjoy culture, music, and city backdrops."
-                        value={formData.briefEntertainment}
-                        onChange={(e) =>
-                          setFormData({ ...formData, briefEntertainment: e.target.value })
-                        }
-                        className="bg-secondary border-border text-foreground min-h-[80px]"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="briefPilotEpisodes" className="text-foreground font-semibold">
-                      Pilot Episodes *
-                    </Label>
-                    <Textarea
-                      id="briefPilotEpisodes"
-                      placeholder="e.g., 3 Episodes filmed in the back of a Mercedes van across London. Featuring local and international DJs across genres (house, hip hop, amapiano, drum & bass, etc.) for exciting crossover moments. Episodes released weekly to create consistency and build anticipation."
-                      value={formData.briefPilotEpisodes}
-                      onChange={(e) =>
-                        setFormData({ ...formData, briefPilotEpisodes: e.target.value })
-                      }
-                      className="bg-secondary border-border text-foreground min-h-[100px]"
+                      className="bg-secondary border-border text-foreground min-h-[120px]"
                       required
                     />
                   </div>
@@ -897,7 +778,7 @@ export default function CreateOpportunityPage() {
                     </Label>
                     <Textarea
                       id="briefDeliverables"
-                      placeholder="e.g., 3 x 1-hour full episodes (filmed, edited, produced). Social cutdowns optimised for TikTok, IG Reels, and YouTube Shorts. Brand integration: featured naturally throughout (hands-on use, subtle placements, organic storytelling). End-to-end production: R/HOOD handles all aspects. Talent programming, logistics, filming, editing, and delivery."
+                      placeholder="What will be delivered? Performance requirements, content creation (photos, videos, social posts), exclusivity periods, usage rights, and any other deliverables expected from the DJ."
                       value={formData.briefDeliverables}
                       onChange={(e) =>
                         setFormData({ ...formData, briefDeliverables: e.target.value })
@@ -908,17 +789,17 @@ export default function CreateOpportunityPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="briefInvestment" className="text-foreground font-semibold">
-                      Investment *
+                    <Label htmlFor="briefCompensation" className="text-foreground font-semibold">
+                      Compensation *
                     </Label>
                     <Textarea
-                      id="briefInvestment"
-                      placeholder="e.g., €9,800 + Hercules DJ decks for talent use"
-                      value={formData.briefInvestment}
+                      id="briefCompensation"
+                      placeholder="Payment details: Fee amount, payment schedule, additional benefits (travel, accommodation, meals, equipment), royalties, or other compensation. Be specific about what's included."
+                      value={formData.briefCompensation}
                       onChange={(e) =>
-                        setFormData({ ...formData, briefInvestment: e.target.value })
+                        setFormData({ ...formData, briefCompensation: e.target.value })
                       }
-                      className="bg-secondary border-border text-foreground min-h-[60px]"
+                      className="bg-secondary border-border text-foreground min-h-[100px]"
                       required
                     />
                   </div>
@@ -928,7 +809,7 @@ export default function CreateOpportunityPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setBriefPreviewOpen(true)}
-                    disabled={!formData.briefConcept.trim() || !formData.briefFormat.trim() || !formData.briefLocations.trim() || !formData.briefContentCapture.trim() || !formData.briefEpisodeFlow.trim() || !formData.briefAccessibility.trim() || !formData.briefCollaboration.trim() || !formData.briefContentFirst.trim() || !formData.briefEntertainment.trim() || !formData.briefPilotEpisodes.trim() || !formData.briefDeliverables.trim() || !formData.briefInvestment.trim()}
+                    disabled={!formData.briefConcept.trim() || !formData.briefEventDetails.trim() || !formData.briefRequirements.trim() || !formData.briefBrandIntegration.trim() || !formData.briefWhyThisOpportunity.trim() || !formData.briefDeliverables.trim() || !formData.briefCompensation.trim()}
                   >
                     Preview Brief
                   </Button>
@@ -1341,7 +1222,7 @@ export default function CreateOpportunityPage() {
             <Button
               onClick={handleRefineBriefWithAI}
               className="bg-brand-green text-brand-black hover:bg-brand-green/90"
-              disabled={isRefining || !formData.briefConcept.trim() || !formData.briefFormat.trim() || !formData.briefLocations.trim() || !formData.briefContentCapture.trim() || !formData.briefEpisodeFlow.trim() || !formData.briefAccessibility.trim() || !formData.briefCollaboration.trim() || !formData.briefContentFirst.trim() || !formData.briefEntertainment.trim() || !formData.briefPilotEpisodes.trim() || !formData.briefDeliverables.trim() || !formData.briefInvestment.trim()}
+              disabled={isRefining || !formData.briefConcept.trim() || !formData.briefEventDetails.trim() || !formData.briefRequirements.trim() || !formData.briefBrandIntegration.trim() || !formData.briefWhyThisOpportunity.trim() || !formData.briefDeliverables.trim() || !formData.briefCompensation.trim()}
             >
               {isRefining ? (
                 <>

@@ -677,7 +677,7 @@ export default function BrandsPage() {
                     {totalStats.totalPending}
                   </p>
                 </div>
-                <Clock className="h-8 w-8 text-yellow-500 opacity-50" />
+                <Clock className="h-8 w-8 text-brand-green opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -845,20 +845,20 @@ export default function BrandsPage() {
                           <span className="text-muted-foreground">Opportunities</span>
                         </div>
                         <div className="flex items-center gap-1 text-xs sm:text-sm">
-                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-brand-green" />
+                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
                           <span className="text-foreground font-semibold">{member.totalApplications || 0}</span>
                           <span className="text-muted-foreground">Applications</span>
                         </div>
                         {member.pendingApplications > 0 && (
                           <div className="flex items-center gap-1 text-xs sm:text-sm">
-                            <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
+                            <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-brand-green" />
                             <span className="text-foreground font-semibold">{member.pendingApplications}</span>
                             <span className="text-muted-foreground">Pending</span>
                           </div>
                         )}
                         {member.approvedApplications > 0 && (
                           <div className="flex items-center gap-1 text-xs sm:text-sm">
-                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-brand-green" />
                             <span className="text-foreground font-semibold">{member.approvedApplications}</span>
                             <span className="text-muted-foreground">Approved</span>
                           </div>

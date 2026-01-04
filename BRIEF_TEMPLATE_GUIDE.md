@@ -8,7 +8,7 @@ The brief system has two parts:
 1. **Short Summary** (300 chars max) - Visible to all DJs before they apply
 2. **Full Brief** - Only visible to DJs after their application is accepted
 
-## Brief Structure (Based on Example: CROSSFADE x HERCULES)
+## Brief Structure (Designed for Gigs, Brand Sponsorships & Opportunities)
 
 The full brief follows this structure:
 
@@ -16,81 +16,105 @@ The full brief follows this structure:
 **Required field** - Describes the core concept and vision.
 
 **Example:**
-> DJing is no longer confined to dark booths or club stages. It's become a social, shareable experience that can happen anywhere. Together with [Brand] and the launch of their [Product], we will showcase just how easy, mobile, and collaborative DJing can be. Our format: fun, cinematic jam sessions where DJs play back-to-back in unexpected, immersive locations. Bringing music and culture directly to the people.
+> We're launching a new product line and want to create an immersive brand experience through music. This opportunity brings together our brand values with underground music culture, creating an authentic connection with our target audience. We're looking for DJs who can help us tell our story through their unique sound and style.
 
-### 2. Format Overview
+### 2. Event Details
+**Required field** - Provides comprehensive information about the event or gig.
 
-Three sub-sections that describe the format:
-
-#### Collaborative Sessions
-Describe how DJs collaborate: How many DJs? How do they pass the decks? What's the structure?
-
-**Example:**
-> 4 DJs play one track each, passing the decks in real time. The challenge: keep the energy alive while blending genres, personalities, and vibes. The result: part jam session, part hangout, part social experiment.
-
-#### Unique Locations
-Describe where this takes place and what makes locations special.
+**What to include:**
+- Date, time, and duration
+- Venue/location details
+- Expected audience size
+- Event type (club night, festival, brand activation, pop-up, etc.)
+- Special requirements or unique aspects
+- Setup and soundcheck times
 
 **Example:**
-> From the back of a Mercedes van cruising through London, to intimate living rooms, rooftops, or surprise pop-up spots. The space becomes both a stage and a character in the experience.
+> **Date & Time:** Saturday, March 15th, 2025, 10 PM - 2 AM  
+> **Venue:** Warehouse venue in Shoreditch, London  
+> **Capacity:** 500 people  
+> **Event Type:** Brand launch party with live DJ performances  
+> **Setup:** Soundcheck at 6 PM, doors open at 9 PM
 
-#### Cinematic Content Capture
-Describe how content will be captured: Video setup, angles, equipment, etc.
+### 3. Requirements & Expectations
+**Required field** - Details what's expected from the DJ.
 
-**Example:**
-> Professional videographer + multi-angle GoPros. 360° GoPro mounted on the roof to capture the journey through the city. Dynamic storytelling that blends music, community, and location into one.
-
-### 3. Episode Flow
-Describe the flow of each episode: Warm-up, introductions, how DJs rotate, duration, etc.
-
-**Example:**
-> Warm-up + introductions. DJs rotate tracks, passing the decks. Set builds organically. Capturing both the music and the vibe of DJs hanging out. One-hour episode: entertaining, social, and easy to binge.
-
-### 4. Why It Works?
-
-Four numbered points explaining the value proposition:
-
-#### 1. Accessibility
-How does this make DJing more accessible or approachable?
+**What to include:**
+- Equipment requirements (provided vs. bring your own)
+- Set duration and format
+- Genre preferences or restrictions
+- Technical requirements (sound system, lighting, etc.)
+- Dress code or style guidelines
+- Arrival time and schedule
+- Any other obligations or expectations
 
 **Example:**
-> DJing becomes less intimidating, more playful. Positioned as the tool that makes it possible. Simple, mobile and for everyone.
+> **Set Duration:** 90-minute set  
+> **Equipment:** Full DJ setup provided (CDJs, mixer, monitors)  
+> **Genre:** House, Techno, or Deep House preferred  
+> **Arrival:** 8 PM for briefing and setup  
+> **Dress Code:** Smart casual, brand colors encouraged  
+> **Social Media:** Required to post 3 times before event (content provided)
 
-#### 2. Collaboration
-How does this celebrate community and collaboration?
+### 4. Brand Integration
+**Required field** - Explains how the brand will be integrated into the opportunity.
 
-**Example:**
-> Celebrates the community side of DJ culture. Not just "1 star DJ" but a collective moment where differences meet on the decks.
-
-#### 3. Content-First Activation
-What content will be created? How will it be distributed?
-
-**Example:**
-> 3 X premium episodes with short form cut downs for TikTok, IG Reels, and YouTube Shorts. Ready for brand channels, DJ self-promotion, and social amplification.
-
-#### 4. Entertainment Value
-What makes this entertaining and watchable for audiences?
-
-**Example:**
-> Spontaneous, raw, and unpredictable. Watchable not just for DJs, but for wider audiences who enjoy culture, music, and city backdrops.
-
-### 5. Pilot Episodes
-Details about pilot episodes: How many? Where? When? Who's featured? Release schedule?
+**What to include:**
+- Product placement requirements
+- Brand mentions or messaging
+- Social media requirements
+- Content creation expectations
+- Exclusivity agreements
+- Brand guidelines to follow
 
 **Example:**
-> 3 Episodes filmed in the back of a Mercedes van across London. Featuring local and international DJs across genres (house, hip hop, amapiano, drum & bass, etc.) for exciting crossover moments. Episodes released weekly to create consistency and build anticipation.
+> Our brand will be naturally integrated throughout the event. DJs will have our products visible on stage, and we'll provide branded materials for social media content. We require 3 Instagram posts (1 before, 1 during, 1 after) tagging our brand and using our event hashtag. Content guidelines and assets will be provided.
+
+### 5. Why This Opportunity?
+**Required field** - Explains the value proposition for DJs.
+
+**What to include:**
+- Exposure and audience reach
+- Networking opportunities
+- Career growth potential
+- Creative freedom
+- Media coverage
+- Other benefits
+
+**Example:**
+> This opportunity offers significant exposure through our brand channels (500K+ followers), media coverage in music publications, and networking with industry professionals. DJs will be featured in our campaign content, receive professional photography and videography, and gain access to our network of venues and events.
 
 ### 6. Deliverables
-What will be delivered? Full episodes, social cutdowns, brand integration details, production scope, etc.
+**Required field** - Lists what's expected to be delivered.
+
+**What to include:**
+- Performance requirements
+- Content creation (photos, videos, social posts)
+- Exclusivity periods
+- Usage rights
+- Any other deliverables
 
 **Example:**
-> 3 x 1-hour full episodes (filmed, edited, produced). Social cutdowns optimised for TikTok, IG Reels, and YouTube Shorts. Brand integration: featured naturally throughout (hands-on use, subtle placements, organic storytelling). End-to-end production: R/HOOD handles all aspects. Talent programming, logistics, filming, editing, and delivery.
+> **Performance:** 90-minute DJ set at the event  
+> **Content:** 5 high-quality photos and 1 short video clip for social media  
+> **Social Posts:** 3 Instagram posts (content guidelines provided)  
+> **Exclusivity:** No competing brand events for 30 days  
+> **Usage Rights:** Brand can use content for marketing for 12 months
 
-### 7. Investment
-Budget/investment details.
+### 7. Compensation
+**Required field** - Details payment and benefits.
+
+**What to include:**
+- Fee amount
+- Payment schedule
+- Additional benefits (travel, accommodation, meals, equipment)
+- Royalties or residuals
+- What's included
 
 **Example:**
-> €9,800 + Hercules DJ decks for talent use
+> **Fee:** £1,500  
+> **Payment:** 50% deposit on acceptance, 50% on completion  
+> **Additional:** Travel expenses covered, accommodation provided for out-of-town DJs, meals included on event day, professional photography and videography included
 
 ## How It Works
 
@@ -110,7 +134,7 @@ Brands can use the "Refine with AI" button to:
 ## Display
 
 - **Before application**: DJs see the short summary with a note that full brief is available after acceptance
-- **After acceptance**: DJs see the full formatted brief with proper section headers, numbered points, and formatting
+- **After acceptance**: DJs see the full formatted brief with proper section headers and formatting
 
 ## Files
 

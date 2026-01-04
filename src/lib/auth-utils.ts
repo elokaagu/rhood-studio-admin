@@ -4,7 +4,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export type UserRole = "admin" | "brand";
+export type UserRole = "admin" | "brand" | "dj";
 
 export interface UserProfile {
   id: string;

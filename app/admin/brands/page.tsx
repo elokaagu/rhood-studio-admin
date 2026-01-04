@@ -516,7 +516,7 @@ export default function BrandsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-green text-lg sm:text-xl md:text-2xl">
             BRANDS
           </h1>
           <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
@@ -651,7 +651,7 @@ export default function BrandsPage() {
                     {totalStats.totalOpportunities}
                   </p>
                 </div>
-                <Briefcase className="h-8 w-8 text-blue-500 opacity-50" />
+                <Briefcase className="h-8 w-8 text-brand-green opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -845,7 +845,7 @@ export default function BrandsPage() {
                           <span className="text-muted-foreground">Opportunities</span>
                         </div>
                         <div className="flex items-center gap-1 text-xs sm:text-sm">
-                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-brand-green" />
                           <span className="text-foreground font-semibold">{member.totalApplications || 0}</span>
                           <span className="text-muted-foreground">Applications</span>
                         </div>

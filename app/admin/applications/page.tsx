@@ -30,7 +30,18 @@ import {
   Eye,
   User,
   Search,
+  Star,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 function ApplicationsContent() {
   const searchParams = useSearchParams();
@@ -41,6 +52,10 @@ function ApplicationsContent() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name_asc" | "name_desc" | "opportunity_asc" | "opportunity_desc">("newest");
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [djRating, setDjRating] = useState<number>(0);
+  const [djRatingComment, setDjRatingComment] = useState<string>("");
 
   // Fetch applications from database
   const fetchApplications = async () => {
@@ -822,13 +837,28 @@ function ApplicationsContent() {
     }
   };
 
-  // Mark gig as completed (brand confirms the DJ performed)
-  const handleCompleteGig = async (
-    applicationId: string,
-    applicationType: string
-  ) => {
+  // Open rating dialog when marking gig complete
+  const handleCompleteGigClick = (application: any) => {
+    setSelectedApplication(application);
+    setDjRating(0);
+    setDjRatingComment("");
+    setRatingDialogOpen(true);
+  };
+
+  // Mark gig as completed and save rating
+  const handleCompleteGig = async () => {
+    if (!selectedApplication || djRating === 0) {
+      toast({
+        title: "Rating Required",
+        description: "Please provide a rating (1-5 stars) before completing the gig.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const userProfile = await getCurrentUserProfile();
+      const userId = await getCurrentUserId();
       const userRole = (userProfile as any)?.role;
 
       if (userRole !== "admin" && userRole !== "brand") {
@@ -842,27 +872,87 @@ function ApplicationsContent() {
       }
 
       const tableName =
-        applicationType === "form_response"
+        selectedApplication.type === "form_response"
           ? "application_form_responses"
           : "applications";
 
-      const { error } = await supabase
+      // Update gig_completed status
+      const { error: updateError } = await supabase
         .from(tableName as any)
         .update({
           gig_completed: true,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", applicationId);
+        .eq("id", selectedApplication.id);
 
-      if (error) {
-        throw error;
+      if (updateError) {
+        throw updateError;
       }
 
-      toast({
-        title: "Gig Marked Completed",
-        description: "This applicant has been marked as having performed the gig.",
-      });
+      // Get the DJ's user_id from the application
+      const djUserId = selectedApplication.user_id || selectedApplication.applicant?.id;
+      if (!djUserId) {
+        throw new Error("Could not find DJ user ID");
+      }
 
+      // Create DJ rating
+      const { error: ratingError } = await supabase
+        .from("ratings")
+        .insert({
+          application_id: selectedApplication.id,
+          rater_id: userId,
+          ratee_id: djUserId,
+          rating_type: "dj_rating",
+          stars: djRating,
+          comment: djRatingComment.trim() || null,
+        });
+
+      if (ratingError) {
+        console.error("Error creating rating:", ratingError);
+        // Don't fail the whole operation if rating fails, but log it
+        toast({
+          title: "Gig Completed",
+          description: "Gig marked as completed, but rating could not be saved. Please try rating again.",
+          variant: "default",
+        });
+      } else {
+        // Award credits for rating (scales with star rating: 5=50, 4=25, 3=10, 2=5, 1=0)
+        if (djRating >= 2) {
+          try {
+            const creditResponse = await fetch("/api/credits/award-rating-credits", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                dj_id: djUserId,
+                rating: djRating,
+                reference_id: selectedApplication.id,
+                reference_type: "application",
+              }),
+            });
+            
+            if (creditResponse.ok) {
+              const creditData = await creditResponse.json();
+              const creditsAwarded = creditData.credits_awarded || 0;
+              if (creditsAwarded > 0) {
+                console.log(`Awarded ${creditsAwarded} credits for ${djRating}-star rating`);
+              }
+            }
+          } catch (creditError) {
+            console.error("Error awarding rating credits:", creditError);
+            // Don't fail if credits fail
+          }
+        }
+
+        toast({
+          title: "Gig Completed & Rated",
+          description: `Gig marked as completed and DJ rated ${djRating} stars.`,
+        });
+      }
+
+      setRatingDialogOpen(false);
+      setSelectedApplication(null);
+      setDjRating(0);
+      setDjRatingComment("");
       fetchApplications();
     } catch (error) {
       console.error("Error marking gig as completed:", error);
@@ -1099,9 +1189,7 @@ function ApplicationsContent() {
                           variant="outline"
                           size="sm"
                           className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-200 text-xs sm:text-sm flex-1 sm:flex-initial font-medium"
-                          onClick={() =>
-                            handleCompleteGig(application.id, application.type)
-                          }
+                          onClick={() => handleCompleteGigClick(application)}
                           disabled={isLoading}
                         >
                           <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
@@ -1118,6 +1206,93 @@ function ApplicationsContent() {
           </div>
         )}
       </div>
+
+      {/* Rating Dialog */}
+      <Dialog open={ratingDialogOpen} onOpenChange={setRatingDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className={textStyles.subheading.large}>
+              Mark Gig Complete & Rate DJ
+            </DialogTitle>
+            <DialogDescription className={textStyles.body.regular}>
+              {selectedApplication && (
+                <>Rate {selectedApplication.applicant?.dj_name || selectedApplication.applicant?.name || "the DJ"} for their performance</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className={textStyles.body.regular}>
+                Rating (Required) *
+              </Label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setDjRating(star)}
+                    className="focus:outline-none transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`h-8 w-8 ${
+                        star <= djRating
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              {djRating > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {djRating} {djRating === 1 ? "star" : "stars"} selected
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="rating-comment" className={textStyles.body.regular}>
+                Feedback (Optional)
+              </Label>
+              <Textarea
+                id="rating-comment"
+                placeholder="Share your feedback about the DJ's performance..."
+                value={djRatingComment}
+                onChange={(e) => setDjRatingComment(e.target.value)}
+                className="bg-secondary border-border text-foreground min-h-[100px]"
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {djRatingComment.length}/500 characters
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRatingDialogOpen(false);
+                setSelectedApplication(null);
+                setDjRating(0);
+                setDjRatingComment("");
+              }}
+              className="border-border text-foreground hover:bg-secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCompleteGig}
+              className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+              disabled={djRating === 0}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Complete & Rate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

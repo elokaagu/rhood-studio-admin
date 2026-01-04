@@ -23,7 +23,19 @@ import {
   Mail,
   ExternalLink,
   Play,
+  Star,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
 
 export default function ApplicationDetailsPage() {
   const params = useParams();
@@ -33,6 +45,11 @@ export default function ApplicationDetailsPage() {
   const [application, setApplication] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userMix, setUserMix] = useState<any>(null);
+  const [brandRatingDialogOpen, setBrandRatingDialogOpen] = useState(false);
+  const [brandRating, setBrandRating] = useState<number>(0);
+  const [brandRatingComment, setBrandRatingComment] = useState<string>("");
+  const [existingBrandRating, setExistingBrandRating] = useState<any>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   // Handle application approval
   const handleApprove = async () => {
@@ -180,7 +197,7 @@ export default function ApplicationDetailsPage() {
         .select(
           `
           *,
-          opportunities!inner(title, description, location, event_date, payment, genre),
+          opportunities!inner(title, description, location, event_date, payment, genre, organizer_id),
           user_profiles!inner(dj_name, city, genres, email, bio, profile_image_url, instagram, soundcloud)
         `
         )
@@ -263,6 +280,29 @@ export default function ApplicationDetailsPage() {
           }
         }
 
+        // Check if gig is completed and get existing ratings
+        const gigCompleted = (data as any).gig_completed || false;
+        
+        // Get current user role
+        const userProfile = await getCurrentUserProfile();
+        setCurrentUserRole(userProfile?.role || null);
+        
+        // Check for existing brand rating (DJ rating the brand)
+        let existingRating = null;
+        if (gigCompleted && userProfile?.role === "dj") {
+          const userId = await getCurrentUserId();
+          const { data: ratingData } = await supabase
+            .from("ratings")
+            .select("*")
+            .eq("application_id", data.id)
+            .eq("rating_type", "brand_rating")
+            .eq("rater_id", userId)
+            .maybeSingle();
+          
+          existingRating = ratingData;
+          setExistingBrandRating(ratingData);
+        }
+
         // Transform the data to match the expected format
         const transformedApplication = {
           id: data.id,
@@ -284,6 +324,8 @@ export default function ApplicationDetailsPage() {
           status: data.status || "pending",
           coverLetter: data.message || "No cover letter provided",
           userId: data.user_id,
+          gigCompleted: gigCompleted,
+          organizerId: data.opportunities?.organizer_id || null,
         };
 
         setApplication(transformedApplication);
@@ -675,6 +717,57 @@ export default function ApplicationDetailsPage() {
                   {application.appliedDate}
                 </span>
               </div>
+
+              {/* Show gig completion status and rating option for DJs */}
+              {currentUserRole === "dj" && application.gigCompleted && (
+                <div className="pt-4 border-t border-border">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className={textStyles.body.regular}>Gig Status</span>
+                      <Badge className="bg-green-500/10 text-green-500 border-green-500">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Completed
+                      </Badge>
+                    </div>
+                    
+                    {existingBrandRating ? (
+                      <div className="space-y-2">
+                        <p className={textStyles.body.small}>Your Rating:</p>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-4 w-4 ${
+                                star <= existingBrandRating.stars
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            ({existingBrandRating.stars} stars)
+                          </span>
+                        </div>
+                        {existingBrandRating.comment && (
+                          <p className="text-sm text-muted-foreground italic">
+                            "{existingBrandRating.comment}"
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black"
+                        onClick={() => setBrandRatingDialogOpen(true)}
+                      >
+                        <Star className="h-4 w-4 mr-2" />
+                        Rate Brand Experience
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -712,6 +805,139 @@ export default function ApplicationDetailsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Brand Rating Dialog for DJs */}
+      <Dialog open={brandRatingDialogOpen} onOpenChange={setBrandRatingDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className={textStyles.subheading.large}>
+              Rate Your Experience
+            </DialogTitle>
+            <DialogDescription className={textStyles.body.regular}>
+              Share your feedback about working with {application?.opportunity || "this brand"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className={textStyles.body.regular}>
+                Rating (Required) *
+              </Label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setBrandRating(star)}
+                    className="focus:outline-none transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`h-8 w-8 ${
+                        star <= brandRating
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              {brandRating > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {brandRating} {brandRating === 1 ? "star" : "stars"} selected
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="brand-rating-comment" className={textStyles.body.regular}>
+                Feedback (Optional)
+              </Label>
+              <Textarea
+                id="brand-rating-comment"
+                placeholder="Share your experience working with this brand..."
+                value={brandRatingComment}
+                onChange={(e) => setBrandRatingComment(e.target.value)}
+                className="bg-secondary border-border text-foreground min-h-[100px]"
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {brandRatingComment.length}/500 characters
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setBrandRatingDialogOpen(false);
+                setBrandRating(0);
+                setBrandRatingComment("");
+              }}
+              className="border-border text-foreground hover:bg-secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!application || brandRating === 0) {
+                  toast({
+                    title: "Rating Required",
+                    description: "Please provide a rating (1-5 stars) before submitting.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                try {
+                  const userId = await getCurrentUserId();
+                  if (!userId || !application.organizerId) {
+                    throw new Error("Missing user or organizer information");
+                  }
+
+                  // Create brand rating
+                  const { error: ratingError } = await supabase
+                    .from("ratings")
+                    .insert({
+                      application_id: application.id,
+                      rater_id: userId,
+                      ratee_id: application.organizerId,
+                      rating_type: "brand_rating",
+                      stars: brandRating,
+                      comment: brandRatingComment.trim() || null,
+                    });
+
+                  if (ratingError) {
+                    throw ratingError;
+                  }
+
+                  toast({
+                    title: "Rating Submitted",
+                    description: `Thank you for rating your experience ${brandRating} stars!`,
+                  });
+
+                  setBrandRatingDialogOpen(false);
+                  setBrandRating(0);
+                  setBrandRatingComment("");
+                  fetchApplication(); // Refresh to show the rating
+                } catch (error) {
+                  console.error("Error submitting brand rating:", error);
+                  toast({
+                    title: "Error",
+                    description: "Failed to submit rating. Please try again.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+              disabled={brandRating === 0}
+            >
+              <Star className="h-4 w-4 mr-2" />
+              Submit Rating
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

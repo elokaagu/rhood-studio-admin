@@ -3,7 +3,12 @@ import { createClient } from "@/integrations/supabase/server";
 
 /**
  * API endpoint to award credits for ratings
- * Awards +25 credits when a DJ receives a 4-5 star rating
+ * Credits scale based on star rating:
+ * - 5 stars = 50 credits
+ * - 4 stars = 25 credits
+ * - 3 stars = 10 credits
+ * - 2 stars = 5 credits
+ * - 1 star = 0 credits
  */
 export async function POST(request: NextRequest) {
   try {
@@ -26,11 +31,31 @@ export async function POST(request: NextRequest) {
     const { dj_id, rating, reference_id, reference_type } = body;
 
     // Validate input
-    if (!dj_id || !rating || rating < 4) {
+    if (!dj_id || !rating || rating < 1 || rating > 5) {
       return NextResponse.json(
-        { error: "Invalid request. Rating must be 4 or 5 stars." },
+        { error: "Invalid request. Rating must be between 1 and 5 stars." },
         { status: 400 }
       );
+    }
+
+    // Calculate credits based on star rating
+    const creditAmounts: { [key: number]: number } = {
+      5: 50,
+      4: 25,
+      3: 10,
+      2: 5,
+      1: 0,
+    };
+
+    const creditAmount = creditAmounts[rating] || 0;
+
+    // If rating is 1 star, no credits are awarded
+    if (creditAmount === 0) {
+      return NextResponse.json({
+        success: true,
+        message: "No credits awarded for 1-star rating",
+        credits_awarded: 0,
+      });
     }
 
     // Check if user is a brand/admin who can give ratings
@@ -70,9 +95,9 @@ export async function POST(request: NextRequest) {
     // @ts-ignore - RPC function not in types yet (migration needed)
     const { data, error } = await (supabase.rpc as any)("award_credits", {
       p_user_id: dj_id,
-      p_amount: 25,
+      p_amount: creditAmount,
       p_transaction_type: "rating_received",
-      p_description: `Received ${rating}-star rating`,
+      p_description: `Received ${rating}-star rating (${creditAmount} credits)`,
       p_reference_id: reference_id || null,
       p_reference_type: reference_type || null,
     });
@@ -88,7 +113,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       transaction_id: data,
-      message: "Awarded 25 credits for rating",
+      message: `Awarded ${creditAmount} credits for ${rating}-star rating`,
+      credits_awarded: creditAmount,
     });
   } catch (error) {
     console.error("Error in award-rating-credits:", error);

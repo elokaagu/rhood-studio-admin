@@ -12,7 +12,7 @@ Use this as the single place to review and adjust how credits are spent or award
 
 | Action | Amount | Where | Notes |
 | --- | --- | --- | --- |
-| Rating received | `+25` credits | `app/api/credits/award-rating-credits/route.ts` via RPC `award_credits` | Triggered when a rating is submitted; references `rating_received` transaction type. |
+| Rating received | Variable (scales with stars) | `app/api/credits/award-rating-credits/route.ts` via RPC `award_credits` | Triggered when a rating is submitted; references `rating_received` transaction type. Credit amounts: 5 stars = 50 credits, 4 stars = 25 credits, 3 stars = 10 credits, 2 stars = 5 credits, 1 star = 0 credits. |
 | Manual adjustment (fallback / refunds) | variable | same routes above when errors occur | Used as a refund path if boost creation fails, etc. |
 
 ## Other credit-related functions

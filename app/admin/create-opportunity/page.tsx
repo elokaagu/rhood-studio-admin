@@ -660,10 +660,10 @@ export default function CreateOpportunityPage() {
                 }
                 className="bg-secondary border-border text-foreground min-h-[80px]"
                 required
-                maxLength={300}
+                maxLength={500}
               />
               <p className="text-xs text-muted-foreground text-right">
-                {formData.shortSummary.length}/300 characters
+                {formData.shortSummary.length}/500 characters
               </p>
             </div>
 

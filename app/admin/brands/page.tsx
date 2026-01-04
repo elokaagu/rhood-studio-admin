@@ -45,6 +45,7 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  Building2,
 } from "lucide-react";
 
 export default function BrandsPage() {

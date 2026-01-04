@@ -20,8 +20,19 @@ interface BriefRendererProps {
 export function BriefRenderer({ text, className = "" }: BriefRendererProps) {
   if (!text) return null;
 
-  // Split by section separators
-  const sections = text.split(/\n\n---\n\n/).filter(Boolean);
+  // Split by section separators (---) or by double line breaks before headers
+  // First try splitting by ---, if no --- found, split by double line breaks before ** headers
+  let sections: string[] = [];
+  if (text.includes("---")) {
+    sections = text.split(/\n\n---\n\n/).filter(Boolean);
+  } else {
+    // Split by double line breaks that precede a header (line starting with **)
+    sections = text.split(/\n\n(?=\*\*)/).filter(Boolean);
+    // If no headers found, treat as single section
+    if (sections.length === 0) {
+      sections = [text];
+    }
+  }
 
   return (
     <div className={`space-y-6 ${className}`}>

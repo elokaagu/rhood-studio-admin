@@ -814,15 +814,17 @@ export default function MemberDetailsPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Coins className="h-4 w-4 mr-2 text-brand-green" />
-                    <span className={textStyles.body.regular}>Credits</span>
+                {!isBrand && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Coins className="h-4 w-4 mr-2 text-brand-green" />
+                      <span className={textStyles.body.regular}>Credits</span>
+                    </div>
+                    <span className={`${textStyles.subheading.small} text-brand-green`}>
+                      {member.credits || 0}
+                    </span>
                   </div>
-                  <span className={`${textStyles.subheading.small} text-brand-green`}>
-                    {member.credits || 0}
-                  </span>
-                </div>
+                )}
             </CardContent>
           </Card>
         </div>

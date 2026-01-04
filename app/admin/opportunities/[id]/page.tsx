@@ -54,6 +54,7 @@ export default function OpportunityDetailsPage() {
     title: string;
   } | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const [hasAcceptedApplication, setHasAcceptedApplication] = useState(false);
 
   // Fetch opportunity from database
   const fetchOpportunity = async () => {
@@ -155,6 +156,25 @@ export default function OpportunityDetailsPage() {
           );
         }
 
+        // Check if current user has an accepted application for this opportunity
+        let userHasAcceptedApp = false;
+        try {
+          const { data: user } = await supabase.auth.getUser();
+          if (user?.user?.id) {
+            const { data: userApplication } = await supabase
+              .from("applications")
+              .select("status")
+              .eq("opportunity_id", data.id)
+              .eq("user_id", user.user.id)
+              .eq("status", "approved")
+              .maybeSingle();
+            
+            userHasAcceptedApp = !!userApplication;
+          }
+        } catch (appCheckError) {
+          console.warn("Could not check user application status:", appCheckError);
+        }
+
         setOpportunity({
           id: normalizedId,
           title: data.title,
@@ -177,6 +197,7 @@ export default function OpportunityDetailsPage() {
           is_archived: archivedFlag,
         });
 
+        setHasAcceptedApplication(userHasAcceptedApp);
         setIsLoading(false);
         return; // Exit early if successful
       }
@@ -557,10 +578,19 @@ export default function OpportunityDetailsPage() {
 
               <div className="space-y-2">
                 <h3 className={textStyles.subheading.small}>
-                  {opportunity.short_summary ? "Summary" : "Brief"}
+                  {hasAcceptedApplication || !opportunity.short_summary ? "Full Brief" : "Summary"}
                 </h3>
-                {/* Show short summary if available, otherwise show full brief */}
-                {opportunity.short_summary ? (
+                {/* Show full brief if user has accepted application, otherwise show short summary */}
+                {hasAcceptedApplication || !opportunity.short_summary ? (
+                  /* Show full brief - check if it's formatted with markdown sections */
+                  opportunity.description && opportunity.description.includes("**") ? (
+                    <BriefRenderer text={opportunity.description} />
+                  ) : (
+                    <p className={textStyles.body.regular}>
+                      <LinkText text={opportunity.description} />
+                    </p>
+                  )
+                ) : (
                   <>
                     <p className={textStyles.body.regular}>
                       <LinkText text={opportunity.short_summary} />
@@ -571,15 +601,6 @@ export default function OpportunityDetailsPage() {
                       </p>
                     </div>
                   </>
-                ) : (
-                  /* Check if description contains markdown sections (brief format) */
-                  opportunity.description.includes("**") && opportunity.description.includes("---") ? (
-                    <BriefRenderer text={opportunity.description} />
-                  ) : (
-                    <p className={textStyles.body.regular}>
-                      <LinkText text={opportunity.description} />
-                    </p>
-                  )
                 )}
               </div>
 

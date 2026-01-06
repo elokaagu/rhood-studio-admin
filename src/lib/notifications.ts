@@ -63,7 +63,7 @@ export async function createApplicationStatusNotification(
   const isApproved = status === "approved";
 
   const notificationData: NotificationData = {
-    title: isApproved ? "🎉 Application Approved!" : "Application Update",
+    title: isApproved ? "🎉 Congrats! Application Approved!" : "Application Update",
     message: isApproved
       ? `Congratulations! Your application for "${opportunityTitle}" has been approved. Check your dashboard for next steps.`
       : `Your application for "${opportunityTitle}" was not selected this time. Don't worry, keep applying to other opportunities!`,

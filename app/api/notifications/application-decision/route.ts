@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     const firstName = body.applicantName?.trim().split(" ")[0] || "there";
     const subject =
       body.status === "approved"
-        ? `You're booked for ${body.opportunityTitle}!`
+        ? `Congrats! You're booked for ${body.opportunityTitle}!`
         : `Update on ${body.opportunityTitle}`;
     const heroHeading =
       body.status === "approved"

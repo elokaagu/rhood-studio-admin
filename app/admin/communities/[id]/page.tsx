@@ -125,6 +125,13 @@ export default function CommunityDetailsPage({
   const [newChatDescription, setNewChatDescription] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUserToAdd, setSelectedUserToAdd] = useState<string | null>(null);
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
 
   // Fetch community details
   const fetchCommunity = useCallback(async () => {
@@ -557,6 +564,151 @@ export default function CommunityDetailsPage({
     initializeParams();
   }, [params]);
 
+  // Fetch available users (not already members)
+  const fetchAvailableUsers = useCallback(async () => {
+    if (!communityId) return;
+
+    try {
+      const { data: allUsers, error } = await supabase
+        .from("user_profiles")
+        .select("id, first_name, last_name, dj_name, brand_name, email, profile_image_url")
+        .order("first_name", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching users:", error);
+        return;
+      }
+
+      // Filter out users who are already members
+      const memberUserIds = members.map((m) => m.user_id);
+      const available = (allUsers || []).filter(
+        (user) => !memberUserIds.includes(user.id)
+      );
+
+      setAvailableUsers(available);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  }, [communityId, members]);
+
+  // Add member to community
+  const handleAddMember = async () => {
+    if (!selectedUserToAdd || !communityId) {
+      toast({
+        title: "Error",
+        description: "Please select a user to add",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsAddingMember(true);
+
+      const { error } = await supabase.from("community_members").insert([
+        {
+          community_id: communityId,
+          user_id: selectedUserToAdd,
+          role: "member",
+        },
+      ]);
+
+      if (error) {
+        if (error.code === "23505") {
+          // Unique constraint violation - user already a member
+          toast({
+            title: "Already a Member",
+            description: "This user is already a member of this community",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      // Update community member count
+      const { count: newMemberCount } = await supabase
+        .from("community_members")
+        .select("*", { count: "exact", head: true })
+        .eq("community_id", communityId);
+
+      if (newMemberCount !== null) {
+        await supabase
+          .from("communities")
+          .update({ member_count: newMemberCount })
+          .eq("id", communityId);
+      }
+
+      toast({
+        title: "Success",
+        description: "Member added successfully",
+      });
+
+      setAddMemberDialogOpen(false);
+      setSelectedUserToAdd(null);
+      setSearchTerm("");
+      fetchMembers();
+      fetchAvailableUsers();
+      fetchCommunity(); // Refresh community to update member count
+    } catch (error: any) {
+      console.error("Error adding member:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add member",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
+
+  // Remove member from community
+  const handleRemoveMember = async () => {
+    if (!memberToRemove || !communityId) return;
+
+    try {
+      const { error } = await supabase
+        .from("community_members")
+        .delete()
+        .eq("id", memberToRemove.id)
+        .eq("community_id", communityId);
+
+      if (error) throw error;
+
+      // Update community member count
+      const { count: newMemberCount } = await supabase
+        .from("community_members")
+        .select("*", { count: "exact", head: true })
+        .eq("community_id", communityId);
+
+      if (newMemberCount !== null) {
+        await supabase
+          .from("communities")
+          .update({ member_count: newMemberCount })
+          .eq("id", communityId);
+      }
+
+      toast({
+        title: "Success",
+        description: "Member removed successfully",
+      });
+
+      setRemoveMemberDialogOpen(false);
+      setMemberToRemove(null);
+      fetchMembers();
+      fetchAvailableUsers();
+      fetchCommunity(); // Refresh community to update member count
+    } catch (error: any) {
+      console.error("Error removing member:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove member",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Create private chat
   const handleCreatePrivateChat = async () => {
     if (!newChatName.trim() || !communityId || !currentUserId) {
@@ -913,33 +1065,161 @@ export default function CommunityDetailsPage({
           {/* Community Info */}
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-4 w-4" />
-                <span>Members</span>
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center space-x-2">
+                  <Users className="h-4 w-4" />
+                  <span>Members</span>
+                </CardTitle>
+                <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => fetchAvailableUsers()}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-card border-border max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Add Member</DialogTitle>
+                      <DialogDescription>
+                        Search and select a user to add to this community
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="search-user">Search Users</Label>
+                        <Input
+                          id="search-user"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          placeholder="Search by name or email..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Select User</Label>
+                        <div className="max-h-64 overflow-y-auto space-y-2 border rounded-md p-2">
+                          {availableUsers
+                            .filter((user) => {
+                              if (!searchTerm) return true;
+                              const search = searchTerm.toLowerCase();
+                              const name = `${user.first_name || ""} ${user.last_name || ""}`.toLowerCase();
+                              const djName = (user.dj_name || "").toLowerCase();
+                              const brandName = (user.brand_name || "").toLowerCase();
+                              const email = (user.email || "").toLowerCase();
+                              return name.includes(search) || djName.includes(search) || brandName.includes(search) || email.includes(search);
+                            })
+                            .map((user) => {
+                              const displayName = user.dj_name || user.brand_name || `${user.first_name} ${user.last_name}`.trim() || user.email;
+                              return (
+                                <div
+                                  key={user.id}
+                                  className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer hover:bg-secondary ${
+                                    selectedUserToAdd === user.id ? "bg-brand-green/20 border border-brand-green" : ""
+                                  }`}
+                                  onClick={() => setSelectedUserToAdd(user.id)}
+                                >
+                                  <Avatar className="w-8 h-8">
+                                    <AvatarImage src={user.profile_image_url || undefined} />
+                                    <AvatarFallback className="text-xs">
+                                      {displayName[0]?.toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground truncate">
+                                      {displayName}
+                                    </p>
+                                    {user.email && (
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        {user.email}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          {availableUsers.filter((user) => {
+                            if (!searchTerm) return true;
+                            const search = searchTerm.toLowerCase();
+                            const name = `${user.first_name || ""} ${user.last_name || ""}`.toLowerCase();
+                            const djName = (user.dj_name || "").toLowerCase();
+                            const brandName = (user.brand_name || "").toLowerCase();
+                            const email = (user.email || "").toLowerCase();
+                            return name.includes(search) || djName.includes(search) || brandName.includes(search) || email.includes(search);
+                          }).length === 0 && (
+                            <p className="text-xs text-muted-foreground text-center py-4">
+                              {searchTerm ? "No users found" : "All users are already members"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setAddMemberDialogOpen(false);
+                          setSelectedUserToAdd(null);
+                          setSearchTerm("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleAddMember}
+                        disabled={!selectedUserToAdd || isAddingMember}
+                      >
+                        {isAddingMember ? "Adding..." : "Add Member"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {members.slice(0, 5).map((member) => (
-                <div key={member.id} className="flex items-center space-x-3">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={member.user_avatar || undefined} />
-                    <AvatarFallback className="text-xs">
-                      {member.user_name?.[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {member.user_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {member.role}
-                    </p>
+              {members.map((member) => (
+                <div key={member.id} className="flex items-center justify-between group">
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={member.user_avatar || undefined} />
+                      <AvatarFallback className="text-xs">
+                        {member.user_name?.[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {member.user_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {member.role}
+                      </p>
+                    </div>
                   </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => {
+                          setMemberToRemove(member);
+                          setRemoveMemberDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove Member
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               ))}
-              {members.length > 5 && (
-                <p className="text-xs text-muted-foreground">
-                  +{members.length - 5} more members
+              {members.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No members yet
                 </p>
               )}
             </CardContent>
@@ -1104,6 +1384,46 @@ export default function CommunityDetailsPage({
           </Card>
         </div>
       </div>
+
+      {/* Remove Member Confirmation Dialog */}
+      <AlertDialog open={removeMemberDialogOpen} onOpenChange={setRemoveMemberDialogOpen}>
+        <AlertDialogContent className="bg-card border-border/50 backdrop-blur-sm shadow-2xl max-w-md">
+          <AlertDialogHeader className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-brand-green/20 rounded-full flex items-center justify-center">
+                <Users className="h-5 w-5 text-brand-green" />
+              </div>
+              <AlertDialogTitle className="font-ts-block ts-lg uppercase text-brand-white tracking-wide">
+                Remove Member
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="font-helvetica-regular helvetica-base text-muted-foreground">
+              Are you sure you want to remove{" "}
+              <span className="font-helvetica-bold text-brand-white">
+                {memberToRemove?.user_name}
+              </span>
+              {" "}from this community? They will no longer have access to community messages and private chats.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="space-x-3">
+            <AlertDialogCancel
+              className="border-border/50 text-brand-white hover:bg-muted/50 hover:border-brand-green/50 font-helvetica-regular helvetica-base transition-all duration-300"
+              onClick={() => {
+                setRemoveMemberDialogOpen(false);
+                setMemberToRemove(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-helvetica-bold helvetica-base shadow-glow-primary transition-all duration-300"
+              onClick={handleRemoveMember}
+            >
+              Remove Member
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* R/HOOD Themed Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

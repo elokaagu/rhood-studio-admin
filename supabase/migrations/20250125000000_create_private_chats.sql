@@ -29,15 +29,28 @@ DO $$
 BEGIN
   -- Try to add to community_posts first (if it exists)
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'community_posts') THEN
+    -- Add column if it doesn't exist
     ALTER TABLE community_posts 
     ADD COLUMN IF NOT EXISTS private_chat_id UUID REFERENCES private_chats(id) ON DELETE CASCADE;
     
+    -- Ensure all existing rows have community_id set and private_chat_id is NULL
+    -- (existing messages are community messages, not private chats)
+    UPDATE community_posts 
+    SET private_chat_id = NULL 
+    WHERE private_chat_id IS NULL AND community_id IS NOT NULL;
+    
+    -- If there are any rows with both NULL, set community_id from a default (shouldn't happen, but safety check)
+    -- Actually, if both are NULL, we can't fix it without knowing which community, so we'll delete those rows
+    DELETE FROM community_posts 
+    WHERE community_id IS NULL AND private_chat_id IS NULL;
+    
     CREATE INDEX IF NOT EXISTS idx_community_posts_private_chat_id ON community_posts(private_chat_id);
     
-    -- Add constraint: post must be either community or private chat, not both
+    -- Drop existing constraint if it exists
     ALTER TABLE community_posts
     DROP CONSTRAINT IF EXISTS community_posts_community_or_private_check;
     
+    -- Add constraint: post must be either community or private chat, not both
     ALTER TABLE community_posts
     ADD CONSTRAINT community_posts_community_or_private_check 
     CHECK (
@@ -48,14 +61,27 @@ BEGIN
   
   -- Also add to messages table if it exists (for backward compatibility)
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'messages') THEN
+    -- Add column if it doesn't exist
     ALTER TABLE messages 
     ADD COLUMN IF NOT EXISTS private_chat_id UUID REFERENCES private_chats(id) ON DELETE CASCADE;
     
+    -- Ensure all existing rows have community_id set and private_chat_id is NULL
+    -- (existing messages are community messages, not private chats)
+    UPDATE messages 
+    SET private_chat_id = NULL 
+    WHERE private_chat_id IS NULL AND community_id IS NOT NULL;
+    
+    -- If there are any rows with both NULL, delete them (orphaned messages)
+    DELETE FROM messages 
+    WHERE community_id IS NULL AND private_chat_id IS NULL;
+    
     CREATE INDEX IF NOT EXISTS idx_messages_private_chat_id ON messages(private_chat_id);
     
+    -- Drop existing constraint if it exists
     ALTER TABLE messages
     DROP CONSTRAINT IF EXISTS messages_community_or_private_check;
     
+    -- Add constraint: message must be either community or private chat, not both
     ALTER TABLE messages
     ADD CONSTRAINT messages_community_or_private_check 
     CHECK (

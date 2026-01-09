@@ -24,12 +24,14 @@ To make signup confirmation emails appear as coming from "R/HOOD" instead of "Su
      - **Body**: Update the email content to include R/HOOD branding
      - **Sender Name**: Change from "Supabase Auth" to "R/HOOD"
 
-4. **Configure SMTP Settings (Optional but Recommended)**
+4. **Configure SMTP Settings (Required for Custom Sender)**
 
    - Go to **Authentication** > **Settings** > **SMTP Settings**
-   - Configure custom SMTP if you want emails to come from your own domain
-   - Set **Sender Email** to your verified domain (e.g., `noreply@rhood.io` or `info@rhood.io`)
-   - Set **Sender Name** to "R/HOOD"
+   - Enable **Custom SMTP** (if not already enabled)
+   - Configure your SMTP provider (e.g., Resend, SendGrid, AWS SES, etc.)
+   - Set **Sender Email** to: `hello@rhood.io`
+   - Set **Sender Name** to: "R/HOOD"
+   - **Important**: You must verify the domain `rhood.io` with your SMTP provider before emails can be sent from `hello@rhood.io`
 
 5. **Test the Configuration**
    - Create a test account to verify the email appears correctly
@@ -87,6 +89,25 @@ You may also want to customize:
 ### Notes
 
 - Email template changes take effect immediately
-- If using custom SMTP, ensure your domain is verified
+- **SMTP Configuration is Required**: To send emails from `hello@rhood.io`, you MUST configure custom SMTP in Supabase
+- **Domain Verification**: The domain `rhood.io` must be verified with your SMTP provider (e.g., Resend, SendGrid)
+- Without custom SMTP, emails will continue to come from Supabase's default sender
 - Test emails in both HTML and plain text formats
 - The sender name and email are configured in SMTP Settings, not in the template itself
+
+### Quick Setup for hello@rhood.io
+
+1. **Verify Domain in Your SMTP Provider**:
+   - Add DNS records (SPF, DKIM, DMARC) for `rhood.io` domain
+   - Wait for verification (usually takes a few minutes to 24 hours)
+
+2. **Configure in Supabase**:
+   - Go to **Authentication** > **Settings** > **SMTP Settings**
+   - Enable **Custom SMTP**
+   - Enter your SMTP credentials
+   - Set **Sender Email**: `hello@rhood.io`
+   - Set **Sender Name**: `R/HOOD`
+   - Save settings
+
+3. **Test**:
+   - Create a test account to verify emails come from `hello@rhood.io`

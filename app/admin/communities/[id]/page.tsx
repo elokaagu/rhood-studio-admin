@@ -20,6 +20,9 @@ import {
   Calendar,
   MessageSquare,
   Pin,
+  Lock,
+  Plus,
+  X,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,6 +40,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { textStyles } from "@/lib/typography";
 import Image from "next/image";
 
@@ -73,6 +88,16 @@ interface Member {
   user_avatar?: string | null;
 }
 
+interface PrivateChat {
+  id: string;
+  name: string;
+  description: string | null;
+  community_id: string;
+  created_by: string;
+  created_at: string;
+  member_count?: number;
+}
+
 export default function CommunityDetailsPage({
   params,
 }: {
@@ -93,6 +118,13 @@ export default function CommunityDetailsPage({
   const router = useRouter();
 
   const [communityId, setCommunityId] = useState<string | null>(null);
+  const [privateChats, setPrivateChats] = useState<PrivateChat[]>([]);
+  const [selectedPrivateChatId, setSelectedPrivateChatId] = useState<string | null>(null);
+  const [createChatDialogOpen, setCreateChatDialogOpen] = useState(false);
+  const [newChatName, setNewChatName] = useState("");
+  const [newChatDescription, setNewChatDescription] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Fetch community details
   const fetchCommunity = useCallback(async () => {
@@ -148,6 +180,74 @@ export default function CommunityDetailsPage({
     }
   }, [communityId, toast]);
 
+  // Fetch current user ID
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    getCurrentUser();
+  }, []);
+
+  // Fetch private chats (only ones user is a member of)
+  const fetchPrivateChats = useCallback(async () => {
+    if (!communityId || !currentUserId) return;
+
+    try {
+      // First get private chat IDs where user is a member
+      const { data: memberChats, error: memberError } = await supabase
+        .from("private_chat_members")
+        .select("private_chat_id")
+        .eq("user_id", currentUserId);
+
+      if (memberError) {
+        console.error("Error fetching private chat memberships:", memberError);
+        return;
+      }
+
+      if (!memberChats || memberChats.length === 0) {
+        setPrivateChats([]);
+        return;
+      }
+
+      const chatIds = memberChats.map((m) => m.private_chat_id);
+
+      // Then fetch the private chats for this community
+      const { data, error } = await supabase
+        .from("private_chats")
+        .select("*")
+        .eq("community_id", communityId)
+        .in("id", chatIds)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching private chats:", error);
+        return;
+      }
+
+      // Get member counts for each chat
+      const chatsWithCounts = await Promise.all(
+        (data || []).map(async (chat) => {
+          const { count } = await supabase
+            .from("private_chat_members")
+            .select("*", { count: "exact", head: true })
+            .eq("private_chat_id", chat.id);
+
+          return {
+            ...chat,
+            member_count: count || 0,
+          };
+        })
+      );
+
+      setPrivateChats(chatsWithCounts as PrivateChat[]);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  }, [communityId, currentUserId]);
+
   // Fetch messages
   const fetchMessages = useCallback(async () => {
     if (!communityId) {
@@ -155,10 +255,10 @@ export default function CommunityDetailsPage({
       return;
     }
 
-    console.log(`Fetching messages for community: ${communityId}`);
+    console.log(`Fetching messages for ${selectedPrivateChatId ? 'private chat' : 'community'}: ${selectedPrivateChatId || communityId}`);
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("community_posts")
         .select(
           `
@@ -170,9 +270,17 @@ export default function CommunityDetailsPage({
             profile_image_url
           )
         `
-        )
-        .eq("community_id", communityId)
-        .order("created_at", { ascending: true });
+        );
+
+      if (selectedPrivateChatId) {
+        // Fetch private chat messages
+        query = query.eq("private_chat_id", selectedPrivateChatId);
+      } else {
+        // Fetch public community messages
+        query = query.eq("community_id", communityId).is("private_chat_id", null);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: true });
 
       if (error) {
         console.error("Error fetching messages:", error);
@@ -214,7 +322,7 @@ export default function CommunityDetailsPage({
     } catch (error) {
       console.error("Error in fetchMessages:", error);
     }
-  }, [communityId]);
+  }, [communityId, selectedPrivateChatId]);
 
   // Fetch members
   const fetchMembers = useCallback(async () => {
@@ -311,13 +419,20 @@ export default function CommunityDetailsPage({
         communityId
       );
 
-      const { error } = await supabase.from("community_posts").insert([
-        {
-          content: newMessage.trim(),
-          author_id: senderId,
-          community_id: communityId,
-        },
-      ]);
+      const insertData: any = {
+        content: newMessage.trim(),
+        author_id: senderId,
+      };
+
+      if (selectedPrivateChatId) {
+        insertData.private_chat_id = selectedPrivateChatId;
+        insertData.community_id = null;
+      } else {
+        insertData.community_id = communityId;
+        insertData.private_chat_id = null;
+      }
+
+      const { error } = await supabase.from("community_posts").insert([insertData]);
 
       if (error) {
         console.error("Error sending message:", error);
@@ -442,16 +557,93 @@ export default function CommunityDetailsPage({
     initializeParams();
   }, [params]);
 
+  // Create private chat
+  const handleCreatePrivateChat = async () => {
+    if (!newChatName.trim() || !communityId || !currentUserId) {
+      toast({
+        title: "Error",
+        description: "Please provide a chat name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedMembers.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one member",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Create private chat
+      const { data: chat, error: chatError } = await supabase
+        .from("private_chats")
+        .insert({
+          name: newChatName.trim(),
+          description: newChatDescription.trim() || null,
+          community_id: communityId,
+          created_by: currentUserId,
+        })
+        .select()
+        .single();
+
+      if (chatError) throw chatError;
+
+      // Add creator as member
+      const membersToAdd = [
+        { private_chat_id: chat.id, user_id: currentUserId, added_by: currentUserId },
+        ...selectedMembers.map((userId) => ({
+          private_chat_id: chat.id,
+          user_id: userId,
+          added_by: currentUserId,
+        })),
+      ];
+
+      const { error: membersError } = await supabase
+        .from("private_chat_members")
+        .insert(membersToAdd);
+
+      if (membersError) throw membersError;
+
+      toast({
+        title: "Success",
+        description: "Private chat created successfully",
+      });
+
+      setCreateChatDialogOpen(false);
+      setNewChatName("");
+      setNewChatDescription("");
+      setSelectedMembers([]);
+      fetchPrivateChats();
+    } catch (error: any) {
+      console.error("Error creating private chat:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create private chat",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
-    if (communityId) {
+    if (communityId && currentUserId) {
       const loadData = async () => {
         setLoading(true);
-        await Promise.all([fetchCommunity(), fetchMessages(), fetchMembers()]);
+        await Promise.all([fetchCommunity(), fetchMessages(), fetchMembers(), fetchPrivateChats()]);
         setLoading(false);
       };
       loadData();
     }
-  }, [communityId, fetchCommunity, fetchMessages, fetchMembers]);
+  }, [communityId, currentUserId, fetchCommunity, fetchMessages, fetchMembers, fetchPrivateChats]);
+
+  useEffect(() => {
+    if (communityId) {
+      fetchMessages();
+    }
+  }, [selectedPrivateChatId, communityId, fetchMessages]);
 
   useEffect(() => {
     if (!communityId) return;
@@ -464,7 +656,9 @@ export default function CommunityDetailsPage({
           event: "*",
           schema: "public",
           table: "community_posts",
-          filter: `community_id=eq.${communityId}`,
+          filter: selectedPrivateChatId 
+            ? `private_chat_id=eq.${selectedPrivateChatId}`
+            : `community_id=eq.${communityId}`,
         },
         () => {
           fetchMessages();
@@ -477,7 +671,7 @@ export default function CommunityDetailsPage({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [communityId, fetchMessages]);
+  }, [communityId, selectedPrivateChatId, fetchMessages]);
 
   if (loading) {
     return (
@@ -615,15 +809,31 @@ export default function CommunityDetailsPage({
         <div className="lg:col-span-3 space-y-4">
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MessageSquare className="h-5 w-5" />
-                <span>Messages</span>
-              </CardTitle>
-              {community.description && (
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center space-x-2">
+                  <MessageSquare className="h-5 w-5" />
+                  <span>{selectedPrivateChatId ? "Private Chat" : "Messages"}</span>
+                </CardTitle>
+                {selectedPrivateChatId && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedPrivateChatId(null)}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Back to Community
+                  </Button>
+                )}
+              </div>
+              {selectedPrivateChatId ? (
+                <p className="text-sm text-muted-foreground">
+                  {privateChats.find(c => c.id === selectedPrivateChatId)?.name}
+                </p>
+              ) : community.description ? (
                 <p className="text-sm text-muted-foreground">
                   {community.description}
                 </p>
-              )}
+              ) : null}
             </CardHeader>
             <CardContent className="p-0">
               {/* Messages */}
@@ -735,6 +945,132 @@ export default function CommunityDetailsPage({
             </CardContent>
           </Card>
 
+          {/* Private Chats */}
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center space-x-2">
+                  <Lock className="h-4 w-4" />
+                  <span>Private Chats</span>
+                </CardTitle>
+                <Dialog open={createChatDialogOpen} onOpenChange={setCreateChatDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-card border-border max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Create Private Chat</DialogTitle>
+                      <DialogDescription>
+                        Create a private chat visible only to selected members
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="chat-name">Chat Name</Label>
+                        <Input
+                          id="chat-name"
+                          value={newChatName}
+                          onChange={(e) => setNewChatName(e.target.value)}
+                          placeholder="Enter chat name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="chat-description">Description (Optional)</Label>
+                        <Textarea
+                          id="chat-description"
+                          value={newChatDescription}
+                          onChange={(e) => setNewChatDescription(e.target.value)}
+                          placeholder="Enter description"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Select Members</Label>
+                        <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-2">
+                          {members
+                            .filter((m) => m.user_id !== currentUserId)
+                            .map((member) => (
+                              <div key={member.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`member-${member.id}`}
+                                  checked={selectedMembers.includes(member.user_id || "")}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedMembers([...selectedMembers, member.user_id || ""]);
+                                    } else {
+                                      setSelectedMembers(selectedMembers.filter((id) => id !== member.user_id));
+                                    }
+                                  }}
+                                />
+                                <Label
+                                  htmlFor={`member-${member.id}`}
+                                  className="flex items-center space-x-2 flex-1 cursor-pointer"
+                                >
+                                  <Avatar className="w-6 h-6">
+                                    <AvatarImage src={member.user_avatar || undefined} />
+                                    <AvatarFallback className="text-xs">
+                                      {member.user_name?.[0]?.toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-sm">{member.user_name}</span>
+                                </Label>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setCreateChatDialogOpen(false);
+                          setNewChatName("");
+                          setNewChatDescription("");
+                          setSelectedMembers([]);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button onClick={handleCreatePrivateChat}>
+                        Create Chat
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {!selectedPrivateChatId && (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => setSelectedPrivateChatId(null)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Community Chat
+                </Button>
+              )}
+              {privateChats.map((chat) => (
+                <Button
+                  key={chat.id}
+                  variant={selectedPrivateChatId === chat.id ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => setSelectedPrivateChatId(chat.id)}
+                >
+                  <Lock className="h-4 w-4 mr-2" />
+                  <span className="truncate">{chat.name}</span>
+                </Button>
+              ))}
+              {privateChats.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  No private chats yet
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Community Stats */}
           <Card className="bg-card border-border">
             <CardHeader>
@@ -751,6 +1087,10 @@ export default function CommunityDetailsPage({
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Messages:</span>
                 <span className="text-foreground">{messages.length}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Private Chats:</span>
+                <span className="text-foreground">{privateChats.length}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Created:</span>

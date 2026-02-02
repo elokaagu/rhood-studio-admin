@@ -204,8 +204,7 @@ export default function CommunityDetailsPage({
 
     try {
       // First get private chat IDs where user is a member
-      const { data: memberChats, error: memberError } = await supabase
-        .from("private_chat_members")
+      const { data: memberChats, error: memberError } = await (supabase.from as any)("private_chat_members")
         .select("private_chat_id")
         .eq("user_id", currentUserId);
 
@@ -222,8 +221,7 @@ export default function CommunityDetailsPage({
       const chatIds = memberChats.map((m) => m.private_chat_id);
 
       // Then fetch the private chats for this community
-      const { data, error } = await supabase
-        .from("private_chats")
+      const { data, error } = await (supabase.from as any)("private_chats")
         .select("*")
         .eq("community_id", communityId)
         .in("id", chatIds)
@@ -238,7 +236,7 @@ export default function CommunityDetailsPage({
       const chatsWithCounts = await Promise.all(
         (data || []).map(async (chat) => {
           const { count } = await supabase
-            .from("private_chat_members")
+            (supabase.from as any)("private_chat_members")
             .select("*", { count: "exact", head: true })
             .eq("private_chat_id", chat.id);
 
@@ -731,8 +729,7 @@ export default function CommunityDetailsPage({
 
     try {
       // Create private chat
-      const { data: chat, error: chatError } = await supabase
-        .from("private_chats")
+      const { data: chat, error: chatError } = await (supabase.from as any)("private_chats")
         .insert({
           name: newChatName.trim(),
           description: newChatDescription.trim() || null,
@@ -754,8 +751,7 @@ export default function CommunityDetailsPage({
         })),
       ];
 
-      const { error: membersError } = await supabase
-        .from("private_chat_members")
+      const { error: membersError } = await (supabase.from as any)("private_chat_members")
         .insert(membersToAdd);
 
       if (membersError) throw membersError;

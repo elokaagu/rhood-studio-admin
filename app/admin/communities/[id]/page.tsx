@@ -218,7 +218,7 @@ export default function CommunityDetailsPage({
         return;
       }
 
-      const chatIds = memberChats.map((m) => m.private_chat_id);
+      const chatIds = memberChats.map((m: { private_chat_id: string }) => m.private_chat_id);
 
       // Then fetch the private chats for this community
       const { data, error } = await (supabase.from as any)("private_chats")

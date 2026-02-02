@@ -452,7 +452,8 @@ export default function FeedbackPage() {
                               </SelectItem>
                             ))}
                           </SelectContent>
-                        </Select)}
+                        </Select>
+                      )}
                       {!isAdmin && getStatusBadge(item.status)}
                     </div>
                     {item.where_it_happens && (

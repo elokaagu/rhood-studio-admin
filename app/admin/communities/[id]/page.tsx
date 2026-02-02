@@ -234,9 +234,8 @@ export default function CommunityDetailsPage({
 
       // Get member counts for each chat
       const chatsWithCounts = await Promise.all(
-        (data || []).map(async (chat) => {
-          const { count } = await supabase
-            (supabase.from as any)("private_chat_members")
+        (data || []).map(async (chat: { id: string }) => {
+          const { count } = await (supabase.from as any)("private_chat_members")
             .select("*", { count: "exact", head: true })
             .eq("private_chat_id", chat.id);
 

@@ -53,6 +53,7 @@ import {
   Coins,
   Trophy,
   Building2,
+  MessageCircle,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -137,6 +138,12 @@ const allSidebarItems = [
     url: "/admin/leaderboard",
     icon: Trophy,
     roles: ["admin"] as UserRole[],
+  },
+  {
+    title: "Feedback",
+    url: "/admin/feedback",
+    icon: MessageCircle,
+    roles: ["admin", "brand", "dj"] as UserRole[],
   },
 ];
 

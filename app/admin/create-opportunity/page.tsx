@@ -397,13 +397,9 @@ export default function CreateOpportunityPage() {
         formData.description.trim()
       ).slice(0, DESCRIPTION_MAX_LENGTH);
 
-      // Short summary (public, shown before applying) - use first 500 chars of description
-      const shortSummary = processedDescription.slice(0, 500).trim() || null;
-
       const { error } = await supabase.from("opportunities").insert({
         title: formData.title.trim(),
         description: processedDescription,
-        short_summary: shortSummary,
         location: formData.location.trim(),
         event_date: eventStart.toISOString(),
         event_end_time: eventEnd.toISOString(),

@@ -89,7 +89,7 @@ export default function BrandProfilePage() {
       const result = await updateBrandProfile(profile.id, formData);
       if (!result.ok) {
         toast({
-          title: result.code === "invalid_website" ? "Invalid URL" : "Error",
+          title: "Error",
           description: result.message,
           variant: "destructive",
         });
@@ -108,8 +108,7 @@ export default function BrandProfilePage() {
         setProfile(refetch.profile);
         dispatch({ type: "HYDRATE_FROM_PROFILE", profile: refetch.profile });
       }
-    } catch (error) {
-      console.error("Error updating brand profile:", error);
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update brand profile. Please try again.",

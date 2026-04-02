@@ -198,7 +198,9 @@ export async function getApplicationDetails(
       status: data.status || "pending",
       coverLetter: data.message || "No cover letter provided",
       userId: data.user_id || null,
-      gigCompleted: Boolean(data.gig_completed),
+      gigCompleted: Boolean(
+        (data as { gig_completed?: boolean | null }).gig_completed
+      ),
       organizerId: data.opportunities?.organizer_id || null,
     };
 

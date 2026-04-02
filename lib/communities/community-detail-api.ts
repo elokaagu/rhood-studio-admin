@@ -11,9 +11,9 @@ type Result<T = void> =
   | { ok: true; data?: T }
   | { ok: false; message: string; code?: string };
 
-/** Typed accessor for tables not in generated Supabase types. */
+/** Tables not in generated types — `from(x as never)` makes `.insert()` / `.update()` take `never`. */
 function fromUntyped(table: string) {
-  return supabase.from(table as never);
+  return (supabase as unknown as { from: (name: string) => any }).from(table);
 }
 
 export async function fetchCommunityDetail(

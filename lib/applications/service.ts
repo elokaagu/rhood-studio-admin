@@ -12,9 +12,9 @@ import type {
   UserMix,
 } from "@/lib/applications/types";
 
-/** Tables not present in generated Supabase types */
+/** Tables not in generated Database types — dynamic `from(name)` must not use `as never` (insert/update become `never`). */
 function fromUntyped(table: string) {
-  return supabase.from(table as never);
+  return (supabase as unknown as { from: (name: string) => any }).from(table);
 }
 
 /** RPCs not present in generated Supabase types */

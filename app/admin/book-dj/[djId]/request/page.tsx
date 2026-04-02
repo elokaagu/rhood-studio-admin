@@ -193,7 +193,7 @@ export default function BookingRequestPage() {
                 <Avatar className="h-16 w-16">
                   <AvatarImage
                     src={djProfile.profile_image_url || "/person1.jpg"}
-                    alt={djProfile.dj_name}
+                    alt={djProfile.dj_name ?? "DJ"}
                   />
                   <AvatarFallback>
                     {djProfile.dj_name?.charAt(0).toUpperCase() || "D"}

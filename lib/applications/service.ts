@@ -429,12 +429,12 @@ export async function listPortalApplications(
     let applicationsQuery = supabase.from("applications").select(`
         *,
         opportunities(title, organizer_id),
-        user_profiles(dj_name, first_name, last_name, city, location, genres, email)
+        user_profiles(dj_name, first_name, last_name, city, genres, email)
       `);
     let formResponsesQuery = supabase.from("application_form_responses").select(`
         *,
         opportunities(title, organizer_id),
-        user_profiles(dj_name, first_name, last_name, city, location, genres, email),
+        user_profiles(dj_name, first_name, last_name, city, genres, email),
         application_forms(title)
       `);
 

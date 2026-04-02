@@ -12,7 +12,7 @@ import { MessageSquare, Pin, X, Send } from "lucide-react";
 type Props = {
   communityDescription: string | null;
   messages: CommunityChatMessage[];
-  messagesEndRef: RefObject<HTMLDivElement | null>;
+  messagesEndRef: RefObject<HTMLDivElement>;
   newMessage: string;
   onNewMessageChange: (v: string) => void;
   sendingMessage: boolean;

@@ -396,9 +396,10 @@ export default function ApplicationDetailsPage() {
                         variant="outline"
                         size="sm"
                         className="text-foreground"
-                        onClick={() =>
-                          window.open(application.applicant.instagram, "_blank")
-                        }
+                        onClick={() => {
+                          const url = application.applicant.instagram;
+                          if (url) window.open(url, "_blank");
+                        }}
                       >
                         <ExternalLink className="h-3 w-3 mr-1" />
                         Instagram
@@ -409,12 +410,10 @@ export default function ApplicationDetailsPage() {
                         variant="outline"
                         size="sm"
                         className="text-foreground"
-                        onClick={() =>
-                          window.open(
-                            application.applicant.soundcloud,
-                            "_blank"
-                          )
-                        }
+                        onClick={() => {
+                          const url = application.applicant.soundcloud;
+                          if (url) window.open(url, "_blank");
+                        }}
                       >
                         <ExternalLink className="h-3 w-3 mr-1" />
                         SoundCloud

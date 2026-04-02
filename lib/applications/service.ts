@@ -12,6 +12,11 @@ import type {
   UserMix,
 } from "@/lib/applications/types";
 
+/** Tables not present in generated Supabase types */
+function fromUntyped(table: string) {
+  return supabase.from(table as never);
+}
+
 type RpcResult = { success?: boolean; error?: string } | null;
 type RawProfile = {
   dj_name?: string | null;
@@ -210,14 +215,13 @@ export async function getApplicationDetails(
     if (application.gigCompleted && currentUserRole === "dj") {
       const currentUserId = await getCurrentUserId();
       if (currentUserId) {
-        const { data: ratingData } = await supabase
-          .from("ratings")
+        const { data: ratingData } = await fromUntyped("ratings")
           .select("stars, comment")
           .eq("application_id", data.id)
           .eq("rating_type", "brand_rating")
           .eq("rater_id", currentUserId)
           .maybeSingle();
-        existingBrandRating = ratingData ?? null;
+        existingBrandRating = (ratingData as BrandRating | null) ?? null;
       }
     }
 
@@ -284,7 +288,7 @@ export async function submitBrandRating(params: {
     return { ok: false, message: "Missing user information." };
   }
 
-  const { error } = await supabase.from("ratings").insert({
+  const { error } = await fromUntyped("ratings").insert({
     application_id: params.applicationId,
     rater_id: userId,
     ratee_id: params.organizerId,
@@ -536,7 +540,7 @@ export async function completeGigAndRateDj(params: {
     return { ok: false, message: updateError.message || "Failed to complete gig." };
   }
 
-  const { error: ratingError } = await supabase.from("ratings").insert({
+  const { error: ratingError } = await fromUntyped("ratings").insert({
     application_id: params.applicationId,
     rater_id: userId,
     ratee_id: params.djUserId,

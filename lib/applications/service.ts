@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { formatDate } from "@/lib/date-utils";
 import { getCurrentUserId, getCurrentUserProfile } from "@/lib/auth-utils";
 import type {
@@ -51,11 +52,22 @@ type RawFormResponse = {
   status?: string | null;
   review_notes?: string | null;
   gig_completed?: boolean | null;
-  response_data?: { portfolio?: string; soundcloud?: string } | null;
+  response_data?: Json | null;
   user_profiles?: RawProfile | null;
   opportunities?: RawOpportunity | null;
   application_forms?: RawForm | null;
 };
+
+function portfolioFromResponseData(data: Json | null | undefined): string {
+  if (data === null || data === undefined) return "Unknown";
+  if (typeof data !== "object" || Array.isArray(data)) return "Unknown";
+  const o = data as Record<string, unknown>;
+  const p = o.portfolio;
+  const s = o.soundcloud;
+  if (typeof p === "string" && p.trim()) return p.trim();
+  if (typeof s === "string" && s.trim()) return s.trim();
+  return "Unknown";
+}
 
 function getDemoApplications(): ApplicationDetails[] {
   return [
@@ -402,8 +414,7 @@ function mapFormResponse(response: RawFormResponse): ApplicationListItem {
     appliedDate: toDateLabel(response.submitted_at),
     appliedAt: response.submitted_at || null,
     status: response.status || "pending",
-    portfolio:
-      response.response_data?.portfolio || response.response_data?.soundcloud || "Unknown",
+    portfolio: portfolioFromResponseData(response.response_data),
     message: response.review_notes || "",
     userId: response.user_id || null,
     gig_completed: Boolean(response.gig_completed),

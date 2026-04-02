@@ -17,6 +17,11 @@ function fromUntyped(table: string) {
   return supabase.from(table as never);
 }
 
+/** RPCs not present in generated Supabase types */
+function rpcUntyped(fn: string, args: Record<string, unknown>) {
+  return supabase.rpc(fn as never, args as never);
+}
+
 type RpcResult = { success?: boolean; error?: string } | null;
 type RawProfile = {
   dj_name?: string | null;
@@ -247,7 +252,7 @@ export async function updateApplicationStatus(
   applicationId: string,
   status: "approved" | "rejected"
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const { data: rpcResult, error: rpcError } = await supabase.rpc(
+  const { data: rpcResult, error: rpcError } = await rpcUntyped(
     "admin_update_application_status",
     {
       p_application_id: applicationId,
@@ -478,10 +483,13 @@ export async function updatePortalApplicationStatus(params: {
       ? "admin_update_form_response_status"
       : "admin_update_application_status";
 
-  const { data: rpcResult, error: rpcError } = await supabase.rpc(rpcFunctionName, {
-    p_application_id: params.applicationId,
-    p_new_status: params.status,
-  });
+  const { data: rpcResult, error: rpcError } = await rpcUntyped(
+    rpcFunctionName,
+    {
+      p_application_id: params.applicationId,
+      p_new_status: params.status,
+    }
+  );
 
   if (rpcError) {
     return {
@@ -528,8 +536,7 @@ export async function completeGigAndRateDj(params: {
       ? "application_form_responses"
       : "applications";
 
-  const { error: updateError } = await supabase
-    .from(tableName)
+  const { error: updateError } = await fromUntyped(tableName)
     .update({
       gig_completed: true,
       updated_at: new Date().toISOString(),

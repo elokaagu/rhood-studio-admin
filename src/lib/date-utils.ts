@@ -162,3 +162,24 @@ export const formatTimeRange = (
 
   return `${startFormatted} – ${endFormatted}`;
 };
+
+/**
+ * Compact date for booking cards/lists (e.g. "Thu, 15 Jan 2026").
+ */
+export const formatBookingEventDate = (dateString: string | Date | null): string => {
+  if (!dateString) return "";
+  try {
+    const date = typeof dateString === "string" ? new Date(dateString) : dateString;
+    if (isNaN(date.getTime())) {
+      return typeof dateString === "string" ? dateString : "";
+    }
+    return date.toLocaleDateString("en-GB", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return typeof dateString === "string" ? dateString : "";
+  }
+};

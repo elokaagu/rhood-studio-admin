@@ -3,13 +3,20 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
+import {
+  getCurrentUserProfile,
+  getCurrentUserId,
+  type UserProfile,
+} from "@/lib/auth-utils";
+import {
+  respondToBookingRequest,
+  type BookingRequestDetail,
+} from "@/lib/booking/booking-request-detail";
 import {
   Calendar,
   MapPin,
@@ -23,7 +30,6 @@ import {
   User,
 } from "lucide-react";
 import { textStyles } from "@/lib/typography";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -33,32 +39,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface BookingRequest {
-  id: string;
-  brand_id: string;
-  dj_id: string;
-  event_title: string;
-  event_description: string | null;
-  event_date: string;
-  event_end_time: string;
-  location: string;
-  location_place_id: string | null;
-  payment_amount: number | null;
-  payment_currency: string;
-  genre: string | null;
-  additional_requirements: string | null;
-  contact_email: string | null;
-  contact_phone: string | null;
-  status: "pending" | "accepted" | "declined" | "cancelled";
-  dj_response_at: string | null;
-  dj_response_notes: string | null;
-  created_at: string;
-  brand_profile: {
-    brand_name: string | null;
-    first_name: string;
-    last_name: string;
-    email: string;
-  } | null;
+function viewerCanAccessBooking(
+  role: UserProfile["role"] | undefined,
+  userId: string | null,
+  row: Pick<BookingRequestDetail, "brand_id" | "dj_id">
+): boolean {
+  if (!userId || !role) return false;
+  if (role === "brand") return row.brand_id === userId;
+  return row.dj_id === userId;
 }
 
 export default function BookingRequestDetailPage() {
@@ -66,9 +54,8 @@ export default function BookingRequestDetailPage() {
   const router = useRouter();
   const { toast } = useToast();
   const bookingRequestId = params.id as string;
-  const [bookingRequest, setBookingRequest] = useState<BookingRequest | null>(
-    null
-  );
+  const [bookingRequest, setBookingRequest] =
+    useState<BookingRequestDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isResponding, setIsResponding] = useState(false);
   const [responseDialogOpen, setResponseDialogOpen] = useState(false);
@@ -76,7 +63,7 @@ export default function BookingRequestDetailPage() {
     null
   );
   const [responseNotes, setResponseNotes] = useState("");
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -103,6 +90,12 @@ export default function BookingRequestDetailPage() {
             first_name,
             last_name,
             email
+          ),
+          dj_profile:user_profiles!booking_requests_dj_id_fkey(
+            dj_name,
+            first_name,
+            last_name,
+            email
           )
         `
         )
@@ -113,14 +106,12 @@ export default function BookingRequestDetailPage() {
         throw error;
       }
 
-      // Check if user has access
       const userId = await getCurrentUserId();
-      const isBrand = userProfile?.role === "brand";
-      const isDJ = !isBrand;
-
       if (
-        (isBrand && data.brand_id !== userId) ||
-        (isDJ && data.dj_id !== userId)
+        !viewerCanAccessBooking(userProfile?.role, userId, {
+          brand_id: data.brand_id,
+          dj_id: data.dj_id,
+        })
       ) {
         toast({
           title: "Access Denied",
@@ -131,7 +122,7 @@ export default function BookingRequestDetailPage() {
         return;
       }
 
-      setBookingRequest(data as BookingRequest);
+      setBookingRequest(data as BookingRequestDetail);
     } catch (error) {
       console.error("Error fetching booking request:", error);
       toast({
@@ -153,47 +144,43 @@ export default function BookingRequestDetailPage() {
   }, [userProfile, bookingRequestId]);
 
   const handleResponse = async () => {
-    if (!responseType || !bookingRequest) return;
+    if (!responseType || !bookingRequest || !userProfile) return;
 
     setIsResponding(true);
     try {
-      const userId = await getCurrentUserId();
-      if (!userId) {
-        throw new Error("User not authenticated");
-      }
+      const djDisplayName =
+        userProfile.dj_name?.trim() ||
+        `${userProfile.first_name} ${userProfile.last_name}`.trim() ||
+        "DJ";
 
-      // Update booking request
-      const { error: updateError } = await supabase
-        .from("booking_requests")
-        .update({
-          status: responseType === "accept" ? "accepted" : "declined",
-          dj_response_at: new Date().toISOString(),
-          dj_response_notes: responseNotes.trim() || null,
-        })
-        .eq("id", bookingRequestId);
+      const result = await respondToBookingRequest({
+        bookingRequestId,
+        responseType,
+        notes: responseNotes,
+        eventTitle: bookingRequest.event_title,
+        brandId: bookingRequest.brand_id,
+        djDisplayName,
+      });
 
-      if (updateError) {
-        throw updateError;
-      }
-
-      // Create notification for brand
-      try {
-        const { createNotification } = await import("@/lib/notifications");
-        await createNotification({
-          title:
-            responseType === "accept"
-              ? "✅ Booking Accepted"
-              : "❌ Booking Declined",
-          message: `DJ ${userProfile?.dj_name || "has"} ${
-            responseType === "accept" ? "accepted" : "declined"
-          } your booking request for "${bookingRequest.event_title}"`,
-          type: `booking_${responseType === "accept" ? "accepted" : "declined"}`,
-          user_id: bookingRequest.brand_id,
-          related_id: bookingRequestId,
+      if (!result.ok) {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
         });
-      } catch (notificationError) {
-        console.error("Error creating notification:", notificationError);
+        return;
       }
+
+      setBookingRequest((prev: BookingRequestDetail | null) =>
+        prev
+          ? {
+              ...prev,
+              status: result.status,
+              dj_response_at: result.dj_response_at,
+              dj_response_notes: result.dj_response_notes,
+            }
+          : prev
+      );
 
       toast({
         title: "Response Sent",
@@ -202,13 +189,16 @@ export default function BookingRequestDetailPage() {
 
       setResponseDialogOpen(false);
       setResponseNotes("");
-      fetchBookingRequest();
-    } catch (error: any) {
+      setResponseType(null);
+    } catch (error: unknown) {
       console.error("Error responding to booking request:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to respond to booking request. Please try again.";
       toast({
         title: "Error",
-        description:
-          error?.message || "Failed to respond to booking request. Please try again.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -257,8 +247,9 @@ export default function BookingRequestDetailPage() {
   }
 
   const isBrand = userProfile?.role === "brand";
-  const isDJ = !isBrand;
-  const canRespond = isDJ && bookingRequest.status === "pending";
+  const viewerIsAssignedDj = userProfile?.id === bookingRequest.dj_id;
+  const canRespond =
+    viewerIsAssignedDj && bookingRequest.status === "pending";
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-blur-in">
@@ -438,11 +429,33 @@ export default function BookingRequestDetailPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-foreground">
-                {isBrand ? "DJ" : "Brand"} Information
+                {isBrand ? "DJ" : "Brand"} information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {isBrand && bookingRequest.brand_profile && (
+              {isBrand && bookingRequest.dj_profile && (
+                <>
+                  <div className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <Label className="text-xs text-muted-foreground">DJ</Label>
+                      <p className="text-sm font-medium text-foreground">
+                        {bookingRequest.dj_profile.dj_name?.trim() ||
+                          `${bookingRequest.dj_profile.first_name} ${bookingRequest.dj_profile.last_name}`}
+                      </p>
+                    </div>
+                  </div>
+                  {bookingRequest.dj_profile.email && (
+                    <div className="flex items-center gap-3">
+                      <Label className="text-xs text-muted-foreground">Email</Label>
+                      <p className="text-sm text-foreground">
+                        {bookingRequest.dj_profile.email}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+              {!isBrand && bookingRequest.brand_profile && (
                 <>
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-muted-foreground" />
@@ -456,7 +469,9 @@ export default function BookingRequestDetailPage() {
                   </div>
                   {bookingRequest.contact_email && (
                     <div className="flex items-center gap-3">
-                      <Label className="text-xs text-muted-foreground">Email</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Request contact email
+                      </Label>
                       <p className="text-sm text-foreground">
                         {bookingRequest.contact_email}
                       </p>
@@ -464,9 +479,21 @@ export default function BookingRequestDetailPage() {
                   )}
                   {bookingRequest.contact_phone && (
                     <div className="flex items-center gap-3">
-                      <Label className="text-xs text-muted-foreground">Phone</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Request contact phone
+                      </Label>
                       <p className="text-sm text-foreground">
                         {bookingRequest.contact_phone}
+                      </p>
+                    </div>
+                  )}
+                  {bookingRequest.brand_profile.email && (
+                    <div className="flex items-center gap-3">
+                      <Label className="text-xs text-muted-foreground">
+                        Brand account email
+                      </Label>
+                      <p className="text-sm text-foreground">
+                        {bookingRequest.brand_profile.email}
                       </p>
                     </div>
                   )}

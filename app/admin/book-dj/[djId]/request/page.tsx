@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
+import { getCurrentUserProfile } from "@/lib/auth-utils";
+import type { UserProfile } from "@/lib/auth-utils";
+import {
+  createBookingRequestWithNotifications,
+  getDefaultBookingRequestForm,
+} from "@/lib/booking/create-booking-request";
+import type { BookingRequestFormData, DjProfileForBooking } from "@/lib/booking/types";
 import LocationAutocomplete from "@/components/location-autocomplete";
 import {
   Calendar,
@@ -28,7 +34,6 @@ import {
   Coins,
   ArrowLeft,
   Send,
-  Star,
   X,
 } from "lucide-react";
 import { textStyles } from "@/lib/typography";
@@ -40,23 +45,11 @@ export default function BookingRequestPage() {
   const djId = params.djId as string;
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [djProfile, setDjProfile] = useState<any>(null);
-  const [brandProfile, setBrandProfile] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    event_title: "",
-    event_description: "",
-    event_date: "",
-    event_time: "",
-    event_end_time: "",
-    location: "",
-    locationPlaceId: "",
-    payment_amount: "",
-    payment_currency: "GBP",
-    genre: "",
-    additional_requirements: "",
-    contact_email: "",
-    contact_phone: "",
-  });
+  const [djProfile, setDjProfile] = useState<DjProfileForBooking | null>(null);
+  const [brandProfile, setBrandProfile] = useState<UserProfile | null>(null);
+  const [formData, setFormData] = useState<BookingRequestFormData>(
+    getDefaultBookingRequestForm()
+  );
 
   // Fetch DJ profile
   useEffect(() => {
@@ -72,7 +65,7 @@ export default function BookingRequestPage() {
           throw error;
         }
 
-        setDjProfile(data);
+        setDjProfile(data as DjProfileForBooking);
       } catch (error) {
         console.error("Error fetching DJ profile:", error);
         toast({
@@ -108,181 +101,41 @@ export default function BookingRequestPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!djProfile) return;
+
     setIsSubmitting(true);
 
     try {
-      // Validation
-      if (!formData.event_title.trim()) {
+      const result = await createBookingRequestWithNotifications({
+        djId,
+        formData,
+        djProfile,
+        brandContext: brandProfile,
+      });
+
+      if (!result.ok) {
         toast({
-          title: "Missing Title",
-          description: "Please provide an event title.",
+          title: result.title,
+          description: result.message,
           variant: "destructive",
         });
         return;
-      }
-
-      if (!formData.event_date || !formData.event_time || !formData.event_end_time) {
-        toast({
-          title: "Missing Schedule",
-          description: "Please provide event date, start time, and end time.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!formData.location.trim()) {
-        toast({
-          title: "Missing Location",
-          description: "Please provide an event location.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const brandUserId = await getCurrentUserId();
-      if (!brandUserId) {
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to submit a booking request.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Combine date and time
-      const eventStart = new Date(`${formData.event_date}T${formData.event_time}`);
-      const eventEnd = new Date(`${formData.event_date}T${formData.event_end_time}`);
-
-      if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
-        toast({
-          title: "Invalid Time",
-          description: "Please enter valid start and end times.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (eventEnd <= eventStart) {
-        toast({
-          title: "Invalid Schedule",
-          description: "End time must be after start time.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Parse payment amount
-      const paymentAmount = formData.payment_amount
-        ? parseFloat(formData.payment_amount.replace(/[£,]/g, ""))
-        : null;
-
-      // Create booking request
-      const { data: bookingRequest, error: insertError } = await supabase
-        .from("booking_requests")
-        .insert({
-          brand_id: brandUserId,
-          dj_id: djId,
-          event_title: formData.event_title.trim(),
-          event_description: formData.event_description.trim() || null,
-          event_date: eventStart.toISOString(),
-          event_end_time: eventEnd.toISOString(),
-          location: formData.location.trim(),
-          location_place_id: formData.locationPlaceId || null,
-          payment_amount: paymentAmount,
-          payment_currency: formData.payment_currency,
-          genre: formData.genre || null,
-          additional_requirements: formData.additional_requirements.trim() || null,
-          contact_email: formData.contact_email.trim() || null,
-          contact_phone: formData.contact_phone.trim() || null,
-          status: "pending",
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        throw insertError;
-      }
-
-      // Send email notification to DJ
-      try {
-        const response = await fetch("/api/notifications/booking-request", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            djEmail: djProfile.email,
-            djName: djProfile.dj_name || `${djProfile.first_name} ${djProfile.last_name}`,
-            brandName: brandProfile?.brand_name || "A Brand",
-            eventTitle: formData.event_title,
-            eventDate: eventStart.toISOString(),
-            eventEndTime: eventEnd.toISOString(),
-            location: formData.location,
-            paymentAmount: paymentAmount,
-            paymentCurrency: formData.payment_currency,
-            bookingRequestId: bookingRequest.id,
-          }),
-        });
-
-        if (!response.ok) {
-          console.error("Failed to send email notification");
-        }
-      } catch (emailError) {
-        console.error("Error sending email:", emailError);
-        // Don't fail the booking request if email fails
-      }
-
-      // Create in-app notification for DJ
-      try {
-        const { createNotification } = await import("@/lib/notifications");
-        await createNotification({
-          title: "🎵 New Booking Request",
-          message: `${brandProfile?.brand_name || "A brand"} wants to book you for "${formData.event_title}"`,
-          type: "booking_request",
-          user_id: djId,
-          related_id: bookingRequest.id,
-        });
-      } catch (notificationError) {
-        console.error("Error creating notification:", notificationError);
-        // Don't fail the booking request if notification fails
-      }
-
-      // Create direct message to DJ about the booking
-      try {
-        const brandUserId = await getCurrentUserId();
-        if (brandUserId) {
-          const messageContent = `Hi! I'd like to book you for "${formData.event_title}" on ${new Date(formData.event_date).toLocaleDateString()} at ${formData.location}. Please check your booking requests for full details. Looking forward to hearing from you!`;
-          
-          const { error: messageError } = await supabase
-            .from("messages")
-            .insert({
-              sender_id: brandUserId,
-              receiver_id: djId,
-              content: messageContent,
-              is_read: false,
-            });
-
-          if (messageError) {
-            console.error("Error creating direct message:", messageError);
-            // Don't fail the booking request if message creation fails
-          }
-        }
-      } catch (messageError) {
-        console.error("Error creating direct message:", messageError);
-        // Don't fail the booking request if message creation fails
       }
 
       toast({
         title: "Booking Request Sent",
-        description: "Your booking request has been sent to the DJ. They will be notified via email, direct message, and in-app notification.",
+        description:
+          "Your booking request has been sent to the DJ. They will be notified via email, direct message, and in-app notification.",
       });
 
       router.push("/admin/book-dj");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating booking request:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to submit booking request. Please try again.";
       toast({
         title: "Error",
-        description: error?.message || "Failed to submit booking request. Please try again.",
+        description: message,
         variant: "destructive",
       });
     } finally {

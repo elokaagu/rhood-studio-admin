@@ -1,31 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Plus,
   Search,
   Users,
   MessageSquare,
   Calendar,
-  Settings,
-  MoreVertical,
-  Edit,
   Trash2,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,26 +23,26 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { textStyles } from "@/lib/typography";
-import Image from "next/image";
+import {
+  fetchCommunitiesListWithStats,
+  type CommunityListItem,
+  type CommunitiesListStats,
+} from "@/lib/communities/fetch-communities-list";
+import { deleteCommunityCascade } from "@/lib/communities/community-detail-api";
+import { CommunityListRow } from "@/components/admin/community-list-row";
 
-interface Community {
-  id: string;
-  name: string;
-  description: string | null;
-  image_url: string | null;
-  member_count: number | null;
-  created_at: string | null;
-  created_by: string | null;
-  creator_name?: string;
-  creator_avatar?: string | null;
-}
+const emptyStats: CommunitiesListStats = {
+  totalCommunities: 0,
+  totalMembersPlatform: 0,
+  activeCommunities: 0,
+  createdThisMonth: 0,
+};
 
 export default function CommunitiesPage() {
-  const [communities, setCommunities] = useState<Community[]>([]);
-  const [totalMembers, setTotalMembers] = useState<number>(0);
+  const [communities, setCommunities] = useState<CommunityListItem[]>([]);
+  const [stats, setStats] = useState<CommunitiesListStats>(emptyStats);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -63,106 +51,24 @@ export default function CommunitiesPage() {
     name: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const router = useRouter();
 
-  // Fetch communities with creator information
-  const fetchCommunities = useCallback(async () => {
+  const loadList = useCallback(async () => {
     try {
       setLoading(true);
-
-      // First, get all communities
-      const { data: communitiesData, error: communitiesError } = await supabase
-        .from("communities")
-        .select(
-          `
-          *,
-            creator:user_profiles!communities_created_by_fkey(
-              id,
-              first_name,
-              last_name,
-              profile_image_url
-            )
-        `
-        )
-        .order("created_at", { ascending: false });
-
-      if (communitiesError) {
-        console.error("Error fetching communities:", communitiesError);
+      const result = await fetchCommunitiesListWithStats();
+      if (!result.ok) {
         toast({
           title: "Error",
-          description: "Failed to fetch communities",
+          description: result.message || "Failed to fetch communities",
           variant: "destructive",
         });
         return;
       }
-
-      // Get member counts for each community
-      const { data: memberCounts, error: memberCountsError } = await supabase
-        .from("community_members")
-        .select("community_id")
-        .then(async (result) => {
-          if (result.error) {
-            console.log(
-              "community_members table might not exist, using fallback"
-            );
-            return { data: [], error: null };
-          }
-
-          // Count members per community
-          const counts = result.data.reduce(
-            (acc: Record<string, number>, member) => {
-              if (member.community_id) {
-                acc[member.community_id] = (acc[member.community_id] || 0) + 1;
-              }
-              return acc;
-            },
-            {}
-          );
-
-          return { data: counts, error: null };
-        });
-
-      const memberCountMap = (memberCounts || {}) as Record<string, number>;
-
-      // Transform the data to include creator information and actual member counts
-      const transformedCommunities =
-        communitiesData?.map((community) => {
-          console.log("Community data:", community.name, {
-            id: community.id,
-            image_url: community.image_url,
-            has_image: !!community.image_url,
-            image_type: typeof community.image_url,
-          });
-          return {
-            ...community,
-            creator_name: community.creator
-              ? `${community.creator.first_name} ${community.creator.last_name}`
-              : "Admin",
-            creator_avatar: community.creator?.profile_image_url || null,
-            member_count: memberCountMap[community.id] || 0, // Use actual member count
-          };
-        }) || [];
-
-      console.log("Fetched communities count:", transformedCommunities.length);
-      console.log(
-        "Community IDs:",
-        transformedCommunities.map((c) => c.id)
-      );
-      setCommunities(transformedCommunities);
-
-      // Fetch total members on the platform (count of user_profiles)
-      const { count: totalUserCount, error: totalUserError } = await supabase
-        .from("user_profiles")
-        .select("*", { count: "exact", head: true });
-      if (totalUserError) {
-        console.error("Error fetching total members:", totalUserError);
-      } else if (totalUserCount !== null) {
-        setTotalMembers(totalUserCount);
-      }
-    } catch (error) {
-      console.error("Error:", error);
+      setCommunities(result.communities);
+      setStats(result.stats);
+    } catch {
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -173,88 +79,37 @@ export default function CommunitiesPage() {
     }
   }, [toast]);
 
-  // Open delete dialog
   const openDeleteDialog = (communityId: string, communityName: string) => {
     setCommunityToDelete({ id: communityId, name: communityName });
     setDeleteDialogOpen(true);
   };
 
-  // Delete community
   const handleDeleteCommunity = async () => {
     if (!communityToDelete || isDeleting) return;
+    const id = communityToDelete.id;
 
     try {
       setIsDeleting(true);
-      console.log("Deleting community:", communityToDelete.id);
+      const result = await deleteCommunityCascade(id);
 
-      // First, delete related community members
-      const { error: membersError } = await supabase
-        .from("community_members")
-        .delete()
-        .eq("community_id", communityToDelete.id);
-
-      if (membersError) {
-        console.error("Error deleting community members:", membersError);
-        // Continue with community deletion even if members deletion fails
-      }
-
-      // Delete the community
-      const { data: deletedData, error } = await supabase
-        .from("communities")
-        .delete()
-        .eq("id", communityToDelete.id)
-        .select();
-
-      if (error) {
-        console.error("Error deleting community:", error);
+      if (!result.ok) {
         toast({
           title: "Error",
-          description: `Failed to delete community: ${error.message}`,
+          description: `Failed to delete community: ${result.message}`,
           variant: "destructive",
         });
         return;
       }
-
-      console.log("Community deleted successfully from database:", deletedData);
-      console.log("Deleted community ID:", communityToDelete.id);
 
       toast({
         title: "Success",
         description: "Community deleted successfully",
       });
 
-      // Close dialog and reset state
       setDeleteDialogOpen(false);
       setCommunityToDelete(null);
-
-      // Verify deletion by checking if community still exists
-      const { data: verifyData, error: verifyError } = await supabase
-        .from("communities")
-        .select("id")
-        .eq("id", communityToDelete.id)
-        .single();
-
-      if (verifyError && verifyError.code === "PGRST116") {
-        // Community not found - deletion successful
-        console.log("Deletion verified: Community no longer exists");
-        await fetchCommunities();
-      } else if (verifyData) {
-        // Community still exists - deletion failed
-        console.error("Deletion failed: Community still exists", verifyData);
-        toast({
-          title: "Error",
-          description: "Community deletion failed. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      } else {
-        // Other error
-        console.error("Verification error:", verifyError);
-        // Still try to refresh
-        await fetchCommunities();
-      }
-    } catch (error) {
-      console.error("Error:", error);
+      await loadList();
+    } catch {
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -265,17 +120,22 @@ export default function CommunitiesPage() {
     }
   };
 
-  // Filter communities based on search term
-  const filteredCommunities = communities.filter(
-    (community) =>
-      community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (community.description &&
-        community.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredCommunities = useMemo(
+    () =>
+      communities.filter(
+        (community) =>
+          community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (community.description &&
+            community.description
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()))
+      ),
+    [communities, searchTerm]
   );
 
   useEffect(() => {
-    fetchCommunities();
-  }, [fetchCommunities]);
+    loadList();
+  }, [loadList]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Unknown";
@@ -288,7 +148,6 @@ export default function CommunitiesPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-blur-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
           <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
@@ -308,7 +167,6 @@ export default function CommunitiesPage() {
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
@@ -318,7 +176,7 @@ export default function CommunitiesPage() {
                   Total Communities
                 </p>
                 <p className="text-2xl font-bold text-foreground">
-                  {communities.length}
+                  {stats.totalCommunities}
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
@@ -334,7 +192,7 @@ export default function CommunitiesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Members</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {totalMembers}
+                  {stats.totalMembersPlatform}
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
@@ -352,7 +210,7 @@ export default function CommunitiesPage() {
                   Active Communities
                 </p>
                 <p className="text-2xl font-bold text-foreground">
-                  {communities.filter((c) => (c.member_count || 0) > 0).length}
+                  {stats.activeCommunities}
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
@@ -368,16 +226,7 @@ export default function CommunitiesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">This Month</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {
-                    communities.filter((c) => {
-                      const createdDate = new Date(c.created_at || "");
-                      const now = new Date();
-                      return (
-                        createdDate.getMonth() === now.getMonth() &&
-                        createdDate.getFullYear() === now.getFullYear()
-                      );
-                    }).length
-                  }
+                  {stats.createdThisMonth}
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
@@ -388,7 +237,6 @@ export default function CommunitiesPage() {
         </Card>
       </div>
 
-      {/* Search */}
       <div className="flex items-center space-x-2">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -401,7 +249,6 @@ export default function CommunitiesPage() {
         </div>
       </div>
 
-      {/* Communities List */}
       {loading ? (
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
@@ -447,160 +294,20 @@ export default function CommunitiesPage() {
       ) : (
         <div className="space-y-4">
           {filteredCommunities.map((community) => (
-            <Card
+            <CommunityListRow
               key={community.id}
-              className="bg-card border-border hover:border-primary/50 transition-colors"
-            >
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
-                    {/* Community Avatar */}
-                    <div className="flex-shrink-0">
-                      {community.image_url && !imageErrors.has(community.id) ? (
-                        <div className="relative w-12 h-12 rounded-full overflow-hidden">
-                          <Image
-                            src={community.image_url}
-                            alt={community.name}
-                            fill
-                            className="object-cover transition-opacity duration-300"
-                            sizes="48px"
-                            placeholder="blur"
-                            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
-                            loading="eager"
-                            priority={true}
-                            unoptimized={true}
-                            onError={() => {
-                              setImageErrors((prev) =>
-                                new Set(prev).add(community.id)
-                              );
-                            }}
-                            onLoad={() => {
-                              // Image loaded successfully
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-12 h-12 bg-brand-green/20 rounded-full flex items-center justify-center">
-                          <MessageSquare className="h-6 w-6 text-brand-green" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Community Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-3 mb-1">
-                        <CardTitle
-                          className={`${textStyles.subheading.regular} truncate`}
-                        >
-                          {community.name}
-                        </CardTitle>
-                        <div className="flex items-center space-x-2">
-                          <Users className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            {community.member_count || 0} members
-                          </span>
-                        </div>
-                      </div>
-
-                      {community.description && (
-                        <p
-                          className={`${textStyles.body.small} text-muted-foreground mb-2 line-clamp-1`}
-                        >
-                          {community.description}
-                        </p>
-                      )}
-
-                      <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                        <div className="flex items-center space-x-1">
-                          <Avatar className="w-4 h-4">
-                            <AvatarImage
-                              src={community.creator_avatar || undefined}
-                            />
-                            <AvatarFallback className="text-xs">
-                              {community.creator_name?.[0]?.toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span>Created by {community.creator_name}</span>
-                        </div>
-                        <span>{formatDate(community.created_at)}</span>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          router.push(`/admin/communities/${community.id}`)
-                        }
-                        className="text-xs sm:text-sm flex-1 sm:flex-initial"
-                      >
-                        <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        <span className="hidden sm:inline">View Chat</span>
-                        <span className="sm:hidden">View</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          router.push(`/admin/communities/${community.id}/edit`)
-                        }
-                        className="text-xs sm:text-sm"
-                      >
-                        <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
-                      </Button>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(
-                                `/admin/communities/${community.id}/edit`
-                              )
-                            }
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(`/admin/communities/${community.id}`)
-                            }
-                          >
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            View Messages
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() =>
-                              openDeleteDialog(community.id, community.name)
-                            }
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              community={community}
+              formatDate={formatDate}
+              onView={(id) => router.push(`/admin/communities/${id}`)}
+              onEdit={(id) =>
+                router.push(`/admin/communities/${id}/edit`)
+              }
+              onDelete={openDeleteDialog}
+            />
           ))}
         </div>
       )}
 
-      {/* R/HOOD Themed Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-card border-border/50 backdrop-blur-sm shadow-2xl max-w-md">
           <AlertDialogHeader className="space-y-4">

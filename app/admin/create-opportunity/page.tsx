@@ -16,8 +16,12 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { ImageUpload } from "@/components/ui/image-upload";
+import {
+  createOpportunity,
+  OPPORTUNITY_DESCRIPTION_MAX_LENGTH,
+  type OpportunityCreateMode,
+} from "@/lib/opportunities/create-opportunity";
 import {
   Calendar,
   MapPin,
@@ -39,9 +43,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getDisplayLength, getDisplayText } from "@/lib/text-utils";
-
-const DESCRIPTION_MAX_LENGTH = 700;
+import { getDisplayLength } from "@/lib/text-utils";
 
 export default function CreateOpportunityPage() {
   const router = useRouter();
@@ -95,11 +97,11 @@ export default function CreateOpportunityPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await handleCreateOrDraft({ publishImmediately: true });
+    await handleCreateOrDraft("publish");
   };
 
   const handleSaveDraft = async () => {
-    await handleCreateOrDraft({ publishImmediately: false });
+    await handleCreateOrDraft("draft");
   };
 
   const handleOpenLinkDialog = () => {
@@ -135,10 +137,10 @@ export default function CreateOpportunityPage() {
 
     // Check display length (excluding markdown syntax) instead of raw length
     const displayLength = getDisplayLength(newDescription);
-    if (displayLength > DESCRIPTION_MAX_LENGTH) {
+    if (displayLength > OPPORTUNITY_DESCRIPTION_MAX_LENGTH) {
       toast({
         title: "Error",
-        description: `Link would exceed the ${DESCRIPTION_MAX_LENGTH} character limit`,
+        description: `Link would exceed the ${OPPORTUNITY_DESCRIPTION_MAX_LENGTH} character limit`,
         variant: "destructive",
       });
       return;
@@ -176,7 +178,7 @@ export default function CreateOpportunityPage() {
         },
         body: JSON.stringify({
           text: formData.description,
-          maxLength: DESCRIPTION_MAX_LENGTH,
+          maxLength: OPPORTUNITY_DESCRIPTION_MAX_LENGTH,
         }),
       });
 
@@ -189,10 +191,10 @@ export default function CreateOpportunityPage() {
       const refinedText = data.refinedText || formData.description;
 
       // Check display length before applying
-      if (getDisplayLength(refinedText) > DESCRIPTION_MAX_LENGTH) {
+      if (getDisplayLength(refinedText) > OPPORTUNITY_DESCRIPTION_MAX_LENGTH) {
         toast({
           title: "Refinement too long",
-          description: `The refined text exceeds the ${DESCRIPTION_MAX_LENGTH} character limit.`,
+          description: `The refined text exceeds the ${OPPORTUNITY_DESCRIPTION_MAX_LENGTH} character limit.`,
           variant: "destructive",
         });
         return;
@@ -210,7 +212,6 @@ export default function CreateOpportunityPage() {
         descriptionTextareaRef.current?.focus();
       }, 0);
     } catch (error) {
-      console.error("Error refining text:", error);
       toast({
         title: "Refinement failed",
         description:
@@ -244,200 +245,37 @@ export default function CreateOpportunityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleCreateOrDraft = async ({
-    publishImmediately,
-  }: {
-    publishImmediately: boolean;
-  }) => {
+  const handleCreateOrDraft = async (mode: OpportunityCreateMode) => {
     setIsSubmitting(true);
     try {
-      if (!formData.date || !formData.time || !formData.endTime) {
-        toast({
-          title: "Missing Schedule",
-          description: "Please provide a date, start time, and finish time.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Validate date range if in range mode
-      if (formData.dateType === "range" && !formData.endDate) {
-        toast({
-          title: "Missing End Date",
-          description: "Please provide an end date for the campaign range.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (formData.dateType === "range" && formData.endDate < formData.date) {
-        toast({
-          title: "Invalid Date Range",
-          description: "End date must be on or after the start date.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const eventStart = new Date(`${formData.date}T${formData.time}`);
-      let eventEnd: Date;
-
-      if (formData.dateType === "range") {
-        // For date range, use end date with end time
-        eventEnd = new Date(`${formData.endDate}T${formData.endTime}`);
-      } else {
-        // For single date, use same date with end time
-        eventEnd = new Date(`${formData.date}T${formData.endTime}`);
-      }
-
-      if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
-        toast({
-          title: "Invalid Time",
-          description: "Please enter a valid start and finish time.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (eventEnd <= eventStart) {
-        toast({
-          title: "Invalid Schedule",
-          description: "Finish time must be after the start time.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!formData.location.trim()) {
-        toast({
-          title: "Location Required",
-          description: "Please choose a location for this opportunity.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Check if opportunities table exists first
-      const { error: tableCheckError } = await supabase
-        .from("opportunities")
-        .select("id")
-        .limit(1);
-
-      if (tableCheckError) {
-        if (
-          tableCheckError.message?.includes("relation") &&
-          tableCheckError.message?.includes("does not exist")
-        ) {
-          toast({
-            title: "Database Setup Required",
-            description:
-              "Opportunities table doesn't exist. Please create it in Supabase dashboard first.",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw tableCheckError;
-      }
-
-      // Ensure the user is authenticated
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError || !user) {
-        console.error("Authentication required:", authError);
-        toast({
-          title: "Authentication Required",
-          description: "You must be logged in to create an opportunity.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Fetch organizer profile to use a friendly name
-      const { data: profile, error: profileError } = await supabase
-        .from("user_profiles")
-        .select("first_name, last_name, dj_name")
-        .eq("id", user.id)
-        .single();
-
-      if (profileError) {
-        console.warn("Unable to fetch organizer profile:", profileError);
-      }
-
-      const organizerName =
-        profile?.dj_name?.trim() ||
-        [profile?.first_name, profile?.last_name]
-          .map((part) => (part ? part.trim() : ""))
-          .filter(Boolean)
-          .join(" ") ||
-        user.email?.split("@")[0] ||
-        "R/HOOD Organizer";
-
-      const eventDate =
-        formData.date && formData.time
-          ? new Date(`${formData.date}T${formData.time}`).toISOString()
-          : formData.date
-          ? new Date(formData.date).toISOString()
-          : null;
-
-      const paymentAmount = formData.pay
-        ? parseFloat(formData.pay.replace(/[£,]/g, ""))
-        : null;
-
-      const genreValue =
-        selectedGenres.length > 0
-          ? selectedGenres.join(", ")
-          : formData.genre || null;
-
-      // Process description to convert markdown links to display text only
-      // This ensures URLs don't show in the app - only the link text is displayed
-      const processedDescription = getDisplayText(
-        formData.description.trim()
-      ).slice(0, DESCRIPTION_MAX_LENGTH);
-
-      const { error } = await supabase.from("opportunities").insert({
-        title: formData.title.trim(),
-        description: processedDescription,
-        location: formData.location.trim(),
-        event_date: eventStart.toISOString(),
-        event_end_time: eventEnd.toISOString(),
-        payment: paymentAmount,
-        genre: genreValue,
-        skill_level: formData.requirements || null,
-        organizer_id: user.id,
-        organizer_name: organizerName,
-        is_active:
-          publishImmediately && formData.status === "active" ? true : false,
-        is_archived: false,
-        image_url: formData.imageUrl || null,
+      const result = await createOpportunity({
+        form: formData,
+        selectedGenres,
+        mode,
       });
 
-      if (error) {
-        console.error("Supabase insert error:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
+      if (!result.ok) {
+        toast({
+          title: result.toastTitle,
+          description: result.message,
+          variant: "destructive",
         });
-        throw error;
+        return;
       }
 
       toast({
-        title: publishImmediately ? "Success" : "Draft Saved",
-        description: publishImmediately
-          ? "Opportunity created successfully!"
-          : "Opportunity saved as draft successfully!",
+        title: mode === "publish" ? "Success" : "Draft Saved",
+        description:
+          mode === "publish"
+            ? "Opportunity created successfully!"
+            : "Opportunity saved as draft successfully!",
       });
 
-      router.push("/admin/opportunities");
-    } catch (error: any) {
-      console.error("Error creating opportunity:", error);
+      router.push(`/admin/opportunities/${result.opportunity.id}`);
+    } catch {
       toast({
         title: "Opportunity Not Saved",
         description:
-          error?.message ||
           "Failed to save the opportunity. Please review the form and try again.",
         variant: "destructive",
       });
@@ -526,7 +364,7 @@ export default function CreateOpportunityPage() {
                 onChange={(e) => {
                   const newValue = e.target.value;
                   // Only update if display length is within limit
-                  if (getDisplayLength(newValue) <= DESCRIPTION_MAX_LENGTH) {
+                  if (getDisplayLength(newValue) <= OPPORTUNITY_DESCRIPTION_MAX_LENGTH) {
                     setFormData({ ...formData, description: newValue });
                   }
                 }}
@@ -534,7 +372,7 @@ export default function CreateOpportunityPage() {
                 required
               />
               <p className="text-xs text-muted-foreground text-right">
-                {getDisplayLength(formData.description)}/{DESCRIPTION_MAX_LENGTH} characters
+                {getDisplayLength(formData.description)}/{OPPORTUNITY_DESCRIPTION_MAX_LENGTH} characters
               </p>
             </div>
 
@@ -922,7 +760,7 @@ export default function CreateOpportunityPage() {
             <DialogDescription>
               AI will refine your description to be clearer and more concise
               while preserving all key information. The text will stay within
-              the {DESCRIPTION_MAX_LENGTH} character limit.
+              the {OPPORTUNITY_DESCRIPTION_MAX_LENGTH} character limit.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -932,7 +770,7 @@ export default function CreateOpportunityPage() {
                 {formData.description || "(empty)"}
               </div>
               <p className="text-xs text-muted-foreground">
-                {getDisplayLength(formData.description)}/{DESCRIPTION_MAX_LENGTH} characters
+                {getDisplayLength(formData.description)}/{OPPORTUNITY_DESCRIPTION_MAX_LENGTH} characters
               </p>
             </div>
           </div>

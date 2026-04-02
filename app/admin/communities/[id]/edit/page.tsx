@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useReducer, useMemo } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,100 +15,111 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserProfile } from "@/lib/auth-utils";
+import { fetchCommunityById } from "@/lib/communities/fetch-community-by-id";
+import { updateCommunity } from "@/lib/communities/update-community";
+import { canUserEditCommunity } from "@/lib/communities/permissions";
+import {
+  communityEditFormReducer,
+  createEmptyCommunityEditForm,
+} from "@/lib/communities/form-reducer";
+import { COMMUNITY_LOCATION_OPTIONS } from "@/lib/communities/constants";
+import type { CommunityForEdit } from "@/lib/communities/types";
 import { ArrowLeft, Save } from "lucide-react";
 import { textStyles } from "@/lib/typography";
 import { ImageUpload } from "@/components/ui/image-upload";
 
-interface Community {
-  id: string;
-  name: string;
-  description: string | null;
-  image_url: string | null;
-  location: string;
-  created_by: string | null;
-  created_at: string | null;
-}
+export default function EditCommunityPage() {
+  const params = useParams();
+  const communityId = useMemo(() => {
+    const raw = params?.id;
+    if (typeof raw === "string") return raw;
+    if (Array.isArray(raw) && raw[0]) return raw[0];
+    return null;
+  }, [params]);
 
-interface FormData {
-  name: string;
-  description: string;
-  imageUrl: string | null;
-  location: string;
-}
-
-const COMMUNITY_LOCATION_OPTIONS = [
-  "Global",
-  "London",
-  "Berlin",
-  "New York",
-  "Tokyo",
-  "Paris",
-  "Amsterdam",
-  "Los Angeles",
-  "Sydney",
-];
-
-export default function EditCommunityPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const [community, setCommunity] = useState<Community | null>(null);
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    description: "",
-    imageUrl: null,
-    location: "Global",
-  });
+  const [community, setCommunity] = useState<CommunityForEdit | null>(null);
+  const [formData, dispatch] = useReducer(
+    communityEditFormReducer,
+    createEmptyCommunityEditForm()
+  );
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
-  const [communityId, setCommunityId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!communityId) {
+      setLoading(false);
+      setCommunity(null);
+      dispatch({ type: "RESET" });
+      return;
+    }
 
-  // Fetch community details
-  const fetchCommunity = useCallback(async () => {
-    if (!communityId) return;
+    let cancelled = false;
 
-    try {
-      const { data, error } = await supabase
-        .from("communities")
-        .select("*")
-        .eq("id", communityId)
-        .single();
+    (async () => {
+      setCommunity(null);
+      dispatch({ type: "RESET" });
+      setLoading(true);
+      const [profile, communityRes] = await Promise.all([
+        getCurrentUserProfile(),
+        fetchCommunityById(communityId),
+      ]);
 
-      if (error) {
-        console.error("Error fetching community:", error);
+      if (cancelled) return;
+
+      if (!communityRes.ok) {
         toast({
           title: "Error",
-          description: "Failed to fetch community details",
+          description: communityRes.message,
           variant: "destructive",
         });
+        setCommunity(null);
         router.push("/admin/communities");
+        setLoading(false);
         return;
       }
 
-      setCommunity(data);
-      setFormData({
-        name: data.name || "",
-        description: data.description || "",
-        imageUrl: data.image_url || null,
-        location: data.location || "Global",
-      });
-    } catch (error) {
-      console.error("Error:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-      router.push("/admin/communities");
-    } finally {
+      if (!profile) {
+        toast({
+          title: "Sign in required",
+          description: "Please log in to edit a community.",
+          variant: "destructive",
+        });
+        router.push("/login");
+        setLoading(false);
+        return;
+      }
+
+      if (
+        !canUserEditCommunity(
+          profile.id,
+          profile.role,
+          communityRes.community.created_by
+        )
+      ) {
+        toast({
+          title: "Access denied",
+          description: "You can only edit communities you created (or as admin).",
+          variant: "destructive",
+        });
+        router.push(`/admin/communities/${communityId}`);
+        // Keep loading until navigation unmounts to avoid a false "not found" flash.
+        return;
+      }
+
+      setCommunity(communityRes.community);
+      dispatch({ type: "HYDRATE", community: communityRes.community });
       setLoading(false);
-    }
-  }, [communityId, toast, router]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally depend only on communityId; router/toast are stable for navigation/toasts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when route id changes
+  }, [communityId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,62 +133,34 @@ export default function EditCommunityPage({
       return;
     }
 
-    if (!communityId) {
+    if (!communityId || !community) {
       toast({
         title: "Error",
-        description: "Community ID not found",
+        description: "Community not loaded",
         variant: "destructive",
       });
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      console.log("Updating community:", communityId, formData);
-
-      const { data, error } = await supabase
-        .from("communities")
-        .update({
-          name: formData.name.trim(),
-          description: formData.description.trim() || null,
-          image_url: formData.imageUrl,
-          location: formData.location,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", communityId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Error updating community:", error);
-        console.error("Error details:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        });
+      const result = await updateCommunity(communityId, formData);
+      if (!result.ok) {
         toast({
           title: "Error",
-          description: `Failed to update community: ${error.message}`,
+          description: `Failed to update community: ${result.message}`,
           variant: "destructive",
         });
         return;
       }
-
-      console.log("Community updated successfully in database:", data);
 
       toast({
         title: "Success",
         description: "Community updated successfully!",
       });
 
-      if (communityId) {
-        router.push(`/admin/communities/${communityId}`);
-      } else {
-        router.push("/admin/communities");
-      }
-    } catch (error) {
-      console.error("Error:", error);
+      router.push(`/admin/communities/${communityId}`);
+    } catch {
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -187,21 +170,6 @@ export default function EditCommunityPage({
       setIsSubmitting(false);
     }
   };
-
-  // Initialize params
-  useEffect(() => {
-    const initializeParams = async () => {
-      const resolvedParams = await params;
-      setCommunityId(resolvedParams.id);
-    };
-    initializeParams();
-  }, [params]);
-
-  useEffect(() => {
-    if (communityId) {
-      fetchCommunity();
-    }
-  }, [communityId, fetchCommunity]);
 
   if (loading) {
     return (
@@ -222,7 +190,7 @@ export default function EditCommunityPage({
     );
   }
 
-  if (!community) {
+  if (!communityId || !community) {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
@@ -255,7 +223,6 @@ export default function EditCommunityPage({
 
   return (
     <div className="space-y-6 animate-blur-in">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -274,7 +241,6 @@ export default function EditCommunityPage({
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="bg-card border-border">
               <CardHeader>
@@ -291,7 +257,7 @@ export default function EditCommunityPage({
                     id="name"
                     value={formData.name}
                     onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
+                      dispatch({ type: "PATCH", patch: { name: e.target.value } })
                     }
                     placeholder="Enter community name"
                     className="bg-secondary border-secondary-foreground/20 focus:border-primary"
@@ -306,7 +272,7 @@ export default function EditCommunityPage({
                   <Select
                     value={formData.location}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, location: value })
+                      dispatch({ type: "PATCH", patch: { location: value } })
                     }
                   >
                     <SelectTrigger
@@ -336,7 +302,10 @@ export default function EditCommunityPage({
                     id="description"
                     value={formData.description}
                     onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
+                      dispatch({
+                        type: "PATCH",
+                        patch: { description: e.target.value },
+                      })
                     }
                     placeholder="Describe what this community is about..."
                     className="bg-secondary border-secondary-foreground/20 focus:border-primary min-h-[100px]"
@@ -356,18 +325,17 @@ export default function EditCommunityPage({
                 <ImageUpload
                   value={formData.imageUrl || undefined}
                   onChange={(url) =>
-                    setFormData({ ...formData, imageUrl: url })
+                    dispatch({ type: "PATCH", patch: { imageUrl: url } })
                   }
                   bucketName="communities"
                   folder="images"
-                  maxSize={5 * 1024 * 1024} // 5MB
+                  maxSize={5 * 1024 * 1024}
                   acceptedFormats={["image/jpeg", "image/png", "image/webp"]}
                 />
               </CardContent>
             </Card>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
             <Card className="bg-card border-border">
               <CardHeader>
@@ -399,9 +367,7 @@ export default function EditCommunityPage({
                   variant="outline"
                   className="w-full"
                   onClick={() =>
-                    communityId
-                      ? router.push(`/admin/communities/${communityId}`)
-                      : router.push("/admin/communities")
+                    router.push(`/admin/communities/${communityId}`)
                   }
                 >
                   Cancel

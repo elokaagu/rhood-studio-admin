@@ -1,12 +1,11 @@
 "use client";
 
 import React, { Suspense, useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -16,19 +15,20 @@ import {
 } from "@/components/ui/select";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate } from "@/lib/date-utils";
-import { supabase } from "@/integrations/supabase/client";
-import { createApplicationStatusNotification, triggerApplicationDecisionEmail } from "@/lib/notifications";
-import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
+import { createApplicationStatusNotification } from "@/lib/notifications";
+import {
+  completeGigAndRateDj,
+  listPortalApplications,
+  updatePortalApplicationStatus,
+} from "@/lib/applications/service";
+import type { ApplicationListItem } from "@/lib/applications/types";
 import {
   Calendar,
   MapPin,
-  Music,
   CheckCircle,
   XCircle,
   Clock,
   Eye,
-  User,
   Search,
   Star,
 } from "lucide-react";
@@ -44,252 +44,50 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 function ApplicationsContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const opportunityId = searchParams.get("opportunity");
   const { toast } = useToast();
-  const [applications, setApplications] = useState<any[]>([]);
+  const [applications, setApplications] = useState<ApplicationListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name_asc" | "name_desc" | "opportunity_asc" | "opportunity_desc">("newest");
   const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
-  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [selectedApplication, setSelectedApplication] = useState<ApplicationListItem | null>(null);
   const [djRating, setDjRating] = useState<number>(0);
   const [djRatingComment, setDjRatingComment] = useState<string>("");
 
   // Fetch applications from database
   const fetchApplications = async () => {
     try {
-      const userProfile = await getCurrentUserProfile();
-      const userId = await getCurrentUserId();
-
-      // For brands, first get their opportunity IDs
-      let brandOpportunityIds: string[] | null = null;
-      if (userProfile?.role === "brand" && userId) {
-        const { data: brandOpportunities } = await supabase
-          .from("opportunities")
-          .select("id")
-          .eq("organizer_id", userId);
-        brandOpportunityIds = brandOpportunities?.map((opp) => opp.id) || [];
+      setIsLoading(true);
+      const result = await listPortalApplications({ opportunityId });
+      setApplications(result.applications);
+      if (result.usedDemoFallback) {
+        toast({
+          title: "Database Setup Required",
+          description:
+            "Application data is unavailable in the current schema. Showing demo fallback data.",
+          variant: "destructive",
+        });
       }
-
-      // Build queries based on user role
-      let applicationsQuery = supabase
-        .from("applications")
-        .select(
-          `
-            *,
-            opportunities(title, organizer_id),
-            user_profiles(dj_name, first_name, last_name, city, location, genres, email)
-          `
-        );
-
-      let formResponsesQuery = supabase
-        .from("application_form_responses")
-        .select(
-          `
-            *,
-            opportunities(title, organizer_id),
-            user_profiles(dj_name, first_name, last_name, city, location, genres, email),
-            application_forms(title)
-          `
-        );
-
-      // Filter by specific opportunity if specified in URL
-      if (opportunityId) {
-        applicationsQuery = applicationsQuery.eq("opportunity_id", opportunityId);
-        formResponsesQuery = formResponsesQuery.eq("opportunity_id", opportunityId);
-      }
-
-      // Filter by brand's opportunities if user is a brand
-      if (userProfile?.role === "brand" && brandOpportunityIds) {
-        if (brandOpportunityIds.length === 0) {
-          // No opportunities, so no applications
-          setApplications([]);
-          setIsLoading(false);
-          return;
-        }
-        applicationsQuery = applicationsQuery.in(
-          "opportunity_id",
-          brandOpportunityIds
-        );
-        formResponsesQuery = formResponsesQuery.in(
-          "opportunity_id",
-          brandOpportunityIds
-        );
-      }
-
-      // Fetch from both applications table and application_form_responses table
-      const [applicationsResult, formResponsesResult] = await Promise.all([
-        applicationsQuery.order("created_at", { ascending: false }),
-        formResponsesQuery.order("submitted_at", { ascending: false }),
-      ]);
-
-      let allApplications: any[] = [];
-
-      // Process simple applications
-      if (applicationsResult.data && !applicationsResult.error) {
-        console.log("Simple applications data:", applicationsResult.data);
-        const transformedApplications = applicationsResult.data.map(
-          (app: any) => {
-            console.log("Processing application:", app);
-            return {
-              id: app.id,
-              type: "simple",
-              applicant: {
-                name:
-                  app.user_profiles?.dj_name ||
-                  app.user_profiles?.first_name ||
-                  "Unknown",
-                djName:
-                  app.user_profiles?.dj_name ||
-                  app.user_profiles?.first_name ||
-                  "Unknown",
-                avatar: "/person1.jpg",
-                location:
-                  app.user_profiles?.city ||
-                  app.user_profiles?.location ||
-                  "Unknown",
-                genres: app.user_profiles?.genres || [],
-              },
-              opportunity: app.opportunities?.title || "Unknown Opportunity",
-              opportunityId: app.opportunity_id,
-              appliedDate: app.created_at
-                ? formatDate(app.created_at)
-                : "Unknown",
-              status: app.status || "pending",
-              portfolio: "Unknown",
-              message: app.message || "",
-            };
-          }
-        );
-        allApplications = [...allApplications, ...transformedApplications];
-      }
-
-      // Process form responses (briefs)
-      if (formResponsesResult.data && !formResponsesResult.error) {
-        console.log("Form responses data:", formResponsesResult.data);
-        const transformedFormResponses = formResponsesResult.data.map(
-          (response: any) => {
-            console.log("Processing form response:", response);
-            return {
-              id: response.id,
-              type: "form_response",
-              applicant: {
-                name:
-                  response.user_profiles?.dj_name ||
-                  response.user_profiles?.first_name ||
-                  "Unknown",
-                djName:
-                  response.user_profiles?.dj_name ||
-                  response.user_profiles?.first_name ||
-                  "Unknown",
-                avatar: "/person1.jpg",
-                location:
-                  response.user_profiles?.city ||
-                  response.user_profiles?.location ||
-                  "Unknown",
-                genres: response.user_profiles?.genres || [],
-              },
-              opportunity:
-                response.opportunities?.title ||
-                response.application_forms?.title ||
-                "Form Submission",
-              opportunityId: response.opportunity_id,
-              appliedDate: response.submitted_at
-                ? formatDate(response.submitted_at)
-                : "Unknown",
-              status: response.status || "pending",
-              portfolio:
-                response.response_data?.portfolio ||
-                response.response_data?.soundcloud ||
-                "Unknown",
-              message: response.review_notes || "",
-              responseData: response.response_data, // Store full response data for details
-            };
-          }
-        );
-        allApplications = [...allApplications, ...transformedFormResponses];
-      }
-
-      // Sort all applications by date (most recent first)
-      allApplications.sort((a, b) => {
-        const dateA = new Date(a.appliedDate);
-        const dateB = new Date(b.appliedDate);
-        return dateB.getTime() - dateA.getTime();
-      });
-
-      setApplications(allApplications);
-      setIsLoading(false);
-      console.log(
-        `Loaded ${allApplications.length} applications (${
-          applicationsResult.data?.length || 0
-        } simple + ${formResponsesResult.data?.length || 0} form responses)`
-      );
-      return;
     } catch (error) {
       console.error("Error fetching applications:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load applications. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    // Fallback to demo data
-    setApplications([
-      {
-        id: 1,
-        applicant: {
-          name: "Alex Thompson",
-          djName: "DJ AlexT",
-          avatar: "/person1.jpg",
-          location: "London, UK",
-          genres: ["Techno", "House"],
-        },
-        opportunity: "Underground Warehouse Rave",
-        opportunityId: 1,
-        appliedDate: "2024-01-15",
-        status: "pending",
-        experience: "3 years",
-        portfolio: "soundcloud.com/alexthompson",
-      },
-      {
-        id: 2,
-        applicant: {
-          name: "Maya Rodriguez",
-          djName: "Maya R",
-          avatar: "/person2.jpg",
-          location: "Berlin, Germany",
-          genres: ["Electronic", "Progressive"],
-        },
-        opportunity: "Rooftop Summer Sessions",
-        opportunityId: 2,
-        appliedDate: "2024-01-18",
-        status: "approved",
-        experience: "5 years",
-        portfolio: "soundcloud.com/mayarodriguez",
-      },
-      {
-        id: 3,
-        applicant: {
-          name: "James Chen",
-          djName: "JC Beats",
-          avatar: "/person1.jpg",
-          location: "Amsterdam, Netherlands",
-          genres: ["Drum & Bass", "Dubstep"],
-        },
-        opportunity: "Club Residency Audition",
-        opportunityId: 3,
-        appliedDate: "2024-01-20",
-        status: "rejected",
-        experience: "2 years",
-        portfolio: "soundcloud.com/jcbeats",
-      },
-    ]);
-
-    setIsLoading(false);
   };
 
   // Load applications on component mount
   useEffect(() => {
     fetchApplications();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [opportunityId, toast]);
 
   // Filter and sort applications
   const filteredApplications = useMemo(() => {
@@ -326,9 +124,9 @@ function ApplicationsContent() {
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case "newest":
-          return new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime();
+          return new Date(b.appliedAt || 0).getTime() - new Date(a.appliedAt || 0).getTime();
         case "oldest":
-          return new Date(a.appliedDate).getTime() - new Date(b.appliedDate).getTime();
+          return new Date(a.appliedAt || 0).getTime() - new Date(b.appliedAt || 0).getTime();
         case "name_asc":
           return (a.applicant?.name || "").localeCompare(b.applicant?.name || "");
         case "name_desc":
@@ -345,18 +143,14 @@ function ApplicationsContent() {
     return sorted;
   }, [applications, opportunityId, statusFilter, searchTerm, sortBy]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "bg-green-100 text-green-800";
-      case "rejected":
-        return "bg-red-100 text-red-800";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  const stats = useMemo(
+    () => ({
+      pending: applications.filter((app) => app.status === "pending").length,
+      approved: applications.filter((app) => app.status === "approved").length,
+      rejected: applications.filter((app) => app.status === "rejected").length,
+    }),
+    [applications]
+  );
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -371,474 +165,64 @@ function ApplicationsContent() {
     }
   };
 
-  const handleApprove = async (
-    applicationId: string,
-    applicationType: string
+  const handleStatusUpdate = async (
+    application: ApplicationListItem,
+    status: "approved" | "rejected"
   ) => {
     try {
-      let tableName =
-        applicationType === "form_response"
-          ? "application_form_responses"
-          : "applications";
-
-      console.log(
-        `Approving ${applicationType} application ${applicationId} from table ${tableName}`
-      );
-
-      // Get user profile first for role checking
-      const userProfile = await getCurrentUserProfile();
-      const userId = await getCurrentUserId();
-      
-      // Verify admin role before proceeding
-      if (userProfile?.role !== 'admin') {
-        console.error("User role check failed:", { role: userProfile?.role, userId });
-        toast({
-          title: "Access Denied",
-          description: `Your role is '${userProfile?.role || 'unknown'}'. Only admins can approve applications. Please verify your user has role='admin' in user_profiles.`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // First, get the application details - fetch without joins to avoid venue field issues
-      const { data: applicationBasic, error: fetchBasicError } = await supabase
-        .from(tableName as any)
-        .select("*")
-        .eq("id", applicationId)
-        .single();
-
-      if (fetchBasicError || !applicationBasic) {
-        console.error("Error fetching application data:", fetchBasicError);
-        throw fetchBasicError || new Error("Application not found");
-      }
-
-      // Type assertion since we've checked for errors and existence
-      const application = applicationBasic as any;
-
-      // For brand role validation, fetch opportunity organizer_id separately if needed
-      const userRole = (userProfile as any)?.role;
-      if (userRole === "brand" && userId && application?.opportunity_id) {
-        const { data: opportunity } = await supabase
-          .from("opportunities")
-          .select("organizer_id, title")
-          .eq("id", application.opportunity_id)
-          .single();
-
-        if (opportunity && (opportunity as any).organizer_id !== userId) {
-          toast({
-            title: "Access Denied",
-            description:
-              "You can only approve/reject applications for your own opportunities.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      // Fetch user profile and opportunity details separately for notification
-      const [userProfileResult, opportunityResult] = await Promise.all([
-        supabase
-          .from("user_profiles")
-          .select("dj_name, first_name, last_name, email")
-          .eq("id", application.user_id)
-          .single(),
-        application?.opportunity_id
-          ? supabase
-              .from("opportunities")
-              .select("title")
-              .eq("id", application.opportunity_id)
-              .single()
-          : Promise.resolve({ data: null, error: null }),
-      ]);
-
-      const applicationData = {
-        ...application,
-        user_profiles: userProfileResult.data,
-        opportunities: opportunityResult.data,
-      };
-
-      console.log("Application data fetched:", applicationData);
-
-      // Update application status with proper validation
-      const updateData =
-        applicationType === "form_response"
-          ? {
-              status: "approved",
-              reviewed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            }
-          : {
-              status: "approved",
-              updated_at: new Date().toISOString(),
-            };
-
-      console.log("Updating with data:", updateData);
-
-      // Try using RPC function first to bypass RLS (avoids venue field error)
-      const newStatus = updateData.status;
-      const rpcFunctionName = 
-        applicationType === "form_response" 
-          ? "admin_update_form_response_status"
-          : "admin_update_application_status";
-      
-      console.log("Attempting RPC call:", { rpcFunctionName, applicationId, newStatus });
-      
-      // Use type assertion since these RPC functions are newly created and not in types yet
-      const { data: rpcResult, error: rpcError } = await supabase.rpc(
-        rpcFunctionName as any,
-        {
-          p_application_id: applicationId,
-          p_new_status: newStatus,
-        }
-      );
-
-      console.log("RPC response:", { rpcResult, rpcError });
-
-      // Check if RPC call itself failed (network/function doesn't exist)
-      if (rpcError) {
-        console.error("RPC call failed:", rpcError);
+      const updateResult = await updatePortalApplicationStatus({
+        applicationId: application.id,
+        applicationType: application.type,
+        status,
+      });
+      if (!updateResult.ok) {
         toast({
           title: "Update Error",
-          description: `RPC function error: ${rpcError.message}. Please verify the migration was run and your user has role='admin' in user_profiles.`,
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Check if RPC returned successfully but with an error message
-      if (rpcResult && typeof rpcResult === 'object') {
-        if (rpcResult.success === true) {
-          console.log("Application updated via RPC function (bypassed RLS)");
-          // Success! Continue with notification logic below
-        } else {
-          // RPC function returned but indicated failure
-          const errorMsg = rpcResult.error || "RPC function returned unsuccessful result";
-          console.error("RPC function returned error:", errorMsg);
-          toast({
-            title: "Update Error",
-            description: errorMsg === "Only admins can use this function" 
-              ? "You don't have admin permissions. Please verify your user has role='admin' in user_profiles."
-              : errorMsg,
-            variant: "destructive",
-          });
-          return;
-        }
-      } else {
-        // Unexpected response format
-        console.error("Unexpected RPC response format:", rpcResult);
-        toast({
-          title: "Update Error",
-          description: "Unexpected response from RPC function. Please check the console for details.",
+          description: updateResult.message,
           variant: "destructive",
         });
         return;
       }
 
-      console.log("Application updated successfully");
-
-      const opportunityTitle =
-        (applicationData as any)?.opportunities?.title ||
-        (applicationData as any)?.application_forms?.title ||
-        "Opportunity";
-
-      // Create notification for the user
-      if (
-        application?.user_id &&
-        opportunityTitle
-      ) {
+      if (application.userId && application.opportunity) {
         try {
           await createApplicationStatusNotification(
-            application.user_id,
-            applicationId,
-            "approved",
-            opportunityTitle
+            application.userId,
+            application.id,
+            status,
+            application.opportunity
           );
-          console.log("Notification created successfully");
-
-          const profile = (applicationData as any).user_profiles;
-          if (profile?.email) {
-            const fullName =
-              profile.dj_name ||
-              [profile.first_name, profile.last_name]
-                .filter(Boolean)
-                .join(" ") ||
-              null;
-
-            const emailResult = await triggerApplicationDecisionEmail({
-              email: profile.email,
-              applicantName: fullName,
-              status: "approved",
-              opportunityTitle,
-            });
-            if (!emailResult?.success) {
-              console.warn("Failed to send approval email:", emailResult);
-              toast({
-                title: "Email Not Sent",
-                description:
-                  "Approval email could not be delivered automatically. Please double-check your email settings.",
-                variant: "destructive",
-              });
-            }
-          }
-        } catch (notificationError) {
-          console.error("Error creating notification:", notificationError);
-          // Don't throw here - the approval succeeded, notification is secondary
+        } catch {
+          // Keep status update success even if downstream effects fail.
         }
       }
 
+      setApplications((prev: ApplicationListItem[]) =>
+        prev.map((item: ApplicationListItem) =>
+          item.id === application.id && item.type === application.type
+            ? { ...item, status }
+            : item
+        )
+      );
       toast({
-        title: "Application Approved",
+        title: status === "approved" ? "Application Approved" : "Application Rejected",
         description:
-          "The application has been approved and the user has been notified.",
+          status === "approved"
+            ? "The application has been approved and the user has been notified."
+            : "The application has been rejected and the user has been notified.",
       });
-
-      // Refresh the applications list
-      fetchApplications();
     } catch (error) {
-      console.error("Error approving application:", error);
+      console.error("Error updating application status:", error);
       toast({
         title: "Error",
-        description: "Failed to approve application. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleReject = async (
-    applicationId: string,
-    applicationType: string
-  ) => {
-    try {
-      let tableName =
-        applicationType === "form_response"
-          ? "application_form_responses"
-          : "applications";
-
-      console.log(
-        `Rejecting ${applicationType} application ${applicationId} from table ${tableName}`
-      );
-
-      // Get user profile first for role checking
-      const userProfile = await getCurrentUserProfile();
-      const userId = await getCurrentUserId();
-      
-      // Verify admin role before proceeding
-      if (userProfile?.role !== 'admin') {
-        console.error("User role check failed:", { role: userProfile?.role, userId });
-        toast({
-          title: "Access Denied",
-          description: `Your role is '${userProfile?.role || 'unknown'}'. Only admins can approve applications. Please verify your user has role='admin' in user_profiles.`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // First, get the application details - fetch without joins to avoid venue field issues
-      const { data: applicationBasic, error: fetchBasicError } = await supabase
-        .from(tableName as any)
-        .select("*")
-        .eq("id", applicationId)
-        .single();
-
-      if (fetchBasicError || !applicationBasic) {
-        console.error("Error fetching application data:", fetchBasicError);
-        throw fetchBasicError || new Error("Application not found");
-      }
-
-      // Type assertion since we've checked for errors and existence
-      const application = applicationBasic as any;
-
-      // For brand role validation, fetch opportunity organizer_id separately if needed
-      const userRole = (userProfile as any)?.role;
-      if (userRole === "brand" && userId && application?.opportunity_id) {
-        const { data: opportunity } = await supabase
-          .from("opportunities")
-          .select("organizer_id, title")
-          .eq("id", application.opportunity_id)
-          .single();
-
-        if (opportunity && (opportunity as any).organizer_id !== userId) {
-          toast({
-            title: "Access Denied",
-            description:
-              "You can only approve/reject applications for your own opportunities.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      // Fetch user profile and opportunity details separately for notification
-      const [userProfileResult, opportunityResult] = await Promise.all([
-        supabase
-          .from("user_profiles")
-          .select("dj_name, first_name, last_name, email")
-          .eq("id", application.user_id)
-          .single(),
-        application?.opportunity_id
-          ? supabase
-              .from("opportunities")
-              .select("title")
-              .eq("id", application.opportunity_id)
-              .single()
-          : Promise.resolve({ data: null, error: null }),
-      ]);
-
-      const applicationData = {
-        ...application,
-        user_profiles: userProfileResult.data,
-        opportunities: opportunityResult.data,
-      };
-
-      console.log("Application data fetched:", applicationData);
-
-      // Update application status with proper validation
-      const updateData =
-        applicationType === "form_response"
-          ? {
-              status: "rejected",
-              reviewed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            }
-          : {
-              status: "rejected",
-              updated_at: new Date().toISOString(),
-            };
-
-      console.log("Updating with data:", updateData);
-
-      // Try using RPC function first to bypass RLS (avoids venue field error)
-      const newStatus = updateData.status;
-      const rpcFunctionName = 
-        applicationType === "form_response" 
-          ? "admin_update_form_response_status"
-          : "admin_update_application_status";
-      
-      console.log("Attempting RPC call:", { rpcFunctionName, applicationId, newStatus });
-      
-      // Use type assertion since these RPC functions are newly created and not in types yet
-      const { data: rpcResult, error: rpcError } = await supabase.rpc(
-        rpcFunctionName as any,
-        {
-          p_application_id: applicationId,
-          p_new_status: newStatus,
-        }
-      );
-
-      console.log("RPC response:", { rpcResult, rpcError });
-
-      // Check if RPC call itself failed (network/function doesn't exist)
-      if (rpcError) {
-        console.error("RPC call failed:", rpcError);
-        toast({
-          title: "Update Error",
-          description: `RPC function error: ${rpcError.message}. Please verify the migration was run and your user has role='admin' in user_profiles.`,
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Check if RPC returned successfully but with an error message
-      if (rpcResult && typeof rpcResult === 'object') {
-        if (rpcResult.success === true) {
-          console.log("Application updated via RPC function (bypassed RLS)");
-          // Success! Continue with notification logic below
-        } else {
-          // RPC function returned but indicated failure
-          const errorMsg = rpcResult.error || "RPC function returned unsuccessful result";
-          console.error("RPC function returned error:", errorMsg);
-          toast({
-            title: "Update Error",
-            description: errorMsg === "Only admins can use this function" 
-              ? "You don't have admin permissions. Please verify your user has role='admin' in user_profiles."
-              : errorMsg,
-            variant: "destructive",
-          });
-          return;
-        }
-      } else {
-        // Unexpected response format
-        console.error("Unexpected RPC response format:", rpcResult);
-        toast({
-          title: "Update Error",
-          description: "Unexpected response from RPC function. Please check the console for details.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log("Application updated successfully");
-
-      const opportunityTitle =
-        (applicationData as any)?.opportunities?.title ||
-        (applicationData as any)?.application_forms?.title ||
-        "Opportunity";
-
-      // Create notification for the user
-      if (
-        application?.user_id &&
-        opportunityTitle
-      ) {
-        try {
-          await createApplicationStatusNotification(
-            application.user_id,
-            applicationId,
-            "rejected",
-            opportunityTitle
-          );
-          console.log("Notification created successfully");
-
-          const profile = (applicationData as any).user_profiles;
-          if (profile?.email) {
-            const fullName =
-              profile.dj_name ||
-              [profile.first_name, profile.last_name]
-                .filter(Boolean)
-                .join(" ") ||
-              null;
-
-            const emailResult = await triggerApplicationDecisionEmail({
-              email: profile.email,
-              applicantName: fullName,
-              status: "rejected",
-              opportunityTitle,
-            });
-            if (!emailResult?.success) {
-              console.warn("Failed to send rejection email:", emailResult);
-              toast({
-                title: "Email Not Sent",
-                description:
-                  "Rejection email could not be delivered automatically. Please double-check your email settings.",
-                variant: "destructive",
-              });
-            }
-          }
-        } catch (notificationError) {
-          console.error("Error creating notification:", notificationError);
-          // Don't throw here - the rejection succeeded, notification is secondary
-        }
-      }
-
-      toast({
-        title: "Application Rejected",
-        description:
-          "The application has been rejected and the user has been notified.",
-      });
-
-      // Refresh the applications list
-      fetchApplications();
-    } catch (error) {
-      console.error("Error rejecting application:", error);
-      toast({
-        title: "Error",
-        description: "Failed to reject application. Please try again.",
+        description: "Failed to update application status. Please try again.",
         variant: "destructive",
       });
     }
   };
 
   // Open rating dialog when marking gig complete
-  const handleCompleteGigClick = (application: any) => {
+  const handleCompleteGigClick = (application: ApplicationListItem) => {
     setSelectedApplication(application);
     setDjRating(0);
     setDjRatingComment("");
@@ -857,62 +241,33 @@ function ApplicationsContent() {
     }
 
     try {
-      const userProfile = await getCurrentUserProfile();
-      const userId = await getCurrentUserId();
-      const userRole = (userProfile as any)?.role;
+      const djUserId = selectedApplication.userId;
+      if (!djUserId) {
+        throw new Error("Could not find DJ user ID");
+      }
 
-      if (userRole !== "admin" && userRole !== "brand") {
+      const completionResult = await completeGigAndRateDj({
+        applicationId: selectedApplication.id,
+        applicationType: selectedApplication.type,
+        djUserId,
+        stars: djRating,
+        comment: djRatingComment,
+      });
+
+      if (!completionResult.ok) {
         toast({
-          title: "Access Denied",
-          description:
-            "Only admins or brands can mark gigs as completed.",
+          title: "Error",
+          description: completionResult.message,
           variant: "destructive",
         });
         return;
       }
 
-      const tableName =
-        selectedApplication.type === "form_response"
-          ? "application_form_responses"
-          : "applications";
-
-      // Update gig_completed status
-      const { error: updateError } = await supabase
-        .from(tableName as any)
-        .update({
-          gig_completed: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", selectedApplication.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      // Get the DJ's user_id from the application
-      const djUserId = selectedApplication.user_id || selectedApplication.applicant?.id;
-      if (!djUserId) {
-        throw new Error("Could not find DJ user ID");
-      }
-
-      // Create DJ rating
-      const { error: ratingError } = await (supabase.from as any)("ratings")
-        .insert({
-          application_id: selectedApplication.id,
-          rater_id: userId,
-          ratee_id: djUserId,
-          rating_type: "dj_rating",
-          stars: djRating,
-          comment: djRatingComment.trim() || null,
-        });
-
-      if (ratingError) {
-        console.error("Error creating rating:", ratingError);
-        // Don't fail the whole operation if rating fails, but log it
+      if (!completionResult.ratingSaved) {
         toast({
           title: "Gig Completed",
-          description: "Gig marked as completed, but rating could not be saved. Please try rating again.",
-          variant: "default",
+          description:
+            "Gig marked as completed, but rating could not be saved. Please try rating again.",
         });
       } else {
         // Award credits for rating (scales with star rating: 5=50, 4=25, 3=10, 2=5, 1=0)
@@ -933,7 +288,7 @@ function ApplicationsContent() {
               const creditData = await creditResponse.json();
               const creditsAwarded = creditData.credits_awarded || 0;
               if (creditsAwarded > 0) {
-                console.log(`Awarded ${creditsAwarded} credits for ${djRating}-star rating`);
+                // Credits were awarded successfully; no additional UI action needed here.
               }
             }
           } catch (creditError) {
@@ -952,7 +307,13 @@ function ApplicationsContent() {
       setSelectedApplication(null);
       setDjRating(0);
       setDjRatingComment("");
-      fetchApplications();
+      setApplications((prev: ApplicationListItem[]) =>
+        prev.map((item: ApplicationListItem) =>
+          item.id === selectedApplication.id && item.type === selectedApplication.type
+            ? { ...item, gig_completed: true }
+            : item
+        )
+      );
     } catch (error) {
       console.error("Error marking gig as completed:", error);
       toast({
@@ -962,13 +323,6 @@ function ApplicationsContent() {
       });
     }
   };
-
-  console.log(
-    "ApplicationsPage render - isLoading:",
-    isLoading,
-    "applications count:",
-    applications.length
-  );
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-blur-in">
@@ -992,10 +346,7 @@ function ApplicationsContent() {
               <div>
                 <p className="text-sm text-muted-foreground">Pending</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {
-                    applications.filter((app) => app.status === "pending")
-                      .length
-                  }
+                  {stats.pending}
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
@@ -1010,10 +361,7 @@ function ApplicationsContent() {
               <div>
                 <p className="text-sm text-muted-foreground">Approved</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {
-                    applications.filter((app) => app.status === "approved")
-                      .length
-                  }
+                  {stats.approved}
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
@@ -1028,10 +376,7 @@ function ApplicationsContent() {
               <div>
                 <p className="text-sm text-muted-foreground">Rejected</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {
-                    applications.filter((app) => app.status === "rejected")
-                      .length
-                  }
+                  {stats.rejected}
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
@@ -1053,14 +398,21 @@ function ApplicationsContent() {
                 <Input
                   placeholder="Search by applicant name, opportunity, or location..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setSearchTerm(e.target.value)
+                  }
                   className="pl-10 bg-secondary border-border text-foreground h-10"
                 />
               </div>
             </div>
 
             {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as typeof statusFilter)}>
+            <Select
+              value={statusFilter}
+              onValueChange={(val: "all" | "pending" | "approved" | "rejected") =>
+                setStatusFilter(val)
+              }
+            >
               <SelectTrigger className="w-full sm:w-32 bg-secondary border-border h-10">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -1073,7 +425,18 @@ function ApplicationsContent() {
             </Select>
 
             {/* Sort */}
-            <Select value={sortBy} onValueChange={(val) => setSortBy(val as typeof sortBy)}>
+            <Select
+              value={sortBy}
+              onValueChange={(
+                val:
+                  | "newest"
+                  | "oldest"
+                  | "name_asc"
+                  | "name_desc"
+                  | "opportunity_asc"
+                  | "opportunity_desc"
+              ) => setSortBy(val)}
+            >
               <SelectTrigger className="w-full sm:w-40 bg-secondary border-border h-10">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
@@ -1102,7 +465,7 @@ function ApplicationsContent() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredApplications.map((application) => (
+            {filteredApplications.map((application: ApplicationListItem) => (
             <Card key={application.id} className="bg-card border-border">
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -1148,9 +511,7 @@ function ApplicationsContent() {
                         variant="outline"
                         size="sm"
                         className="text-foreground text-xs sm:text-sm flex-1 sm:flex-initial"
-                        onClick={() =>
-                          (window.location.href = `/admin/applications/${application.id}`)
-                        }
+                        onClick={() => router.push(`/admin/applications/${application.id}`)}
                       >
                         <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span className="hidden sm:inline">View Details</span>
@@ -1162,7 +523,7 @@ function ApplicationsContent() {
                             variant="outline"
                             size="sm"
                             className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-200 text-xs sm:text-sm flex-1 sm:flex-initial font-medium"
-                            onClick={() => handleApprove(application.id, application.type)}
+                            onClick={() => handleStatusUpdate(application, "approved")}
                             disabled={isLoading}
                           >
                             <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
@@ -1173,9 +534,7 @@ function ApplicationsContent() {
                             variant="outline"
                             size="sm"
                             className="text-red-600 hover:text-red-700 text-xs sm:text-sm flex-1 sm:flex-initial"
-                            onClick={() =>
-                              handleReject(application.id, application.type)
-                            }
+                            onClick={() => handleStatusUpdate(application, "rejected")}
                           >
                             <XCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             <span className="hidden sm:inline">Reject</span>
@@ -1215,7 +574,13 @@ function ApplicationsContent() {
             </DialogTitle>
             <DialogDescription className={textStyles.body.regular}>
               {selectedApplication && (
-                <>Rate {selectedApplication.applicant?.dj_name || selectedApplication.applicant?.name || "the DJ"} for their performance</>
+                <>
+                  Rate{" "}
+                  {selectedApplication.applicant?.djName ||
+                    selectedApplication.applicant?.name ||
+                    "the DJ"}{" "}
+                  for their performance
+                </>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -1258,7 +623,9 @@ function ApplicationsContent() {
                 id="rating-comment"
                 placeholder="Share your feedback about the DJ's performance..."
                 value={djRatingComment}
-                onChange={(e) => setDjRatingComment(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setDjRatingComment(e.target.value)
+                }
                 className="bg-secondary border-border text-foreground min-h-[100px]"
                 maxLength={500}
               />

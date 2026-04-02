@@ -8,8 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate } from "@/lib/date-utils";
-import { supabase } from "@/integrations/supabase/client";
 import { createApplicationStatusNotification } from "@/lib/notifications";
 import {
   Calendar,
@@ -35,386 +33,113 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
+import {
+  getApplicationDetails,
+  submitBrandRating,
+  updateApplicationStatus,
+} from "@/lib/applications/service";
+import type {
+  ApplicationDetails,
+  BrandRating,
+  UserMix,
+} from "@/lib/applications/types";
 
 export default function ApplicationDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const applicationId = params.id;
+  const applicationId = String(params.id);
   const { toast } = useToast();
-  const [application, setApplication] = useState<any>(null);
+  const [application, setApplication] = useState<ApplicationDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [userMix, setUserMix] = useState<any>(null);
+  const [userMix, setUserMix] = useState<UserMix | null>(null);
   const [brandRatingDialogOpen, setBrandRatingDialogOpen] = useState(false);
   const [brandRating, setBrandRating] = useState<number>(0);
   const [brandRatingComment, setBrandRatingComment] = useState<string>("");
-  const [existingBrandRating, setExistingBrandRating] = useState<any>(null);
+  const [existingBrandRating, setExistingBrandRating] = useState<BrandRating | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
 
-  // Handle application approval
-  const handleApprove = async () => {
-    try {
-      console.log("Attempting to approve application:", applicationId);
-      
-      // Use RPC function to bypass RLS (avoids venue field error)
-      const { data: rpcResult, error: rpcError } = await supabase.rpc(
-        "admin_update_application_status" as any,
-        {
-          p_application_id: applicationId as string,
-          p_new_status: "approved",
-        }
-      );
-
-      console.log("RPC response:", { rpcResult, rpcError });
-
-      // Check if RPC call failed
-      if (rpcError) {
-        console.error("RPC call failed:", rpcError);
-        toast({
-          title: "Update Error",
-          description: `RPC function error: ${rpcError.message}. Please verify the migration was run and your user has role='admin' in user_profiles.`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Check if RPC returned an error
-      if (rpcResult && typeof rpcResult === 'object' && rpcResult.success !== true) {
-        const errorMsg = rpcResult.error || "RPC function returned unsuccessful result";
-        console.error("RPC function returned error:", errorMsg);
-        toast({
-          title: "Update Error",
-          description: errorMsg === "Only admins can use this function" 
-            ? "You don't have admin permissions. Please verify your user has role='admin' in user_profiles."
-            : errorMsg,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Success - create notification
-      if (application?.user_id && application?.opportunity) {
-        await createApplicationStatusNotification(
-          application.user_id,
-          applicationId as string,
-          "approved",
-          application.opportunity
-        );
-      }
-
-      toast({
-        title: "Application Approved",
-        description:
-          "The application has been approved and the user has been notified.",
-      });
-
-      // Refresh the application data
-      fetchApplication();
-    } catch (error) {
-      console.error("Error approving application:", error);
-      toast({
-        title: "Error",
-        description: "Failed to approve application. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Handle application rejection
-  const handleReject = async () => {
-    try {
-      console.log("Attempting to reject application:", applicationId);
-      
-      // Use RPC function to bypass RLS (avoids venue field error)
-      const { data: rpcResult, error: rpcError } = await supabase.rpc(
-        "admin_update_application_status" as any,
-        {
-          p_application_id: applicationId as string,
-          p_new_status: "rejected",
-        }
-      );
-
-      console.log("RPC response:", { rpcResult, rpcError });
-
-      // Check if RPC call failed
-      if (rpcError) {
-        console.error("RPC call failed:", rpcError);
-        toast({
-          title: "Update Error",
-          description: `RPC function error: ${rpcError.message}. Please verify the migration was run and your user has role='admin' in user_profiles.`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Check if RPC returned an error
-      if (rpcResult && typeof rpcResult === 'object' && rpcResult.success !== true) {
-        const errorMsg = rpcResult.error || "RPC function returned unsuccessful result";
-        console.error("RPC function returned error:", errorMsg);
-        toast({
-          title: "Update Error",
-          description: errorMsg === "Only admins can use this function" 
-            ? "You don't have admin permissions. Please verify your user has role='admin' in user_profiles."
-            : errorMsg,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Success - create notification
-      if (application?.user_id && application?.opportunity) {
-        await createApplicationStatusNotification(
-          application.user_id,
-          applicationId as string,
-          "rejected",
-          application.opportunity
-        );
-      }
-
-      toast({
-        title: "Application Rejected",
-        description:
-          "The application has been rejected and the user has been notified.",
-      });
-
-      // Refresh the application data
-      fetchApplication();
-    } catch (error) {
-      console.error("Error rejecting application:", error);
-      toast({
-        title: "Error",
-        description: "Failed to reject application. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Fetch application from database
   const fetchApplication = async () => {
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("applications")
-        .select(
-          `
-          *,
-          opportunities!inner(title, description, location, event_date, payment, genre, organizer_id),
-          user_profiles!inner(dj_name, city, genres, email, bio, profile_image_url, instagram, soundcloud)
-        `
-        )
-        .eq("id", applicationId as string)
-        .single();
+      const result = await getApplicationDetails(applicationId);
+      setApplication(result.application);
+      setUserMix(result.userMix);
+      setCurrentUserRole(result.currentUserRole);
+      setExistingBrandRating(result.existingBrandRating);
 
-      if (error) {
-        // Check if it's a table doesn't exist error
-        if (
-          error.message?.includes("relation") &&
-          error.message?.includes("does not exist")
-        ) {
-          console.warn(
-            "Applications table doesn't exist yet. Using demo data."
-          );
-          toast({
-            title: "Database Setup Required",
-            description:
-              "Applications table not found. Please create it in Supabase dashboard. Using demo data for now.",
-            variant: "destructive",
-          });
-        } else {
-          throw error;
-        }
-      } else if (data) {
-        // Fetch user's mix (primary attempt by uploaded_by)
-        let userMixData = null;
-        if (data.user_id) {
-          try {
-            const { data: mixData, error: mixError } = await supabase
-              .from("mixes")
-              .select("*")
-              .eq("uploaded_by", data.user_id)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle(); // Use maybeSingle() to handle zero results gracefully
-
-            if (mixError) {
-              console.error("Error fetching user mix (uploaded_by):", mixError);
-              console.error("Mix error details:", {
-                code: mixError.code,
-                message: mixError.message,
-                details: mixError.details,
-                hint: mixError.hint,
-              });
-            } else if (mixData) {
-              console.log("Found user mix by uploaded_by:", mixData);
-              userMixData = mixData;
-            } else {
-              console.log("No mix found by uploaded_by for user:", data.user_id);
-            }
-          } catch (mixErr) {
-            console.error("Exception fetching user mix (uploaded_by):", mixErr);
-          }
-
-          // Fallback attempt: some datasets might use user_id instead of uploaded_by
-          if (!userMixData) {
-            try {
-              const { data: altMixData, error: altMixError } = await supabase
-                .from("mixes")
-                .select("*")
-                // @ts-ignore fallback for schemas that use user_id instead of uploaded_by
-                .eq("user_id", data.user_id)
-                .order("created_at", { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-              if (altMixError) {
-                // It's possible this errors if column doesn't exist; log and move on
-                console.warn("Fallback mix lookup by user_id failed:", altMixError.message);
-              } else if (altMixData) {
-                console.log("Found user mix by user_id fallback:", altMixData);
-                userMixData = altMixData;
-              } else {
-                console.log("No mix found by user_id fallback for user:", data.user_id);
-              }
-            } catch (altErr) {
-              console.warn("Exception during fallback mix lookup (user_id):", altErr);
-            }
-          }
-        }
-
-        // Check if gig is completed and get existing ratings
-        const gigCompleted = (data as any).gig_completed || false;
-        
-        // Get current user role
-        const userProfile = await getCurrentUserProfile();
-        setCurrentUserRole(userProfile?.role || null);
-        
-        // Check for existing brand rating (DJ rating the brand)
-        let existingRating = null;
-        if (gigCompleted && (userProfile as any)?.role === "dj") {
-          const userId = await getCurrentUserId();
-          const { data: ratingData } = await (supabase.from as any)("ratings")
-            .select("*")
-            .eq("application_id", data.id)
-            .eq("rating_type", "brand_rating")
-            .eq("rater_id", userId)
-            .maybeSingle();
-          
-          existingRating = ratingData;
-          setExistingBrandRating(ratingData);
-        }
-
-        // Transform the data to match the expected format
-        const transformedApplication = {
-          id: data.id,
-          applicant: {
-            name: data.user_profiles?.dj_name || "Unknown",
-            avatar: data.user_profiles?.profile_image_url || "/person1.jpg", // Use actual profile image or fallback
-            location: data.user_profiles?.city || "Unknown",
-            genres: data.user_profiles?.genres || [],
-            email: data.user_profiles?.email || "Unknown",
-            bio: data.user_profiles?.bio || "No bio available",
-            instagram: data.user_profiles?.instagram || null,
-            soundcloud: data.user_profiles?.soundcloud || null,
-          },
-          opportunity: data.opportunities?.title || "Unknown Opportunity",
-          opportunityId: data.opportunity_id,
-          appliedDate: data.created_at
-            ? formatDate(data.created_at)
-            : "Unknown",
-          status: data.status || "pending",
-          coverLetter: data.message || "No cover letter provided",
-          userId: data.user_id,
-          gigCompleted: gigCompleted,
-          organizerId: data.opportunities?.organizer_id || null,
-        };
-
-        setApplication(transformedApplication);
-        setUserMix(userMixData);
-        setIsLoading(false);
-        return; // Exit early if successful
+      if (result.usedDemoFallback) {
+        toast({
+          title: "Database Setup Required",
+          description:
+            "Application data is unavailable in the current schema. Showing demo fallback data.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error fetching application:", error);
       toast({
         title: "Database Error",
-        description:
-          "Failed to load application from database. Using demo data.",
+        description: "Failed to load application.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    // Fallback to demo data
-    const applications = [
-      {
-        id: 1,
-        applicant: {
-          name: "Alex Thompson",
-          avatar: "/person1.jpg",
-          location: "London, UK",
-          genres: ["Techno", "House"],
-          email: "alex.thompson@email.com",
-          bio: "Passionate techno DJ with 3+ years of experience in underground venues across London.",
-          instagram: "https://instagram.com/alexthompson",
-          soundcloud: "https://soundcloud.com/alexthompson",
-        },
-        opportunity: "Underground Warehouse Rave",
-        opportunityId: 1,
-        appliedDate: "2024-01-15",
-        status: "pending",
-        coverLetter:
-          "I'm excited to apply for this opportunity. I have extensive experience playing techno sets in underground venues and would love to bring my energy to this event.",
-      },
-      {
-        id: 2,
-        applicant: {
-          name: "Maya Rodriguez",
-          avatar: "/person2.jpg",
-          location: "Berlin, Germany",
-          genres: ["Electronic", "Progressive"],
-          email: "maya.rodriguez@email.com",
-          bio: "Electronic music producer and DJ based in Berlin, specializing in progressive house and techno.",
-          instagram: "https://instagram.com/mayarodriguez",
-          soundcloud: "https://soundcloud.com/mayarodriguez",
-        },
-        opportunity: "Rooftop Summer Sessions",
-        opportunityId: 2,
-        appliedDate: "2024-01-18",
-        status: "approved",
-        coverLetter:
-          "As a Berlin-based DJ, I bring a unique perspective to house music. I'm excited about the opportunity to play at this rooftop venue.",
-      },
-      {
-        id: 3,
-        applicant: {
-          name: "James Chen",
-          avatar: "/person1.jpg",
-          location: "Amsterdam, Netherlands",
-          genres: ["Drum & Bass", "Dubstep"],
-          email: "james.chen@email.com",
-          bio: "Drum & Bass enthusiast with a passion for high-energy sets and crowd interaction.",
-          instagram: null,
-          soundcloud: "https://soundcloud.com/jcbeats",
-        },
-        opportunity: "Club Residency Audition",
-        opportunityId: 3,
-        appliedDate: "2024-01-20",
-        status: "rejected",
-        coverLetter:
-          "I'm applying for this residency opportunity to showcase my drum & bass skills and build a long-term relationship with the venue.",
-      },
-    ];
+  const handleStatusUpdate = async (
+    nextStatus: "approved" | "rejected"
+  ) => {
+    if (!application) return;
+    try {
+      setIsUpdatingStatus(true);
+      const result = await updateApplicationStatus(applicationId, nextStatus);
+      if (!result.ok) {
+        toast({
+          title: "Update Error",
+          description: result.message,
+          variant: "destructive",
+        });
+        return;
+      }
 
-    const foundApplication = applications.find(
-      (app) => app.id === parseInt(applicationId as string)
-    );
+      if (application.userId && application.opportunity) {
+        await createApplicationStatusNotification(
+          application.userId,
+          applicationId,
+          nextStatus,
+          application.opportunity
+        );
+      }
 
-    setApplication(foundApplication || applications[0]);
-    setIsLoading(false);
+      setApplication((prev: ApplicationDetails | null) =>
+        prev ? { ...prev, status: nextStatus } : prev
+      );
+      toast({
+        title: nextStatus === "approved" ? "Application Approved" : "Application Rejected",
+        description:
+          nextStatus === "approved"
+            ? "The application has been approved and the user has been notified."
+            : "The application has been rejected and the user has been notified.",
+      });
+    } catch (error) {
+      console.error(`Error updating application to ${nextStatus}:`, error);
+      toast({
+        title: "Error",
+        description: "Failed to update application. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   // Load application on component mount
   useEffect(() => {
     fetchApplication();
-  }, [applicationId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [applicationId, toast]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -457,6 +182,66 @@ export default function ApplicationDetailsPage() {
             {status}
           </Badge>
         );
+    }
+  };
+
+  const handleSubmitBrandRating = async () => {
+    if (!application || brandRating === 0) {
+      toast({
+        title: "Rating Required",
+        description: "Please provide a rating (1-5 stars) before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!application.organizerId) {
+      toast({
+        title: "Error",
+        description: "Missing organizer information for this application.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmittingRating(true);
+      const result = await submitBrandRating({
+        applicationId: application.id,
+        organizerId: application.organizerId,
+        stars: brandRating,
+        comment: brandRatingComment,
+      });
+
+      if (!result.ok) {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setExistingBrandRating({
+        stars: brandRating,
+        comment: brandRatingComment.trim() || null,
+      });
+      setBrandRatingDialogOpen(false);
+      setBrandRating(0);
+      setBrandRatingComment("");
+      toast({
+        title: "Rating Submitted",
+        description: `Thank you for rating your experience ${brandRating} stars!`,
+      });
+    } catch (error) {
+      console.error("Error submitting brand rating:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit rating. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingRating(false);
     }
   };
 
@@ -516,7 +301,8 @@ export default function ApplicationDetailsPage() {
               <Button
                 variant="outline"
                 className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-colors"
-                onClick={handleApprove}
+                onClick={() => handleStatusUpdate("approved")}
+                disabled={isUpdatingStatus}
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Approve
@@ -524,7 +310,8 @@ export default function ApplicationDetailsPage() {
               <Button
                 variant="outline"
                 className="text-red-600 hover:text-red-700"
-                onClick={handleReject}
+                onClick={() => handleStatusUpdate("rejected")}
+                disabled={isUpdatingStatus}
               >
                 <XCircle className="h-4 w-4 mr-2" />
                 Reject
@@ -855,7 +642,9 @@ export default function ApplicationDetailsPage() {
                 id="brand-rating-comment"
                 placeholder="Share your experience working with this brand..."
                 value={brandRatingComment}
-                onChange={(e) => setBrandRatingComment(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setBrandRatingComment(e.target.value)
+                }
                 className="bg-secondary border-border text-foreground min-h-[100px]"
                 maxLength={500}
               />
@@ -878,60 +667,12 @@ export default function ApplicationDetailsPage() {
               Cancel
             </Button>
             <Button
-              onClick={async () => {
-                if (!application || brandRating === 0) {
-                  toast({
-                    title: "Rating Required",
-                    description: "Please provide a rating (1-5 stars) before submitting.",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-
-                try {
-                  const userId = await getCurrentUserId();
-                  if (!userId || !application.organizerId) {
-                    throw new Error("Missing user or organizer information");
-                  }
-
-                  // Create brand rating
-                  const { error: ratingError } = await (supabase.from as any)("ratings")
-                    .insert({
-                      application_id: application.id,
-                      rater_id: userId,
-                      ratee_id: application.organizerId,
-                      rating_type: "brand_rating",
-                      stars: brandRating,
-                      comment: brandRatingComment.trim() || null,
-                    });
-
-                  if (ratingError) {
-                    throw ratingError;
-                  }
-
-                  toast({
-                    title: "Rating Submitted",
-                    description: `Thank you for rating your experience ${brandRating} stars!`,
-                  });
-
-                  setBrandRatingDialogOpen(false);
-                  setBrandRating(0);
-                  setBrandRatingComment("");
-                  fetchApplication(); // Refresh to show the rating
-                } catch (error) {
-                  console.error("Error submitting brand rating:", error);
-                  toast({
-                    title: "Error",
-                    description: "Failed to submit rating. Please try again.",
-                    variant: "destructive",
-                  });
-                }
-              }}
+              onClick={handleSubmitBrandRating}
               className="bg-brand-green text-brand-black hover:bg-brand-green/90"
-              disabled={brandRating === 0}
+              disabled={brandRating === 0 || isSubmittingRating}
             >
               <Star className="h-4 w-4 mr-2" />
-              Submit Rating
+              {isSubmittingRating ? "Submitting..." : "Submit Rating"}
             </Button>
           </DialogFooter>
         </DialogContent>

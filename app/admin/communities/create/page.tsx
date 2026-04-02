@@ -8,9 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Save, Upload } from "lucide-react";
-import { textStyles } from "@/lib/typography";
 import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Select,
@@ -19,29 +17,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  COMMUNITY_CREATE_LOCATION_OPTIONS,
+  type CommunityCreateLocation,
+} from "@/lib/communities/community-create-constants";
+import {
+  createCommunityWithSetup,
+  type CommunityCreateMode,
+} from "@/lib/communities/create-community";
 
-const COMMUNITY_LOCATION_OPTIONS = [
-  "Global",
-  "London",
-  "Manchester",
-  "Birmingham",
-  "Bristol",
-  "Berlin",
-  "Paris",
-  "New York",
-  "Los Angeles",
-  "Toronto",
-] as const;
-
-interface FormData {
+type CreateFormState = {
   name: string;
   description: string;
   imageUrl: string | null;
-  location: (typeof COMMUNITY_LOCATION_OPTIONS)[number];
-}
+  location: CommunityCreateLocation;
+};
 
 export default function CreateCommunityPage() {
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<CreateFormState>({
     name: "",
     description: "",
     imageUrl: null,
@@ -51,151 +44,66 @@ export default function CreateCommunityPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const validateForm = (): string | null => {
     if (!formData.name.trim()) {
-      toast({
-        title: "Error",
-        description: "Community name is required",
-        variant: "destructive",
-      });
-      return;
+      return "Community name is required";
     }
-
     if (!formData.location) {
+      return "Please choose a location for your community";
+    }
+    return null;
+  };
+
+  const runCreate = async (mode: CommunityCreateMode) => {
+    const validationError = validateForm();
+    if (validationError) {
       toast({
         title: "Error",
-        description: "Please choose a location for your community",
+        description: validationError,
         variant: "destructive",
       });
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-
-      // Get current user
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      console.log("Current user:", user?.id, user?.email);
-      console.log("User error:", userError);
-
-      if (userError || !user) {
-        console.error("Authentication failed:", userError);
-        toast({
-          title: "Error",
-          description: "You must be logged in to create a community",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Check if user exists in user_profiles table
-      const { data: userProfile, error: profileError } = await supabase
-        .from("user_profiles")
-        .select("id")
-        .eq("id", user.id)
-        .single();
-
-      console.log("User profile check:", { userProfile, profileError });
-
-      if (profileError || !userProfile) {
-        console.error("User profile not found:", profileError);
-        toast({
-          title: "Error",
-          description:
-            "User profile not found. Please complete your profile first.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create community
-      console.log("Creating community with data:", {
-        name: formData.name.trim(),
-        description: formData.description.trim() || null,
-        image_url: formData.imageUrl,
-        created_by: user.id,
-        member_count: 0,
-        location: formData.location,
+      const result = await createCommunityWithSetup({
+        form: formData,
+        mode,
       });
 
-      const { data, error } = await supabase
-        .from("communities")
-        .insert([
-          {
-            name: formData.name.trim(),
-            description: formData.description.trim() || null,
-            image_url: formData.imageUrl,
-            created_by: user.id,
-            member_count: 0,
-            location: formData.location,
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Error creating community:", error);
-        console.error("Error details:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        });
+      if (!result.ok) {
         toast({
           title: "Error",
-          description: `Failed to create community: ${error.message}`,
+          description: result.message,
           variant: "destructive",
         });
         return;
       }
 
-      console.log("Community created successfully:", data);
-
-      // Add creator as first member
-      const { error: memberError } = await supabase
-        .from("community_members")
-        .insert([
-          {
-            community_id: data.id,
-            user_id: user.id,
-            role: "admin",
-            joined_at: new Date().toISOString(),
-          },
-        ]);
-
-      if (memberError) {
-        console.error("Error adding creator as member:", memberError);
-        // Don't fail the whole operation for this
+      if (mode === "publish") {
+        if (result.memberSetupIssue) {
+          toast({
+            title: "Community created",
+            description: result.memberSetupIssue,
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Community created successfully!",
+          });
+        }
+        router.push(`/admin/communities/${result.communityId}`);
+        return;
       }
-
-      // Update member count
-      const { error: countError } = await supabase
-        .from("communities")
-        .update({ member_count: 1 })
-        .eq("id", data.id);
-
-      if (countError) {
-        console.error("Error updating member count:", countError);
-        // Don't fail the whole operation for this
-      }
-
-      console.log("Community fully created and configured in database");
 
       toast({
-        title: "Success",
-        description: "Community created successfully!",
+        title: "Draft saved",
+        description:
+          "The community is saved with no members yet. Open it from your list when you’re ready to finish setup.",
       });
-
-      // Redirect to the new community
-      router.push(`/admin/communities/${data.id}`);
-    } catch (error) {
-      console.error("Error:", error);
+      router.push("/admin/communities");
+    } catch {
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -206,98 +114,23 @@ export default function CreateCommunityPage() {
     }
   };
 
-  const handleSaveDraft = async () => {
-    if (!formData.name.trim()) {
-      toast({
-        title: "Error",
-        description: "Community name is required",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void runCreate("publish");
+  };
 
-    try {
-      setIsSubmitting(true);
-
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to create a community",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Check if user exists in user_profiles table
-      const { data: userProfile, error: profileError } = await supabase
-        .from("user_profiles")
-        .select("id")
-        .eq("id", user.id)
-        .single();
-
-      if (profileError || !userProfile) {
-        toast({
-          title: "Error",
-          description:
-            "User profile not found. Please complete your profile first.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { error } = await supabase.from("communities").insert([
-        {
-          name: formData.name.trim(),
-          description: formData.description.trim() || null,
-          image_url: formData.imageUrl,
-          created_by: user.id,
-          member_count: 0,
-          location: formData.location,
-        },
-      ]);
-
-      if (error) {
-        console.error("Error creating community:", error);
-        toast({
-          title: "Error",
-          description: "Failed to create community. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Community saved as draft",
-      });
-
-      router.push("/admin/communities");
-    } catch (error) {
-      console.error("Error:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleSaveDraft = () => {
+    void runCreate("draft");
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="space-y-8 p-6 animate-blur-in">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => router.back()}
               className="text-brand-white hover:bg-brand-green/10 hover:text-brand-green transition-all duration-300"
             >
@@ -316,7 +149,6 @@ export default function CreateCommunityPage() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Form */}
             <div className="lg:col-span-2 space-y-8">
               <Card className="bg-card border-border/50 backdrop-blur-sm shadow-2xl">
                 <CardHeader className="border-b border-border/30">
@@ -326,7 +158,10 @@ export default function CreateCommunityPage() {
                 </CardHeader>
                 <CardContent className="space-y-6 p-6">
                   <div className="space-y-3">
-                    <Label htmlFor="name" className="font-helvetica-bold helvetica-base text-brand-white">
+                    <Label
+                      htmlFor="name"
+                      className="font-helvetica-bold helvetica-base text-brand-white"
+                    >
                       Community Name *
                     </Label>
                     <Input
@@ -351,7 +186,10 @@ export default function CreateCommunityPage() {
                     <Select
                       value={formData.location}
                       onValueChange={(value) =>
-                        setFormData({ ...formData, location: value as FormData["location"] })
+                        setFormData({
+                          ...formData,
+                          location: value as CommunityCreateLocation,
+                        })
                       }
                     >
                       <SelectTrigger
@@ -361,7 +199,7 @@ export default function CreateCommunityPage() {
                         <SelectValue placeholder="Select community location" />
                       </SelectTrigger>
                       <SelectContent>
-                        {COMMUNITY_LOCATION_OPTIONS.map((option) => (
+                        {COMMUNITY_CREATE_LOCATION_OPTIONS.map((option) => (
                           <SelectItem key={option} value={option}>
                             {option}
                           </SelectItem>
@@ -405,14 +243,13 @@ export default function CreateCommunityPage() {
                     }
                     bucketName="communities"
                     folder="images"
-                    maxSize={5 * 1024 * 1024} // 5MB
+                    maxSize={5 * 1024 * 1024}
                     acceptedFormats={["image/jpeg", "image/png", "image/webp"]}
                   />
                 </CardContent>
               </Card>
             </div>
 
-            {/* Sidebar */}
             <div className="space-y-6">
               <Card className="bg-card border-border/50 backdrop-blur-sm shadow-2xl">
                 <CardHeader className="border-b border-border/30">
@@ -462,7 +299,8 @@ export default function CreateCommunityPage() {
                     <div className="flex items-start space-x-3">
                       <div className="w-2 h-2 bg-brand-green rounded-full mt-2 flex-shrink-0"></div>
                       <p className="font-helvetica-regular helvetica-sm text-muted-foreground">
-                        Choose a clear, descriptive name that represents your community
+                        Choose a clear, descriptive name that represents your
+                        community
                       </p>
                     </div>
                     <div className="flex items-start space-x-3">
@@ -474,13 +312,16 @@ export default function CreateCommunityPage() {
                     <div className="flex items-start space-x-3">
                       <div className="w-2 h-2 bg-brand-green rounded-full mt-2 flex-shrink-0"></div>
                       <p className="font-helvetica-regular helvetica-sm text-muted-foreground">
-                        Upload a distinctive image to make your community recognizable
+                        Upload a distinctive image to make your community
+                        recognizable
                       </p>
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-2 h-2 bg-brand-green rounded-full mt-2 flex-shrink-0"></div>
                       <p className="font-helvetica-regular helvetica-sm text-muted-foreground">
-                        You&apos;ll automatically become the first admin member
+                        Create Community adds you as the first admin and opens the
+                        space. Save as Draft only stores the listing (no membership
+                        yet).
                       </p>
                     </div>
                   </div>

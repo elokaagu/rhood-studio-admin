@@ -442,10 +442,10 @@ export async function listPortalApplications(
         opportunities(title, organizer_id),
         user_profiles(dj_name, first_name, last_name, city, genres, email)
       `);
+    /* user_id FK targets `users` in types, not user_profiles — embed would be a type/runtime error; profiles loaded below */
     let formResponsesQuery = supabase.from("application_form_responses").select(`
         *,
         opportunities(title, organizer_id),
-        user_profiles(dj_name, first_name, last_name, city, genres, email),
         application_forms(title)
       `);
 
@@ -467,9 +467,40 @@ export async function listPortalApplications(
       formResponsesQuery.order("submitted_at", { ascending: false }),
     ]);
 
+    const formRows = formResponsesResult.data ?? [];
+    const formUserIds = [
+      ...new Set(
+        formRows
+          .map((r) => r.user_id)
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+      ),
+    ];
+
+    const formUserProfileById = new Map<string, RawProfile>();
+    if (formUserIds.length > 0) {
+      const { data: profilesForForms } = await supabase
+        .from("user_profiles")
+        .select("id, dj_name, first_name, last_name, city, genres, email")
+        .in("id", formUserIds);
+
+      for (const p of profilesForForms ?? []) {
+        formUserProfileById.set(p.id, {
+          dj_name: p.dj_name,
+          first_name: p.first_name,
+          city: p.city,
+          genres: p.genres,
+        });
+      }
+    }
+
     const combined: ApplicationListItem[] = [
       ...(applicationsResult.data ?? []).map(mapSimpleApplication),
-      ...(formResponsesResult.data ?? []).map(mapFormResponse),
+      ...formRows.map((row) =>
+        mapFormResponse({
+          ...row,
+          user_profiles: formUserProfileById.get(row.user_id) ?? null,
+        } as RawFormResponse)
+      ),
     ];
 
     combined.sort((a, b) => {

@@ -281,20 +281,17 @@ export async function sendCommunityPost(params: {
   content: string;
   authorId: string;
 }): Promise<Result> {
-  const insertData: Record<string, unknown> = {
+  const insertPayload = {
     content: params.content.trim(),
     author_id: params.authorId,
+    community_id: params.selectedPrivateChatId ? null : params.communityId,
+    private_chat_id: params.selectedPrivateChatId ?? null,
   };
 
-  if (params.selectedPrivateChatId) {
-    insertData.private_chat_id = params.selectedPrivateChatId;
-    insertData.community_id = null;
-  } else {
-    insertData.community_id = params.communityId;
-    insertData.private_chat_id = null;
-  }
-
-  const { error } = await supabase.from("community_posts").insert([insertData]);
+  /* private_chat_id exists in DB but may be absent from generated Insert — satisfy .insert() */
+  const { error } = await supabase
+    .from("community_posts")
+    .insert(insertPayload as never);
 
   if (error) {
     return { ok: false, message: error.message };

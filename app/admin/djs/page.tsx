@@ -473,7 +473,7 @@ export default function DJsPage() {
                     {/* Avatar with Profile Image */}
                     <Avatar className="h-10 w-10 sm:h-12 sm:w-12 bg-brand-green flex-shrink-0">
                       <AvatarImage
-                        src={member.profileImageUrl}
+                        src={member.profileImageUrl ?? undefined}
                         alt={member.name}
                         className="object-cover"
                       />

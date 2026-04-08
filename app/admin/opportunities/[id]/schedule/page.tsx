@@ -5,8 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import LocationAutocomplete from "@/components/location-autocomplete";
 import {
   Select,
   SelectContent,
@@ -159,15 +161,11 @@ export default function ScheduleEventPage() {
                   <Calendar className="h-4 w-4 mr-2" />
                   Event Date
                 </Label>
-                <Input
-                  id="eventDate"
-                  type="date"
+                <RhoodDatePicker
                   value={formData.eventDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, eventDate: e.target.value })
+                  onChange={(value) =>
+                    setFormData({ ...formData, eventDate: value })
                   }
-                  className="bg-secondary border-border text-foreground"
-                  required
                 />
               </div>
 
@@ -176,14 +174,15 @@ export default function ScheduleEventPage() {
                   <MapPin className="h-4 w-4 mr-2" />
                   Venue
                 </Label>
-                <Input
+                <LocationAutocomplete
                   id="venue"
-                  placeholder="Event venue"
+                  placeholder="Search for a venue or address"
                   value={formData.venue}
-                  onChange={(e) =>
-                    setFormData({ ...formData, venue: e.target.value })
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, venue: value })
                   }
                   className="bg-secondary border-border text-foreground"
+                  country="gb"
                   required
                 />
               </div>
@@ -195,15 +194,11 @@ export default function ScheduleEventPage() {
                   <Clock className="h-4 w-4 mr-2" />
                   Start Time
                 </Label>
-                <Input
-                  id="startTime"
-                  type="time"
+                <RhoodTimePicker
                   value={formData.startTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startTime: e.target.value })
+                  onChange={(value) =>
+                    setFormData({ ...formData, startTime: value })
                   }
-                  className="bg-secondary border-border text-foreground"
-                  required
                 />
               </div>
 
@@ -212,15 +207,11 @@ export default function ScheduleEventPage() {
                   <Clock className="h-4 w-4 mr-2" />
                   End Time
                 </Label>
-                <Input
-                  id="endTime"
-                  type="time"
+                <RhoodTimePicker
                   value={formData.endTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, endTime: e.target.value })
+                  onChange={(value) =>
+                    setFormData({ ...formData, endTime: value })
                   }
-                  className="bg-secondary border-border text-foreground"
-                  required
                 />
               </div>
             </div>
@@ -241,14 +232,11 @@ export default function ScheduleEventPage() {
                   <Clock className="h-4 w-4 mr-2" />
                   Setup Time
                 </Label>
-                <Input
-                  id="setupTime"
-                  type="time"
+                <RhoodTimePicker
                   value={formData.setupTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, setupTime: e.target.value })
+                  onChange={(value) =>
+                    setFormData({ ...formData, setupTime: value })
                   }
-                  className="bg-secondary border-border text-foreground"
                 />
               </div>
 
@@ -257,14 +245,11 @@ export default function ScheduleEventPage() {
                   <Clock className="h-4 w-4 mr-2" />
                   Soundcheck Time
                 </Label>
-                <Input
-                  id="soundcheckTime"
-                  type="time"
+                <RhoodTimePicker
                   value={formData.soundcheckTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, soundcheckTime: e.target.value })
+                  onChange={(value) =>
+                    setFormData({ ...formData, soundcheckTime: value })
                   }
-                  className="bg-secondary border-border text-foreground"
                 />
               </div>
 

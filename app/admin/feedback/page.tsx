@@ -358,8 +358,10 @@ export default function FeedbackPage() {
           </CardHeader>
           <CardContent>
             {isLoadingList ? (
-              <div className="text-sm text-muted-foreground py-8 text-center">
-                Loading...
+              <div className="mx-auto w-full max-w-md space-y-3 py-4">
+                <div className="h-5 w-40 animate-pulse rounded-md bg-muted" />
+                <div className="h-20 w-full animate-pulse rounded-md bg-muted/70" />
+                <div className="h-20 w-full animate-pulse rounded-md bg-muted/50" />
               </div>
             ) : feedbackList.length === 0 ? (
               <div className="text-sm text-muted-foreground py-8 text-center">

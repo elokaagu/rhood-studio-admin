@@ -449,7 +449,11 @@ export default function MemberDetailsPage() {
     return (
       <div className="space-y-6">
         <div className="text-center py-8">
-          <p className={textStyles.body.regular}>Loading member...</p>
+          <div className="mx-auto w-full max-w-md space-y-3">
+            <div className="h-5 w-40 animate-pulse rounded-md bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/70" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/50" />
+          </div>
         </div>
       </div>
     );
@@ -638,7 +642,11 @@ export default function MemberDetailsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {isLoadingInviteCodes ? (
-                <p className={textStyles.body.regular}>Loading transactions...</p>
+                <div className="mx-auto w-full max-w-md space-y-3">
+            <div className="h-5 w-40 animate-pulse rounded-md bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/70" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/50" />
+          </div>
               ) : (
                 <div className="space-y-2">
                   {/* Show recent 5 transactions */}
@@ -669,7 +677,11 @@ export default function MemberDetailsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {isLoadingInviteCodes ? (
-                <p className={textStyles.body.regular}>Loading invite codes...</p>
+                <div className="mx-auto w-full max-w-md space-y-3">
+            <div className="h-5 w-40 animate-pulse rounded-md bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/70" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/50" />
+          </div>
               ) : inviteCodes.length === 0 ? (
                 <p className={`${textStyles.body.regular} text-muted-foreground`}>
                   This member hasn&apos;t used any invite codes.

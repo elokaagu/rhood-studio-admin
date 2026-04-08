@@ -457,7 +457,11 @@ function ApplicationsContent() {
       <div className="space-y-4">
         {isLoading ? (
           <div className="text-center py-8">
-            <p className={textStyles.body.regular}>Loading applications...</p>
+            <div className="mx-auto w-full max-w-md space-y-3">
+            <div className="h-5 w-40 animate-pulse rounded-md bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/70" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/50" />
+          </div>
           </div>
         ) : filteredApplications.length === 0 ? (
           <div className="text-center py-8">
@@ -665,7 +669,7 @@ function ApplicationsContent() {
 
 export default function ApplicationsPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="mx-auto mt-8 w-full max-w-md space-y-3"><div className="h-5 w-40 animate-pulse rounded-md bg-muted" /><div className="h-20 w-full animate-pulse rounded-md bg-muted/70" /></div>}>
       <ApplicationsContent />
     </Suspense>
   );

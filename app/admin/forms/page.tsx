@@ -279,7 +279,11 @@ export default function FormsPage() {
       <div className="space-y-4">
         {isLoading ? (
           <div className="text-center py-8">
-            <p className={textStyles.body.regular}>Loading briefs...</p>
+            <div className="mx-auto w-full max-w-md space-y-3">
+            <div className="h-5 w-40 animate-pulse rounded-md bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/70" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/50" />
+          </div>
           </div>
         ) : forms.length === 0 ? (
           <div className="text-center py-8">

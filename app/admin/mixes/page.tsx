@@ -1425,7 +1425,11 @@ export default function MixesPage() {
       <div className="space-y-4">
         {isLoading ? (
           <div className="text-center py-8">
-            <p className={textStyles.body.regular}>Loading mixes...</p>
+            <div className="mx-auto w-full max-w-md space-y-3">
+            <div className="h-5 w-40 animate-pulse rounded-md bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/70" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/50" />
+          </div>
           </div>
         ) : mixes.length === 0 ? (
           <div className="text-center py-12">
@@ -1644,7 +1648,11 @@ export default function MixesPage() {
           <div className="space-y-4 py-4">
             {isLoadingImages ? (
               <div className="text-center py-8">
-                <p className={textStyles.body.regular}>Loading images from storage...</p>
+                <div className="mx-auto w-full max-w-md space-y-3">
+            <div className="h-5 w-40 animate-pulse rounded-md bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/70" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/50" />
+          </div>
               </div>
             ) : storageImages.length === 0 ? (
               <div className="text-center py-8">

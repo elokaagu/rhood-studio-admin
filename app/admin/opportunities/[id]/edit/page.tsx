@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -653,7 +654,11 @@ export default function EditOpportunityPage() {
     return (
       <div className="space-y-6">
         <div className="text-center py-8">
-          <p className={textStyles.body.regular}>Loading opportunity...</p>
+          <div className="mx-auto w-full max-w-md space-y-3">
+            <div className="h-5 w-40 animate-pulse rounded-md bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/70" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/50" />
+          </div>
         </div>
       </div>
     );
@@ -862,15 +867,11 @@ export default function EditOpportunityPage() {
                     <Calendar className="h-4 w-4 mr-2" />
                     {formData.dateType === "range" ? "Start Date" : "Date"}
                   </Label>
-                  <Input
-                    id="date"
-                    type="date"
+                  <RhoodDatePicker
                     value={formData.date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, date: e.target.value })
+                    onChange={(value) =>
+                      setFormData({ ...formData, date: value })
                     }
-                    className="bg-secondary border-border text-foreground"
-                    required
                   />
                 </div>
 
@@ -883,15 +884,11 @@ export default function EditOpportunityPage() {
                       <Calendar className="h-4 w-4 mr-2" />
                       End Date
                     </Label>
-                    <Input
-                      id="endDate"
-                      type="date"
+                    <RhoodDatePicker
                       value={formData.endDate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, endDate: e.target.value })
+                      onChange={(value) =>
+                        setFormData({ ...formData, endDate: value })
                       }
-                      className="bg-secondary border-border text-foreground"
-                      required={formData.dateType === "range"}
                       min={formData.date}
                     />
                   </div>
@@ -907,15 +904,11 @@ export default function EditOpportunityPage() {
                     <Clock className="h-4 w-4 mr-2" />
                     Start Time
                   </Label>
-                  <Input
-                    id="time"
-                    type="time"
+                  <RhoodTimePicker
                     value={formData.time}
-                    onChange={(e) =>
-                      setFormData({ ...formData, time: e.target.value })
+                    onChange={(value) =>
+                      setFormData({ ...formData, time: value })
                     }
-                    className="bg-secondary border-border text-foreground"
-                    required
                   />
                 </div>
 
@@ -927,15 +920,11 @@ export default function EditOpportunityPage() {
                     <Clock className="h-4 w-4 mr-2" />
                     Finish Time
                   </Label>
-                  <Input
-                    id="endTime"
-                    type="time"
+                  <RhoodTimePicker
                     value={formData.endTime}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endTime: e.target.value })
+                    onChange={(value) =>
+                      setFormData({ ...formData, endTime: value })
                     }
-                    className="bg-secondary border-border text-foreground"
-                    required
                   />
                 </div>
               </div>

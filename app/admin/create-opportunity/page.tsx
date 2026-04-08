@@ -17,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
 import {
   createOpportunity,
   OPPORTUNITY_DESCRIPTION_MAX_LENGTH,
@@ -486,15 +487,11 @@ export default function CreateOpportunityPage() {
                     <Calendar className="h-4 w-4 mr-2" />
                     {formData.dateType === "range" ? "Start Date" : "Date"}
                   </Label>
-                  <Input
-                    id="date"
-                    type="date"
+                  <RhoodDatePicker
                     value={formData.date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, date: e.target.value })
+                    onChange={(value) =>
+                      setFormData({ ...formData, date: value })
                     }
-                    className="bg-secondary border-border text-foreground"
-                    required
                   />
                 </div>
 
@@ -507,15 +504,11 @@ export default function CreateOpportunityPage() {
                       <Calendar className="h-4 w-4 mr-2" />
                       End Date
                     </Label>
-                    <Input
-                      id="endDate"
-                      type="date"
+                    <RhoodDatePicker
                       value={formData.endDate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, endDate: e.target.value })
+                      onChange={(value) =>
+                        setFormData({ ...formData, endDate: value })
                       }
-                      className="bg-secondary border-border text-foreground"
-                      required={formData.dateType === "range"}
                       min={formData.date}
                     />
                   </div>
@@ -531,15 +524,11 @@ export default function CreateOpportunityPage() {
                     <Clock className="h-4 w-4 mr-2" />
                     Start Time
                   </Label>
-                  <Input
-                    id="time"
-                    type="time"
+                  <RhoodTimePicker
                     value={formData.time}
-                    onChange={(e) =>
-                      setFormData({ ...formData, time: e.target.value })
+                    onChange={(value) =>
+                      setFormData({ ...formData, time: value })
                     }
-                    className="bg-secondary border-border text-foreground"
-                    required
                   />
                 </div>
 
@@ -551,15 +540,11 @@ export default function CreateOpportunityPage() {
                     <Clock className="h-4 w-4 mr-2" />
                     Finish Time
                   </Label>
-                  <Input
-                    id="endTime"
-                    type="time"
+                  <RhoodTimePicker
                     value={formData.endTime}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endTime: e.target.value })
+                    onChange={(value) =>
+                      setFormData({ ...formData, endTime: value })
                     }
-                    className="bg-secondary border-border text-foreground"
-                    required
                   />
                 </div>
               </div>

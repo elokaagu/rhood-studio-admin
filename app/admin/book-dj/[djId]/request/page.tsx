@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -147,7 +148,11 @@ export default function BookingRequestPage() {
     return (
       <div className="space-y-6">
         <div className="text-center py-8">
-          <p className={textStyles.body.regular}>Loading...</p>
+          <div className="mx-auto w-full max-w-md space-y-3">
+            <div className="h-5 w-40 animate-pulse rounded-md bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/70" />
+            <div className="h-20 w-full animate-pulse rounded-md bg-muted/50" />
+          </div>
         </div>
       </div>
     );
@@ -290,15 +295,11 @@ export default function BookingRequestPage() {
                       <Calendar className="h-4 w-4 mr-2" />
                       Event Date *
                     </Label>
-                    <Input
-                      id="event_date"
-                      type="date"
+                    <RhoodDatePicker
                       value={formData.event_date}
-                      onChange={(e) =>
-                        setFormData({ ...formData, event_date: e.target.value })
+                      onChange={(value) =>
+                        setFormData({ ...formData, event_date: value })
                       }
-                      className="bg-secondary border-border text-foreground"
-                      required
                       min={new Date().toISOString().split("T")[0]}
                     />
                   </div>
@@ -329,15 +330,11 @@ export default function BookingRequestPage() {
                       <Clock className="h-4 w-4 mr-2" />
                       Start Time *
                     </Label>
-                    <Input
-                      id="event_time"
-                      type="time"
+                    <RhoodTimePicker
                       value={formData.event_time}
-                      onChange={(e) =>
-                        setFormData({ ...formData, event_time: e.target.value })
+                      onChange={(value) =>
+                        setFormData({ ...formData, event_time: value })
                       }
-                      className="bg-secondary border-border text-foreground"
-                      required
                     />
                   </div>
 
@@ -349,18 +346,14 @@ export default function BookingRequestPage() {
                       <Clock className="h-4 w-4 mr-2" />
                       End Time *
                     </Label>
-                    <Input
-                      id="event_end_time"
-                      type="time"
+                    <RhoodTimePicker
                       value={formData.event_end_time}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setFormData({
                           ...formData,
-                          event_end_time: e.target.value,
+                          event_end_time: value,
                         })
                       }
-                      className="bg-secondary border-border text-foreground"
-                      required
                     />
                   </div>
                 </div>

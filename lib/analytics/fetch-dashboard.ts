@@ -87,7 +87,12 @@ export async function fetchAnalyticsDashboardData(): Promise<AnalyticsDashboardD
     supabase.from("user_profiles").select("id").gte("updated_at", todayIso),
     supabase.from("user_profiles").select("id, first_name, last_name, dj_name"),
     supabase.from("ai_matching_feedback").select("user_id, rating"),
-    supabase.from("applications").select("user_id"),
+    // `gig_completed` exists in runtime schema but may be missing from generated types.
+    (supabase as any)
+      .from("applications")
+      .select("user_id")
+      .eq("status", "approved")
+      .eq("gig_completed", true),
   ]);
 
   const membersData = membersCreatedRes.data ?? [];

@@ -8,10 +8,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
 import { textStyles } from "@/lib/typography";
 import { formatDateShort } from "@/lib/date-utils";
+import {
+  listFeedback,
+  submitFeedback,
+  updateFeedbackStatus,
+  TYPE_OPTIONS,
+  SEVERITY_OPTIONS,
+  STATUS_OPTIONS,
+  type FeedbackItem,
+  type FeedbackSeverity,
+  type FeedbackStatus,
+  type FeedbackType,
+} from "@/lib/feedback/service";
 import {
   Select,
   SelectContent,
@@ -29,46 +40,6 @@ import {
   ExternalLink,
   User,
 } from "lucide-react";
-
-type FeedbackType = "bug" | "confusing" | "slow" | "unclear";
-type FeedbackSeverity = "stopper" | "annoying" | "minor";
-type FeedbackStatus = "to_do" | "in_progress" | "done";
-
-interface FeedbackItem {
-  id: string;
-  issue_title: string;
-  type: FeedbackType;
-  severity: FeedbackSeverity;
-  where_it_happens: string | null;
-  steps_to_reproduce: string | null;
-  screenshot_link: string | null;
-  owner_id: string | null;
-  status: FeedbackStatus;
-  submitted_by: string | null;
-  created_at: string;
-  updated_at: string;
-  submitter?: { first_name?: string; last_name?: string; email?: string };
-  owner?: { first_name?: string; last_name?: string; email?: string };
-}
-
-const TYPE_OPTIONS: { value: FeedbackType; label: string }[] = [
-  { value: "bug", label: "Bug" },
-  { value: "confusing", label: "Confusing" },
-  { value: "slow", label: "Slow" },
-  { value: "unclear", label: "Unclear" },
-];
-
-const SEVERITY_OPTIONS: { value: FeedbackSeverity; label: string }[] = [
-  { value: "stopper", label: "Stopper" },
-  { value: "annoying", label: "Annoying" },
-  { value: "minor", label: "Minor" },
-];
-
-const STATUS_OPTIONS: { value: FeedbackStatus; label: string }[] = [
-  { value: "to_do", label: "To do" },
-  { value: "in_progress", label: "In progress" },
-  { value: "done", label: "Done" },
-];
 
 export default function FeedbackPage() {
   const { toast } = useToast();
@@ -101,37 +72,16 @@ export default function FeedbackPage() {
   const fetchFeedback = useCallback(async () => {
     setIsLoadingList(true);
     try {
-      let query = (supabase as any)
-        .from("feedback")
-        .select(
-          `
-          *,
-          submitter:user_profiles!feedback_submitted_by_fkey(first_name, last_name, email),
-          owner:user_profiles!feedback_owner_id_fkey(first_name, last_name, email)
-        `
-        )
-        .order("created_at", { ascending: false });
-
-      if (!isAdmin && userId) {
-        query = query.eq("submitted_by", userId);
+      const result = await listFeedback({ isAdmin, userId });
+      if (!result.ok) {
+        throw new Error(result.message);
       }
-
-      const { data, error } = await query;
-
-      if (error) {
-        if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
-          setFeedbackList([]);
-          return;
-        }
-        throw error;
-      }
-
-      setFeedbackList((data as FeedbackItem[]) || []);
-    } catch (err: any) {
-      console.error("Error fetching feedback:", err);
+      setFeedbackList(result.items);
+    } catch (err) {
       toast({
         title: "Error",
-        description: err.message || "Failed to load feedback",
+        description:
+          err instanceof Error ? err.message : "Failed to load feedback",
         variant: "destructive",
       });
       setFeedbackList([]);
@@ -168,20 +118,18 @@ export default function FeedbackPage() {
 
     setIsSubmitting(true);
     try {
-      const { error } = await (supabase as any).from("feedback").insert([
-        {
-          issue_title: formData.issue_title.trim(),
-          type: formData.type,
-          severity: formData.severity,
-          where_it_happens: formData.where_it_happens.trim() || null,
-          steps_to_reproduce: formData.steps_to_reproduce.trim() || null,
-          screenshot_link: formData.screenshot_link.trim() || null,
-          submitted_by: userId,
-          status: "to_do",
-        },
-      ]);
-
-      if (error) throw error;
+      const result = await submitFeedback({
+        userId,
+        issue_title: formData.issue_title,
+        type: formData.type,
+        severity: formData.severity,
+        where_it_happens: formData.where_it_happens,
+        steps_to_reproduce: formData.steps_to_reproduce,
+        screenshot_link: formData.screenshot_link,
+      });
+      if (!result.ok) {
+        throw new Error(result.message);
+      }
 
       toast({
         title: "Feedback submitted",
@@ -198,11 +146,11 @@ export default function FeedbackPage() {
       });
 
       fetchFeedback();
-    } catch (err: any) {
-      console.error("Error submitting feedback:", err);
+    } catch (err) {
       toast({
         title: "Error",
-        description: err.message || "Failed to submit feedback",
+        description:
+          err instanceof Error ? err.message : "Failed to submit feedback",
         variant: "destructive",
       });
     } finally {
@@ -212,18 +160,15 @@ export default function FeedbackPage() {
 
   const handleStatusChange = async (id: string, status: FeedbackStatus) => {
     try {
-      const { error } = await (supabase as any)
-        .from("feedback")
-        .update({ status })
-        .eq("id", id);
-
-      if (error) throw error;
+      const result = await updateFeedbackStatus({ id, status });
+      if (!result.ok) throw new Error(result.message);
       toast({ title: "Status updated" });
       fetchFeedback();
-    } catch (err: any) {
+    } catch (err) {
       toast({
         title: "Error",
-        description: err.message || "Failed to update status",
+        description:
+          err instanceof Error ? err.message : "Failed to update status",
         variant: "destructive",
       });
     }

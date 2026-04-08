@@ -198,7 +198,7 @@ export async function fetchAnalyticsDashboardData(): Promise<AnalyticsDashboardD
   });
 
   const gigsMap = new Map<string, number>();
-  (allApplicationsRes.data ?? []).forEach((application) => {
+  (allApplicationsRes.data ?? []).forEach((application: { user_id: string | null }) => {
     if (!application.user_id) return;
     gigsMap.set(application.user_id, (gigsMap.get(application.user_id) ?? 0) + 1);
   });

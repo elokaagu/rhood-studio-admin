@@ -1,228 +1,90 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUserProfile } from "@/lib/auth-utils";
+import { getCurrentUserId } from "@/lib/auth-utils";
+import {
+  fetchLeaderboardAllTime,
+  fetchLeaderboardForYear,
+  leaderboardDisplayName,
+  type LeaderboardEntry,
+} from "@/lib/leaderboard/fetch-leaderboard";
 import {
   Star,
   Search,
 } from "lucide-react";
 
-interface LeaderboardEntry {
-  user_id: string;
-  dj_name: string | null;
-  brand_name: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  email: string;
-  total_credits: number;
-  rank_position: number;
-  role?: string | null;
-}
-
 export default function LeaderboardPage() {
   const { toast } = useToast();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null); // Default to "All Time"
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      const profile = await getCurrentUserProfile();
-      setUserProfile(profile);
+    let cancelled = false;
+    (async () => {
+      const id = await getCurrentUserId();
+      if (!cancelled) setCurrentUserId(id);
+    })();
+    return () => {
+      cancelled = true;
     };
-    fetchUserProfile();
   }, []);
 
-  const fetchLeaderboard = async (year: number | null) => {
-    try {
+  const loadLeaderboard = useCallback(
+    async (year: number | null) => {
       setIsLoading(true);
-      
-      // Use direct query to show all users with credits (including admins)
-      // This ensures we see everyone who has credits in the system
-      await fetchLeaderboardFallback(year);
-    } catch (error: any) {
-      console.error("Error fetching leaderboard:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to load leaderboard. Please try again.",
-        variant: "destructive",
-      });
-      setLeaderboard([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      try {
+        const result =
+          year === null
+            ? await fetchLeaderboardAllTime()
+            : await fetchLeaderboardForYear(year);
 
-  // Fallback query if RPC function doesn't exist yet
-  const fetchLeaderboardFallback = async (year: number | null) => {
-    try {
-      console.log("Using fallback query to fetch leaderboard directly from database");
-      
-      // Query credits directly from user_profiles table
-      // Filter to only show DJs (exclude brands)
-      // @ts-ignore - credits column may not exist yet
-      let query: any = (supabase as any)
-        .from("user_profiles")
-        .select("id, dj_name, brand_name, first_name, last_name, email, credits, role")
-        .or("role.is.null,role.neq.brand")
-        .neq("role", "brand");
-      
-      // Show only DJs with credits (exclude brands and admins from leaderboard)
-      // Brands should not appear in the DJ leaderboard
-      
-      // Order by credits descending, nulls last
-      // @ts-ignore - credits column may not exist yet
-      query = query.order("credits", { ascending: false, nullsFirst: false });
-      
-      // Limit results
-      query = query.limit(100);
-      
-      const { data: profiles, error } = await query;
-      
-      console.log("Fallback query result:", { 
-        profilesCount: profiles?.length, 
-        error,
-        sampleProfile: profiles?.[0] 
-      });
-
-      if (error) {
-        console.error("Query error details:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
-        
-        // If credits column doesn't exist, return empty array
-        if (error.code === '42703' || error.message?.includes('column "credits" does not exist')) {
-          console.warn("Credits column doesn't exist yet - migration needed");
+        if (!result.ok) {
+          setLeaderboard([]);
           toast({
-            title: "Migration Required",
-            description: "Please run the credits system migration (20250114000000_create_credits_system.sql) in Supabase to enable the leaderboard.",
+            title: "Error",
+            description: result.message,
             variant: "destructive",
           });
-          setLeaderboard([]);
           return;
         }
-        
-        // If it's a schema cache error
-        if (error.code === 'PGRST205') {
-          console.warn("Schema cache error - table not found in cache");
-          toast({
-            title: "Schema Cache Error",
-            description: "The database schema cache needs to be refreshed. Please contact an administrator or wait a few minutes and refresh the page.",
-            variant: "destructive",
-          });
-          setLeaderboard([]);
-          return;
-        }
-        
-        throw error;
-      }
 
-      // Log all profiles and their credits for debugging
-      console.log("All profiles fetched:", profiles?.map((p: any) => ({
-        id: p.id,
-        email: p.email,
-        credits: p.credits,
-        creditsType: typeof p.credits
-      })));
-
-      // Transform to leaderboard format and filter out:
-      // 1. Users with 0 or null credits
-      // 2. Brands (role = 'brand') - double check to be safe
-      const validProfiles = (profiles || []).filter((profile: any) => {
-        // Exclude brands
-        if (profile.role === 'brand') {
-          console.log(`Excluding brand: ${profile.email}`);
-          return false;
-        }
-        
-        // Only include users with credits > 0
-        const credits = profile.credits ?? 0;
-        const hasCredits = credits > 0;
-        console.log(`Profile ${profile.email}: role=${profile.role}, credits=${credits}, hasCredits=${hasCredits}`);
-        return hasCredits;
-      });
-      
-      console.log(`Found ${validProfiles.length} users with credits out of ${profiles?.length || 0} total profiles`);
-      
-      // Show helpful message if we got profiles but none have credits
-      if ((profiles || []).length > 0 && validProfiles.length === 0) {
-        console.warn("No users with credits > 0 found. All profiles have 0 or null credits.");
+        setLeaderboard(result.entries);
+      } catch (err) {
+        setLeaderboard([]);
         toast({
-          title: "No Credits Found",
-          description: `Found ${profiles.length} users but none have credits yet. Credits need to be assigned to users first.`,
-          variant: "default",
+          title: "Error",
+          description:
+            err instanceof Error ? err.message : "Failed to load leaderboard.",
+          variant: "destructive",
         });
+      } finally {
+        setIsLoading(false);
       }
-      
-      const entries: LeaderboardEntry[] = validProfiles.map((profile: any, index: number) => ({
-        user_id: profile.id,
-        dj_name: profile.dj_name,
-        brand_name: profile.brand_name,
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        email: profile.email,
-        total_credits: profile.credits ?? 0,
-        rank_position: index + 1,
-        role: profile.role || null,
-      }));
-
-      // If filtering by year, we can't do it without the function
-      // So we'll just show all-time for now (silently, no notification)
-      // The RPC function should handle year filtering when available
-      
-      setLeaderboard(entries);
-    } catch (error: any) {
-      console.error("Error in fallback leaderboard query:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to load leaderboard. Please run the credits system migration.",
-        variant: "destructive",
-      });
-      setLeaderboard([]);
-    }
-  };
+    },
+    [toast]
+  );
 
   useEffect(() => {
-    fetchLeaderboard(selectedYear);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear]);
+    loadLeaderboard(selectedYear);
+  }, [selectedYear, loadLeaderboard]);
 
-  const getDisplayName = (entry: LeaderboardEntry) => {
-    return (
-      entry.dj_name ||
-      entry.brand_name ||
-      `${entry.first_name || ""} ${entry.last_name || ""}`.trim() ||
-      entry.email
-    );
-  };
-
-  // Filter leaderboard based on search term
   const filteredLeaderboard = useMemo(() => {
     if (!searchTerm.trim()) {
       return leaderboard;
     }
 
     const searchLower = searchTerm.toLowerCase().trim();
-    return leaderboard.filter((entry) => {
-      // Get all searchable fields
-      const displayName = (
-        entry.dj_name ||
-        entry.brand_name ||
-        `${entry.first_name || ""} ${entry.last_name || ""}`.trim() ||
-        entry.email
-      ).toLowerCase();
+    return leaderboard.filter((entry: LeaderboardEntry) => {
+      const displayName = leaderboardDisplayName(entry).toLowerCase();
       const email = entry.email.toLowerCase();
       const djName = (entry.dj_name || "").toLowerCase();
       const brandName = (entry.brand_name || "").toLowerCase();
@@ -246,47 +108,52 @@ export default function LeaderboardPage() {
 
   return (
     <div className="space-y-6 animate-blur-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className={`${textStyles.headline.section} text-xl sm:text-2xl md:text-3xl`}>
             Credits Leaderboard
           </h1>
           <p className={`${textStyles.body.regular} text-sm sm:text-base mt-1`}>
-            Top DJs ranked by credits earned
+            Top DJs ranked by credits earned (brands excluded). Admins with credits may appear and are labeled.
           </p>
         </div>
 
-        {/* Year Selector */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant={selectedYear === null ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedYear(null)}
-            className="text-xs sm:text-sm"
-          >
-            All Time
-          </Button>
-          <Button
-            variant={selectedYear === currentYear ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedYear(currentYear)}
-            className="text-xs sm:text-sm"
-          >
-            {currentYear}
-          </Button>
+        <div className="flex flex-col items-stretch sm:items-end gap-1">
+          <div className="flex items-center gap-2">
+            <Button
+              variant={selectedYear === null ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedYear(null)}
+              className="text-xs sm:text-sm"
+            >
+              All Time
+            </Button>
+            <Button
+              variant={selectedYear === currentYear ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedYear(currentYear)}
+              className="text-xs sm:text-sm"
+            >
+              {currentYear}
+            </Button>
+          </div>
+          {selectedYear !== null && (
+            <p className="text-xs text-muted-foreground max-w-xs text-right">
+              Ranks by credits earned in {selectedYear} (summed from credit transactions).
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Leaderboard List */}
       <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle className={textStyles.subheading.small}>
-              {selectedYear ? `${selectedYear} Leaderboard` : "All-Time Leaderboard"}
+              {selectedYear
+                ? `${selectedYear} leaderboard (credits earned this year)`
+                : "All-time leaderboard"}
             </CardTitle>
-            
-            {/* Search Bar */}
+
             <div className="relative w-full sm:w-auto sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -302,13 +169,15 @@ export default function LeaderboardPage() {
           {isLoading ? (
             <div className="text-center py-8">
               <div className="flex items-center justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green border-t-transparent" />
-          </div>
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green border-t-transparent" />
+              </div>
             </div>
           ) : leaderboard.length === 0 ? (
             <div className="text-center py-8">
               <p className={textStyles.body.regular}>
-                No data available for {selectedYear || "all-time"}.
+                {selectedYear === null
+                  ? "No leaderboard data yet. Credits need to be recorded on profiles."
+                  : `No credits recorded for ${selectedYear} yet, or transactions are not set up.`}
               </p>
             </div>
           ) : filteredLeaderboard.length === 0 ? (
@@ -319,8 +188,8 @@ export default function LeaderboardPage() {
             </div>
           ) : (
             <div className="space-y-2 stagger-children">
-              {filteredLeaderboard.map((entry, index) => {
-                const isCurrentUser = userProfile?.id === entry.user_id;
+              {filteredLeaderboard.map((entry: LeaderboardEntry) => {
+                const isCurrentUser = currentUserId === entry.user_id;
                 return (
                   <div
                     key={entry.user_id}
@@ -341,14 +210,14 @@ export default function LeaderboardPage() {
                               isCurrentUser ? "text-brand-green" : "text-foreground"
                             }`}
                           >
-                            {getDisplayName(entry)}
+                            {leaderboardDisplayName(entry)}
                           </h3>
                           {isCurrentUser && (
                             <Badge variant="outline" className="border-brand-green text-brand-green text-xs">
                               You
                             </Badge>
                           )}
-                          {entry.role === 'admin' && (
+                          {entry.role === "admin" && (
                             <Badge variant="outline" className="text-xs">
                               Admin
                             </Badge>
@@ -369,17 +238,16 @@ export default function LeaderboardPage() {
         </CardContent>
       </Card>
 
-      {/* Top 10 Rewards Info */}
       {selectedYear === currentYear && (
         <Card className="bg-card border-border border-brand-green/20">
           <CardHeader>
             <CardTitle className={textStyles.subheading.small}>
-              Year-End Rewards
+              Year-end rewards
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className={`${textStyles.body.regular} mb-3`}>
-              The top 10 DJs at the end of {currentYear} will receive special rewards:
+              The top 10 DJs at the end of {currentYear} (by credits earned this calendar year) are eligible for special rewards:
             </p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
@@ -405,4 +273,3 @@ export default function LeaderboardPage() {
     </div>
   );
 }
-

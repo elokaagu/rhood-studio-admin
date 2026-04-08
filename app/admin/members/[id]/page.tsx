@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/date-utils";
-import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft,
   Mail,
@@ -17,13 +16,11 @@ import {
   Calendar,
   Music,
   Star,
-  User,
   Edit,
   Trash2,
   MoreVertical,
   Key,
   CheckCircle,
-  Clock,
   Coins,
 } from "lucide-react";
 import {
@@ -40,365 +37,89 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { deleteAdminMemberAction } from "@/actions/admin-members";
+import {
+  creatorLabelFromInviteCode,
+  fetchAdminMemberProfile,
+  socialUrlForPlatform,
+  type AdminMemberInviteCodeRow,
+  type AdminMemberProfileView,
+} from "@/lib/admin/members/member-profile";
 
 export default function MemberDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const memberId = params.id;
+  const memberId = params.id as string;
   const { toast } = useToast();
-  const [member, setMember] = useState<any>(null);
+  const [member, setMember] = useState<AdminMemberProfileView | null>(null);
+  const [inviteCodes, setInviteCodes] = useState<AdminMemberInviteCodeRow[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
-  const [inviteCodes, setInviteCodes] = useState<any[]>([]);
-  const [isLoadingInviteCodes, setIsLoadingInviteCodes] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<{
     id: string;
     name: string;
   } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch member from database
-  const fetchMember = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("id", memberId as string)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        // Calculate gigs from completed gigs (brand-confirmed)
-        let gigsCount = 0;
-        try {
-          const { count, error: countError } = await supabase
-            .from("applications")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", data.id)
-            .eq("status", "approved")
-            .eq("gig_completed", true);
-
-          if (!countError && count !== null) {
-            gigsCount = count;
-          }
-        } catch (gigsErr) {
-          console.warn("Could not fetch gigs count:", gigsErr);
-        }
-
-        // Calculate rating from ai_matching_feedback table
-        let rating = 0.0;
-        try {
-          const { data: feedbackData, error: ratingError } = await supabase
-            .from("ai_matching_feedback")
-            .select("rating")
-            .eq("user_id", data.id);
-
-          if (!ratingError && feedbackData && feedbackData.length > 0) {
-            const totalRating = feedbackData.reduce(
-              (sum, feedback) => sum + (feedback.rating || 0),
-              0
-            );
-            rating = Math.round((totalRating / feedbackData.length) * 10) / 10;
-          }
-        } catch (ratingErr) {
-          console.warn("Could not fetch rating:", ratingErr);
-        }
-
-        // Transform the data to match the expected format
-        const transformedMember = {
-          id: data.id,
-          role: data.role || null,
-          name:
-            data.dj_name ||
-            data.brand_name ||
-            `${data.first_name} ${data.last_name}` ||
-            "Unknown",
-          brandName: data.brand_name || null,
-          email: data.email || "No email",
-          location: data.city || "Unknown",
-          joinDate: data.created_at
-            ? (() => {
-                const formatted = formatDate(data.created_at);
-                return formatted === "Invalid Date" ? "Unknown" : formatted;
-              })()
-            : "Unknown",
-          genres: data.genres || [],
-          status: "active", // Default to active since is_active field doesn't exist in schema
-          gigs: gigsCount,
-          bio: data.bio || "No bio available",
-          phone: "No phone", // Phone field doesn't exist in database schema
-          profileImageUrl: data.profile_image_url, // Add profile image URL
-          rating: rating,
-          credits: (data as any).credits || 0,
-          socialLinks: {
-            instagram: data.instagram || "",
-            soundcloud: data.soundcloud || "",
-          },
-        };
-
-        setMember(transformedMember);
-        setIsLoading(false);
-        return; // Exit early if successful
-      }
-    } catch (error) {
-      console.error("Error fetching member:", error);
-      toast({
-        title: "Database Error",
-        description: "Failed to load member from database. Using demo data.",
-        variant: "destructive",
-      });
-    }
-
-    // Fallback to demo data
-    const members = [
-      {
-        id: 1,
-        name: "Eloka Agu",
-        email: "eloka.agu@icloud.com",
-        location: "San Francisco",
-        joinDate: "22nd September 2025",
-        genres: ["HOUSE", "DRUM & BASS"],
-        status: "active",
-        gigs: 0,
-        rating: 0.0,
-        bio: "Passionate DJ and producer with 5+ years of experience in electronic music.",
-        phone: "+1 (555) 123-4567",
-        socialLinks: {
-          instagram: "@elokaagu",
-          soundcloud: "elokaagu",
-        },
-      },
-      {
-        id: 2,
-        name: "Elijah",
-        email: "placeholder_bb5bfd41-2512-4260-a9e5-e3d5b64999d9@example.com",
-        location: "Los Angeles",
-        joinDate: "10th September 2025",
-        genres: ["TECHNO"],
-        status: "active",
-        gigs: 0,
-        rating: 0.0,
-        bio: "Techno enthusiast and underground scene advocate.",
-        phone: "+1 (555) 987-6543",
-        socialLinks: {
-          instagram: "@elijah_techno",
-        },
-      },
-      {
-        id: 3,
-        name: "Eloka",
-        email: "placeholder_af60c46a-6a04-4b1d-b0cb-1313c7adaeb0@example.com",
-        location: "Miami",
-        joinDate: "9th September 2025",
-        genres: ["TECHNO", "TECH HOUSE"],
-        status: "active",
-        gigs: 0,
-        rating: 0.0,
-        bio: "Miami-based DJ specializing in tech house and techno.",
-        phone: "+1 (555) 456-7890",
-        socialLinks: {
-          instagram: "@eloka_miami",
-          twitter: "@eloka_dj",
-        },
-      },
-    ];
-
-    const foundMember = members.find(
-      (mem) => mem.id === parseInt(memberId as string)
-    );
-
-    setMember(foundMember || members[0]);
-    setIsLoading(false);
-  };
-
-  // Fetch invite codes used by this member
-  const fetchInviteCodes = async () => {
+  const loadProfile = useCallback(async () => {
     if (!memberId) return;
-    
-    try {
-      setIsLoadingInviteCodes(true);
-      const { data, error } = await supabase
-        .from("invite_codes")
-        .select(
-          `
-          *,
-          created_by_profile:user_profiles!invite_codes_created_by_fkey(dj_name, first_name, last_name, brand_name, email)
-        `
-        )
-        .eq("used_by", memberId as string)
-        .order("used_at", { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      setInviteCodes(data || []);
-    } catch (error) {
-      console.error("Error fetching invite codes:", error);
-      // Don't show toast for invite codes error, just log it
-    } finally {
-      setIsLoadingInviteCodes(false);
+    setIsLoading(true);
+    setLoadError(null);
+    const result = await fetchAdminMemberProfile(memberId);
+    if (!result.ok) {
+      setMember(null);
+      setInviteCodes([]);
+      setLoadError(result.message);
+      setIsLoading(false);
+      return;
     }
-  };
+    setMember(result.member);
+    setInviteCodes(result.inviteCodes);
+    setIsLoading(false);
+  }, [memberId]);
 
-  // Load member on component mount
   useEffect(() => {
-    fetchMember();
-  }, [memberId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Fetch invite codes when member is loaded
-  useEffect(() => {
-    if (member?.id) {
-      fetchInviteCodes();
-    }
-  }, [member?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    loadProfile();
+  }, [loadProfile]);
 
   const handleDelete = () => {
     if (member) {
-      setMemberToDelete({ id: memberId as string, name: member.name });
+      setMemberToDelete({ id: memberId, name: member.name });
       setDeleteModalOpen(true);
     }
   };
 
   const confirmDelete = async () => {
     if (!memberToDelete) return;
-
+    setIsDeleting(true);
     try {
-      console.log("Deleting member:", memberToDelete.id, memberToDelete.name);
-
-      // Direct deletion approach - handle foreign key constraints step by step
-      console.log("Starting step-by-step deletion...");
-
-      // Step 1: Delete from community_members
-      const { error: communityMembersError } = await supabase
-        .from("community_members")
-        .delete()
-        .eq("user_id", memberToDelete.id);
-
-      if (communityMembersError) {
-        console.error(
-          "Error deleting community members:",
-          communityMembersError
-        );
-      }
-
-      // Step 2: Delete from messages
-      const { error: messagesError } = await supabase
-        .from("messages")
-        .delete()
-        .eq("sender_id", memberToDelete.id);
-
-      if (messagesError) {
-        console.error("Error deleting messages:", messagesError);
-      }
-
-      // Step 3: Delete from applications
-      const { error: applicationsError } = await supabase
-        .from("applications")
-        .delete()
-        .eq("user_id", memberToDelete.id);
-
-      if (applicationsError) {
-        console.error("Error deleting applications:", applicationsError);
-      }
-
-      // Delete from message_threads table (this was causing constraint errors)
-      const { error: messageThreadsError1 } = await supabase
-        .from("message_threads" as any)
-        .delete()
-        .eq("participant_1", memberToDelete.id);
-
-      if (messageThreadsError1) {
-        console.error(
-          "Error deleting message_threads (participant_1):",
-          messageThreadsError1
-        );
-      }
-
-      const { error: messageThreadsError2 } = await supabase
-        .from("message_threads" as any)
-        .delete()
-        .eq("participant_2", memberToDelete.id);
-
-      if (messageThreadsError2) {
-        console.error(
-          "Error deleting message_threads (participant_2):",
-          messageThreadsError2
-        );
-      }
-
-      // Step 4: Delete from connections (both directions)
-      const { error: followerError } = await supabase
-        .from("connections" as any)
-        .delete()
-        .eq("follower_id", memberToDelete.id);
-
-      if (followerError) {
-        console.error("Error deleting follower connections:", followerError);
-      }
-
-      const { error: followingError } = await supabase
-        .from("connections" as any)
-        .delete()
-        .eq("following_id", memberToDelete.id);
-
-      if (followingError) {
-        console.error("Error deleting following connections:", followingError);
-      }
-
-      // Step 5: Delete user profile
-      const { data: deletedData, error: userProfileError } = await supabase
-        .from("user_profiles")
-        .delete()
-        .eq("id", memberToDelete.id)
-        .select();
-
-      if (userProfileError) {
-        console.error("Error deleting user profile:", userProfileError);
-        throw userProfileError;
-      }
-
-      console.log("Deletion completed successfully:", deletedData);
-
-      toast({
-        title: "Member Deleted",
-        description: `"${memberToDelete.name}" has been deleted successfully.`,
-      });
-
-      // Verify deletion by checking if member still exists
-      const { data: verifyData, error: verifyError } = await supabase
-        .from("user_profiles")
-        .select("id")
-        .eq("id", memberToDelete.id)
-        .single();
-
-      if (verifyError && verifyError.code === "PGRST116") {
-        // Member not found - deletion successful
-        console.log("Deletion verified: Member no longer exists");
-        // Redirect to members list
-        router.push("/admin/members");
-      } else if (verifyData) {
-        // Member still exists - deletion failed
-        console.log("Deletion failed: Member still exists", verifyData);
+      const result = await deleteAdminMemberAction(memberToDelete.id);
+      if (!result.ok) {
         toast({
-          title: "Error",
-          description: "Member deletion failed. Please try again.",
+          title: "Delete Failed",
+          description: result.message,
           variant: "destructive",
         });
         return;
       }
+      toast({
+        title: "Member Deleted",
+        description: `"${memberToDelete.name}" has been deleted successfully.`,
+      });
+      router.push("/admin/members");
     } catch (error) {
       console.error("Error deleting member:", error);
       toast({
         title: "Delete Failed",
-        description: `Failed to delete member: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
+        description:
+          error instanceof Error ? error.message : "Unknown error deleting member.",
         variant: "destructive",
       });
     } finally {
+      setIsDeleting(false);
       setDeleteModalOpen(false);
       setMemberToDelete(null);
     }
@@ -409,14 +130,12 @@ export default function MemberDetailsPage() {
     setMemberToDelete(null);
   };
 
-  const handleMessageMember = (memberName: string, memberEmail: string) => {
-    // In a real app, this would open a messaging interface
-    console.log(`Opening message interface for ${memberName} (${memberEmail})`);
-    // For now, we'll open the default email client
-    window.location.href = `mailto:${memberEmail}`;
+  const handleEmailMember = (memberName: string, memberEmail: string) => {
+    const subject = encodeURIComponent(`R/HOOD — ${memberName}`);
+    window.location.href = `mailto:${memberEmail}?subject=${subject}`;
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: "active" | "inactive") => {
     return status === "active" ? (
       <Badge
         variant="outline"
@@ -457,21 +176,24 @@ export default function MemberDetailsPage() {
     );
   }
 
-  if (!member) {
+  if (loadError || !member) {
     return (
       <div className="space-y-6">
-        <div className="text-center">
-          <h1 className={textStyles.headline.section}>MEMBER NOT FOUND</h1>
-          <p className={textStyles.body.regular}>
-            The member you&apos;re looking for doesn&apos;t exist.
+        <div className="text-center max-w-md mx-auto">
+          <h1 className={textStyles.headline.section}>MEMBER NOT AVAILABLE</h1>
+          <p className={`${textStyles.body.regular} mt-2`}>
+            {loadError ||
+              "The member you're looking for could not be loaded."}
           </p>
-          <Button
-            onClick={() => router.push("/admin/members")}
-            className="mt-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Members
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+            <Button variant="outline" onClick={() => loadProfile()}>
+              Retry
+            </Button>
+            <Button onClick={() => router.push("/admin/members")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Members
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -479,6 +201,11 @@ export default function MemberDetailsPage() {
 
   const isBrand = member.role === "brand";
   const displayName = member.brandName || member.name;
+
+  const socialEntries = [
+    { platform: "instagram" as const, label: "Instagram", handle: member.socialLinks.instagram },
+    { platform: "soundcloud" as const, label: "SoundCloud", handle: member.socialLinks.soundcloud },
+  ].filter((e) => e.handle?.trim());
 
   return (
     <div className="space-y-6 animate-blur-in">
@@ -533,7 +260,7 @@ export default function MemberDetailsPage() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {getStatusBadge(member.status)}
+                  {getStatusBadge(member.activityStatus)}
                 </div>
               </div>
             </CardHeader>
@@ -577,56 +304,41 @@ export default function MemberDetailsPage() {
                 </div>
                 <div>
                   <h4 className={textStyles.subheading.small}>Phone</h4>
-                  <p className={textStyles.body.regular}>{member.phone}</p>
+                  <p className={`${textStyles.body.regular} text-muted-foreground`}>
+                    Not on file (not stored on this profile)
+                  </p>
                 </div>
               </div>
 
-              {Object.keys(member.socialLinks).length > 0 && (
-                <div>
-                  <h4 className={textStyles.subheading.small}>Social Links</h4>
-                  <div className="space-y-2">
-                    {Object.entries(member.socialLinks).map(
-                      ([platform, handle]) => {
-                        const url = handle as string;
-                        const isUrl = url.startsWith("http");
-                        const fullUrl = isUrl
-                          ? url
-                          : platform === "instagram"
-                          ? `https://instagram.com/${url.replace("@", "")}`
-                          : platform === "soundcloud"
-                          ? `https://soundcloud.com/${url}`
-                          : platform === "twitter"
-                          ? `https://twitter.com/${url.replace("@", "")}`
-                          : url;
-
-                        return (
-                          <div key={platform} className="flex flex-col gap-1">
-                            <span className="capitalize text-sm text-muted-foreground">
-                              {platform}:
-                            </span>
-                            {handle ? (
-                              <a
-                                href={fullUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`${textStyles.body.regular} text-brand-green hover:text-brand-green/80 underline hover:no-underline transition-colors break-words`}
-                              >
-                                {handle as string}
-                              </a>
-                            ) : (
-                              <span
-                                className={`${textStyles.body.regular} text-muted-foreground`}
-                              >
-                                Not provided
-                              </span>
-                            )}
-                          </div>
-                        );
-                      }
-                    )}
+              <div>
+                <h4 className={textStyles.subheading.small}>Social Links</h4>
+                {socialEntries.length === 0 ? (
+                  <p className={`${textStyles.body.regular} text-muted-foreground`}>
+                    No social links on file.
+                  </p>
+                ) : (
+                  <div className="space-y-2 mt-2">
+                    {socialEntries.map(({ platform, label, handle }) => {
+                      const url = socialUrlForPlatform(platform, handle);
+                      return (
+                        <div key={platform} className="flex flex-col gap-1">
+                          <span className="capitalize text-sm text-muted-foreground">
+                            {label}:
+                          </span>
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${textStyles.body.regular} text-brand-green hover:text-brand-green/80 underline hover:no-underline transition-colors break-words`}
+                          >
+                            {handle}
+                          </a>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -639,27 +351,20 @@ export default function MemberDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {isLoadingInviteCodes ? (
-                <div className="flex items-center justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green border-t-transparent" />
-          </div>
-              ) : (
-                <div className="space-y-2">
-                  {/* Show recent 5 transactions */}
-                  <p className={`${textStyles.body.small} text-muted-foreground mb-3`}>
-                    Recent credit transactions for this member
-                  </p>
-                  {/* Transaction list will be added here */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => router.push(`/admin/credits/transactions?user=${member.id}`)}
-                    className="w-full"
-                  >
-                    View All Transactions
-                  </Button>
-                </div>
-              )}
+              <p className={`${textStyles.body.small} text-muted-foreground`}>
+                Transaction history is not loaded on this page. Open the full list to
+                review credits for this member.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  router.push(`/admin/credits/transactions?user=${member.id}`)
+                }
+                className="w-full"
+              >
+                View All Transactions
+              </Button>
             </CardContent>
           </Card>
 
@@ -672,17 +377,13 @@ export default function MemberDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {isLoadingInviteCodes ? (
-                <div className="flex items-center justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green border-t-transparent" />
-          </div>
-              ) : inviteCodes.length === 0 ? (
+              {inviteCodes.length === 0 ? (
                 <p className={`${textStyles.body.regular} text-muted-foreground`}>
                   This member hasn&apos;t used any invite codes.
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {inviteCodes.map((code) => (
+                  {inviteCodes.map((code: AdminMemberInviteCodeRow) => (
                     <div
                       key={code.id}
                       className="p-4 bg-secondary rounded-md border border-border"
@@ -690,7 +391,9 @@ export default function MemberDetailsPage() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
-                            <code className={`${textStyles.body.regular} font-mono text-brand-green font-semibold`}>
+                            <code
+                              className={`${textStyles.body.regular} font-mono text-brand-green font-semibold`}
+                            >
                               {code.code}
                             </code>
                             <Badge
@@ -703,7 +406,8 @@ export default function MemberDetailsPage() {
                           </div>
                           <div className="space-y-1 text-sm text-muted-foreground">
                             <p>
-                              <span className="font-semibold">Brand:</span> {code.brand_name}
+                              <span className="font-semibold">Brand:</span>{" "}
+                              {code.brand_name}
                             </p>
                             {code.used_at && (
                               <p>
@@ -714,11 +418,7 @@ export default function MemberDetailsPage() {
                             {code.created_by_profile && (
                               <p>
                                 <span className="font-semibold">Created by:</span>{" "}
-                                {code.created_by_profile.dj_name ||
-                                  code.created_by_profile.brand_name ||
-                                  `${code.created_by_profile.first_name || ""} ${code.created_by_profile.last_name || ""}`.trim() ||
-                                  code.created_by_profile.email ||
-                                  "Unknown"}
+                                {creatorLabelFromInviteCode(code.created_by_profile)}
                               </p>
                             )}
                             {code.created_at && (
@@ -751,10 +451,10 @@ export default function MemberDetailsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => handleMessageMember(member.name, member.email)}
+                onClick={() => handleEmailMember(member.name, member.email)}
               >
                 <Mail className="h-4 w-4 mr-2" />
-                Send Message
+                Email member
               </Button>
               <Button
                 variant="outline"
@@ -796,41 +496,39 @@ export default function MemberDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-                {!isBrand && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Music className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className={textStyles.body.regular}>Total Gigs</span>
-                    </div>
-                    <span className={textStyles.subheading.small}>
-                      {member.gigs}
-                    </span>
+              {!isBrand && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Music className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span className={textStyles.body.regular}>Total Gigs</span>
                   </div>
-                )}
+                  <span className={textStyles.subheading.small}>{member.gigs}</span>
+                </div>
+              )}
 
-                {!isBrand && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className={textStyles.body.regular}>Rating</span>
-                    </div>
-                    <span className={textStyles.subheading.small}>
-                      {member.rating || 0.0}
-                    </span>
+              {!isBrand && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Star className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span className={textStyles.body.regular}>Rating</span>
                   </div>
-                )}
+                  <span className={textStyles.subheading.small}>
+                    {member.rating || 0.0}
+                  </span>
+                </div>
+              )}
 
-                {!isBrand && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Coins className="h-4 w-4 mr-2 text-brand-green" />
-                      <span className={textStyles.body.regular}>Credits</span>
-                    </div>
-                    <span className={`${textStyles.subheading.small} text-brand-green`}>
-                      {member.credits || 0}
-                    </span>
+              {!isBrand && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Coins className="h-4 w-4 mr-2 text-brand-green" />
+                    <span className={textStyles.body.regular}>Credits</span>
                   </div>
-                )}
+                  <span className={`${textStyles.subheading.small} text-brand-green`}>
+                    {member.credits || 0}
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -854,6 +552,7 @@ export default function MemberDetailsPage() {
             <Button
               variant="outline"
               onClick={cancelDelete}
+              disabled={isDeleting}
               className="text-foreground border-border hover:bg-secondary"
             >
               Cancel
@@ -861,10 +560,11 @@ export default function MemberDetailsPage() {
             <Button
               variant="destructive"
               onClick={confirmDelete}
+              disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+              {isDeleting ? "Deleting…" : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -10,7 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  fetchMemberCompletedGigsCount,
+  fetchMemberForEdit,
+  updateMemberProfile,
+  type MemberEditFormState,
+  type MemberEditView,
+} from "@/lib/admin/members/member-edit";
 import {
   ArrowLeft,
   Save,
@@ -23,122 +29,85 @@ import {
   FileText,
 } from "lucide-react";
 
+function routeMemberId(params: { id?: string | string[] }): string | null {
+  const raw = params.id;
+  if (typeof raw === "string" && raw.length > 0) return raw;
+  if (Array.isArray(raw) && raw[0]) return raw[0];
+  return null;
+}
+
+const emptyForm: MemberEditFormState = {
+  dj_name: "",
+  first_name: "",
+  last_name: "",
+  email: "",
+  city: "",
+  bio: "",
+  instagram: "",
+  soundcloud: "",
+};
+
 export default function EditMemberPage() {
-  const params = useParams();
+  const params = useParams<{ id: string | string[] }>();
+  const memberId = routeMemberId(params);
   const router = useRouter();
   const { toast } = useToast();
-  const [memberId, setMemberId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [member, setMember] = useState<{
-    id: string;
-    name: string;
-    email: string;
-    location: string;
-    joinDate: string;
-    bio: string;
-    profileImageUrl?: string;
-    instagram?: string;
-    soundcloud?: string;
-    dj_name?: string;
-    first_name?: string;
-    last_name?: string;
-    city?: string;
-  } | null>(null);
+  const [member, setMember] = useState<MemberEditView | null>(null);
+  const [formData, setFormData] = useState<MemberEditFormState>(emptyForm);
+  const [completedGigs, setCompletedGigs] = useState<number | null>(null);
 
-  const [formData, setFormData] = useState({
-    dj_name: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    city: "",
-    bio: "",
-    instagram: "",
-    soundcloud: "",
-  });
+  const loadMember = useCallback(async () => {
+    if (!memberId) {
+      setIsLoading(false);
+      setMember(null);
+      return;
+    }
 
-  // Initialize params
-  useEffect(() => {
-    const initializeParams = async () => {
-      const resolvedParams = await params;
-      setMemberId(resolvedParams.id as string);
-    };
-    initializeParams();
-  }, [params]);
-
-  const fetchMember = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("id", memberId as string)
-        .single();
+      const [profileRes, gigs] = await Promise.all([
+        fetchMemberForEdit(memberId),
+        fetchMemberCompletedGigsCount(memberId),
+      ]);
 
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        const transformedMember = {
-          id: data.id,
-          name:
-            data.dj_name || `${data.first_name} ${data.last_name}` || "Unknown",
-          email: data.email || "No email",
-          location: data.city || "Unknown",
-          joinDate: data.created_at
-            ? (() => {
-                const date = new Date(data.created_at);
-                return isNaN(date.getTime())
-                  ? "Unknown"
-                  : date.toISOString().split("T")[0];
-              })()
-            : "Unknown",
-          bio: data.bio || "",
-          profileImageUrl: data.profile_image_url || undefined,
-          instagram: data.instagram || "",
-          soundcloud: data.soundcloud || "",
-          dj_name: data.dj_name || "",
-          first_name: data.first_name || "",
-          last_name: data.last_name || "",
-          city: data.city || "",
-        };
-
-        setMember(transformedMember);
-        setFormData({
-          dj_name: data.dj_name || "",
-          first_name: data.first_name || "",
-          last_name: data.last_name || "",
-          email: data.email || "",
-          city: data.city || "",
-          bio: data.bio || "",
-          instagram: data.instagram || "",
-          soundcloud: data.soundcloud || "",
+      if (!profileRes.ok) {
+        setMember(null);
+        setFormData(emptyForm);
+        setCompletedGigs(null);
+        toast({
+          title: "Error",
+          description: profileRes.message,
+          variant: "destructive",
         });
-        setIsLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error("Error fetching member:", error);
+
+      setMember(profileRes.member);
+      setFormData(profileRes.form);
+      setCompletedGigs(gigs);
+    } catch {
+      setMember(null);
       toast({
         title: "Error",
         description: "Failed to load member data",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   }, [memberId, toast]);
 
-  // Fetch member data
   useEffect(() => {
-    if (memberId) {
-      fetchMember();
-    }
-  }, [memberId, fetchMember]);
+    loadMember();
+  }, [loadMember]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData((prev: MemberEditFormState) => ({
       ...prev,
       [name]: value,
     }));
@@ -147,25 +116,16 @@ export default function EditMemberPage() {
   const handleSave = async () => {
     if (!memberId) return;
 
+    setIsSaving(true);
     try {
-      setIsSaving(true);
-
-      const { error } = await supabase
-        .from("user_profiles")
-        .update({
-          dj_name: formData.dj_name,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          email: formData.email,
-          city: formData.city,
-          bio: formData.bio,
-          instagram: formData.instagram,
-          soundcloud: formData.soundcloud,
-        })
-        .eq("id", memberId);
-
-      if (error) {
-        throw error;
+      const result = await updateMemberProfile(memberId, formData);
+      if (!result.ok) {
+        toast({
+          title: "Validation error",
+          description: result.message,
+          variant: "destructive",
+        });
+        return;
       }
 
       toast({
@@ -174,8 +134,7 @@ export default function EditMemberPage() {
       });
 
       router.push(`/admin/members/${memberId}`);
-    } catch (error) {
-      console.error("Error updating member:", error);
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update member profile",
@@ -198,7 +157,7 @@ export default function EditMemberPage() {
     );
   }
 
-  if (!member) {
+  if (!memberId || !member) {
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -218,9 +177,16 @@ export default function EditMemberPage() {
     );
   }
 
+  const avatarInitials =
+    member.name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((n: string) => n[0]?.toUpperCase() ?? "")
+      .join("") || "?";
+
   return (
     <div className="space-y-6 animate-blur-in">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className={textStyles.headline.section}>EDIT MEMBER</h1>
@@ -238,9 +204,7 @@ export default function EditMemberPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Profile Information */}
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className={textStyles.subheading.small}>
@@ -248,7 +212,6 @@ export default function EditMemberPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Avatar Section */}
               <div className="flex items-center space-x-4">
                 <Avatar className="h-16 w-16 bg-brand-green">
                   <AvatarImage
@@ -257,10 +220,7 @@ export default function EditMemberPage() {
                     className="object-cover"
                   />
                   <AvatarFallback className="text-brand-black font-bold text-lg">
-                    {member.name
-                      .split(" ")
-                      .map((n: string) => n[0])
-                      .join("")}
+                    {avatarInitials}
                   </AvatarFallback>
                 </Avatar>
                 <div>
@@ -273,7 +233,6 @@ export default function EditMemberPage() {
                 </div>
               </div>
 
-              {/* Form Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="dj_name">DJ Name</Label>
@@ -344,7 +303,6 @@ export default function EditMemberPage() {
                 </div>
               </div>
 
-              {/* Bio */}
               <div className="space-y-2">
                 <Label htmlFor="bio">Bio</Label>
                 <div className="relative">
@@ -362,7 +320,6 @@ export default function EditMemberPage() {
             </CardContent>
           </Card>
 
-          {/* Social Links */}
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className={textStyles.subheading.small}>
@@ -381,21 +338,11 @@ export default function EditMemberPage() {
                     <Input
                       id="instagram"
                       name="instagram"
-                      value={formData.instagram.replace(
-                        "https://instagram.com/",
-                        ""
-                      )}
-                      onChange={(e) => {
-                        const handle = e.target.value;
-                        setFormData((prev) => ({
-                          ...prev,
-                          instagram: handle
-                            ? `https://instagram.com/${handle}`
-                            : "",
-                        }));
-                      }}
+                      value={formData.instagram}
+                      onChange={handleInputChange}
                       className="pl-40"
                       placeholder="username"
+                      autoComplete="off"
                     />
                   </div>
                 </div>
@@ -412,21 +359,11 @@ export default function EditMemberPage() {
                     <Input
                       id="soundcloud"
                       name="soundcloud"
-                      value={formData.soundcloud.replace(
-                        "https://soundcloud.com/",
-                        ""
-                      )}
-                      onChange={(e) => {
-                        const handle = e.target.value;
-                        setFormData((prev) => ({
-                          ...prev,
-                          soundcloud: handle
-                            ? `https://soundcloud.com/${handle}`
-                            : "",
-                        }));
-                      }}
+                      value={formData.soundcloud}
+                      onChange={handleInputChange}
                       className="pl-44"
                       placeholder="username"
+                      autoComplete="off"
                     />
                   </div>
                 </div>
@@ -435,9 +372,7 @@ export default function EditMemberPage() {
           </Card>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
-          {/* Save Actions */}
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className={textStyles.subheading.small}>
@@ -465,7 +400,6 @@ export default function EditMemberPage() {
             </CardContent>
           </Card>
 
-          {/* Member Info */}
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className={textStyles.subheading.small}>
@@ -474,11 +408,14 @@ export default function EditMemberPage() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex items-center text-muted-foreground">
-                <MapPin className="h-4 w-4 mr-2" />
-                Joined {member.joinDate}
+                <MapPin className="h-4 w-4 mr-2 shrink-0" />
+                Joined {member.joinDateLabel}
               </div>
               <div className="flex items-center text-muted-foreground">
-                <Music className="h-4 w-4 mr-2" />0 gigs
+                <Music className="h-4 w-4 mr-2 shrink-0" />
+                {completedGigs === null
+                  ? "…"
+                  : `${completedGigs} completed gig${completedGigs === 1 ? "" : "s"}`}
               </div>
             </CardContent>
           </Card>

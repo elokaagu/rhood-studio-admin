@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import {
+  PortalUserProvider,
+  usePortalUser,
+} from "@/contexts/portal-user-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -58,7 +62,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { textStyles } from "@/lib/typography";
-import { getCurrentUserProfile, type UserRole } from "@/lib/auth-utils";
+import type { UserRole } from "@/lib/auth-utils";
 
 const allSidebarItems = [
   {
@@ -151,31 +155,12 @@ function AppSidebar() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const pathname = usePathname();
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [isLoadingRole, setIsLoadingRole] = useState(true);
+  const { status, role, errorMessage, refresh } = usePortalUser();
 
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      setIsLoadingRole(true);
-      try {
-        const profile = await getCurrentUserProfile();
-        setUserRole(profile?.role || "admin");
-      } catch (error) {
-        console.error("Error fetching user role:", error);
-        // Default to admin if there's an error
-        setUserRole("admin");
-      } finally {
-        setIsLoadingRole(false);
-      }
-    };
-    fetchUserRole();
-  }, []);
-
-  // Filter sidebar items based on user role
-  // Don't show any items until role is loaded (prevent flash of all items)
-  const sidebarItems = isLoadingRole || !userRole 
-    ? [] 
-    : allSidebarItems.filter((item) => item.roles.includes(userRole));
+  const sidebarItems =
+    status === "ready" && role
+      ? allSidebarItems.filter((item) => item.roles.indexOf(role) >= 0)
+      : [];
 
   return (
     <Sidebar collapsible="icon">
@@ -205,11 +190,42 @@ function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
-            {isLoadingRole ? (
+            {status === "loading" ? (
               <div className="px-3 py-2">
                 <p className={`text-sm text-muted-foreground ${textStyles.body.small}`}>
                   Loading...
                 </p>
+              </div>
+            ) : status === "error" ? (
+              <div className="px-3 py-2 space-y-2">
+                <p className={`text-sm text-destructive ${textStyles.body.small}`}>
+                  {errorMessage ?? "Could not load your account."}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => void refresh()}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : !role ? (
+              <div className="px-3 py-2">
+                <p className={`text-sm text-muted-foreground ${textStyles.body.small}`}>
+                  Your role could not be determined. Try refreshing the page, or
+                  contact support if this continues.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => void refresh()}
+                >
+                  Retry
+                </Button>
               </div>
             ) : (
               <SidebarMenu>
@@ -243,17 +259,18 @@ function AppSidebar() {
   );
 }
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function AdminLayoutShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [userName, setUserName] = useState<string>("R/HOOD TEAM");
-  const [userCredits, setUserCredits] = useState<number>(0);
+  const {
+    displayName,
+    credits,
+    role,
+    profile,
+    refresh,
+    status: portalStatus,
+  } = usePortalUser();
   const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileFormData, setProfileFormData] = useState({
     first_name: "",
@@ -261,135 +278,32 @@ export default function AdminLayout({
   });
 
   useEffect(() => {
-    const fetchUserName = async () => {
-      try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
-
-        if (authError || !user) {
-          console.warn("Unable to fetch user:", authError);
-          return;
-        }
-
-        // Fetch user profile
-        const { data: profile, error: profileError } = await supabase
-          .from("user_profiles")
-          .select("first_name, last_name, dj_name, brand_name, role, credits")
-          .eq("id", user.id)
-          .single() as { data: any; error: any };
-
-        if (profileError) {
-          console.warn("Unable to fetch user profile:", profileError);
-          // Fallback to email username
-          const emailUsername = user.email?.split("@")[0] || "R/HOOD TEAM";
-          setUserName(emailUsername.toUpperCase());
-          return;
-        }
-
-        // For brands, show brand name prominently
-        if (profile?.role === "brand") {
-          const brandName = profile.brand_name?.trim() || "BRAND";
-          setUserName(brandName.toUpperCase());
-        } else {
-          // For admins/DJs, use dj_name, then first_name last_name, then email username
-          const displayName =
-            profile?.dj_name?.trim() ||
-            [profile?.first_name, profile?.last_name]
-              .map((part) => (part ? part.trim() : ""))
-              .filter(Boolean)
-              .join(" ") ||
-            user.email?.split("@")[0] ||
-            "R/HOOD TEAM";
-          setUserName(displayName.toUpperCase());
-        }
-
-        // Set user credits (credits column may not exist in types yet - migration needed)
-        if (
-          profile &&
-          profile.role !== "brand" &&
-          (profile as any).credits !== undefined &&
-          (profile as any).credits !== null
-        ) {
-          setUserCredits((profile as any).credits);
-        } else {
-          setUserCredits(0);
-        }
-      } catch (error) {
-        console.error("Error fetching user name:", error);
-        setUserName("R/HOOD TEAM");
-      }
-    };
-
-    fetchUserName();
-  }, []);
-
-  const fetchUserProfile = async () => {
-    try {
-      setIsLoadingProfile(true);
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError || !user) {
-        throw new Error("Unable to fetch user");
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from("user_profiles")
-        .select("first_name, last_name")
-        .eq("id", user.id)
-        .single();
-
-      if (profileError) {
-        // If profile doesn't exist, create one
-        const { data: newProfile, error: createError } = await supabase
-          .from("user_profiles")
-          .insert({
-            id: user.id,
-            email: user.email || "",
-            first_name: "",
-            last_name: "",
-            dj_name: "",
-            city: "",
-          })
-          .select("first_name, last_name")
-          .single();
-
-        if (createError) {
-          throw createError;
-        }
-
-        setProfileFormData({
-          first_name: newProfile?.first_name || "",
-          last_name: newProfile?.last_name || "",
-        });
-      } else {
-        setProfileFormData({
-          first_name: profile?.first_name || "",
-          last_name: profile?.last_name || "",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load profile data",
-        variant: "destructive",
+    if (!accountSettingsOpen) return;
+    if (profile) {
+      setProfileFormData({
+        first_name: profile.first_name,
+        last_name: profile.last_name,
       });
-    } finally {
-      setIsLoadingProfile(false);
+    } else {
+      setProfileFormData({ first_name: "", last_name: "" });
     }
-  };
+  }, [accountSettingsOpen, profile]);
 
   const handleOpenAccountSettings = () => {
     setAccountSettingsOpen(true);
-    fetchUserProfile();
   };
 
   const handleSaveProfile = async () => {
+    if (!profile) {
+      toast({
+        title: "No profile record",
+        description:
+          "Your account does not have a profile row yet. Contact support to finish setup.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsSavingProfile(true);
       const {
@@ -413,16 +327,7 @@ export default function AdminLayout({
         throw updateError;
       }
 
-      // Update the displayed name
-      const displayName =
-        [profileFormData.first_name, profileFormData.last_name]
-          .map((part) => (part ? part.trim() : ""))
-          .filter(Boolean)
-          .join(" ") ||
-        user.email?.split("@")[0] ||
-        "R/HOOD TEAM";
-
-      setUserName(displayName.toUpperCase());
+      await refresh();
 
       toast({
         title: "Success",
@@ -469,7 +374,7 @@ export default function AdminLayout({
   };
 
   return (
-    <SidebarProvider>
+    <>
       <div className="min-h-screen w-full flex bg-background">
         <AppSidebar />
 
@@ -497,16 +402,15 @@ export default function AdminLayout({
                 variant="outline"
                 className={`border-primary ${textStyles.headline.badge} text-xs sm:text-sm px-2 sm:px-3 hidden sm:inline-flex`}
               >
-                {userName}
+                {displayName}
               </Badge>
-              {/* Credits Badge - only show for DJs (not brands) */}
-              {userCredits > 0 && (
+              {role && role !== "brand" && (
                 <Badge
                   variant="outline"
                   className="border-brand-green text-brand-green bg-transparent text-xs sm:text-sm px-2 sm:px-3 hidden sm:inline-flex items-center gap-1"
                 >
                   <Coins className="h-3 w-3 sm:h-4 sm:w-4" />
-                  {userCredits}
+                  {credits}
                 </Badge>
               )}
               <DropdownMenu>
@@ -551,6 +455,12 @@ export default function AdminLayout({
               display name.
             </DialogDescription>
           </DialogHeader>
+          {portalStatus === "ready" && !profile && (
+            <p className="text-sm text-muted-foreground">
+              No profile record is linked to your account. Contact support to
+              complete setup; name edits are unavailable until then.
+            </p>
+          )}
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name</Label>
@@ -564,7 +474,9 @@ export default function AdminLayout({
                     first_name: e.target.value,
                   })
                 }
-                disabled={isLoadingProfile || isSavingProfile}
+                disabled={
+                  portalStatus === "loading" || isSavingProfile || !profile
+                }
               />
             </div>
             <div className="space-y-2">
@@ -579,7 +491,9 @@ export default function AdminLayout({
                     last_name: e.target.value,
                   })
                 }
-                disabled={isLoadingProfile || isSavingProfile}
+                disabled={
+                  portalStatus === "loading" || isSavingProfile || !profile
+                }
               />
             </div>
           </div>
@@ -593,7 +507,9 @@ export default function AdminLayout({
             </Button>
             <Button
               onClick={handleSaveProfile}
-              disabled={isLoadingProfile || isSavingProfile}
+              disabled={
+                portalStatus === "loading" || isSavingProfile || !profile
+              }
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {isSavingProfile ? "Saving..." : "Save Changes"}
@@ -601,6 +517,20 @@ export default function AdminLayout({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </SidebarProvider>
+    </>
+  );
+}
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <PortalUserProvider>
+      <SidebarProvider>
+        <AdminLayoutShell>{children}</AdminLayoutShell>
+      </SidebarProvider>
+    </PortalUserProvider>
   );
 }

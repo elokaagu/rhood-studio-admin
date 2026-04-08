@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUserId } from "@/lib/auth-utils";
 import {
   Plus,
   Copy,
@@ -17,7 +16,6 @@ import {
   XCircle,
   Clock,
   Trash2,
-  Key,
   Share2,
   Info,
 } from "lucide-react";
@@ -33,31 +31,67 @@ import { formatDate } from "@/lib/date-utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function InviteCodesPage() {
+  type InviteCodeProfile = {
+    dj_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    brand_name: string | null;
+    email?: string | null;
+  };
+  type InviteCodeItem = {
+    id: string;
+    code: string;
+    brand_name: string;
+    created_at: string;
+    expires_at: string | null;
+    is_active: boolean;
+    used_by: string | null;
+    created_by_profile: InviteCodeProfile | null;
+    used_by_profile: InviteCodeProfile | null;
+  };
+
   const { toast } = useToast();
-  const [inviteCodes, setInviteCodes] = useState<any[]>([]);
+  const [inviteCodes, setInviteCodes] = useState<InviteCodeItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formData, setFormData] = useState({
     brandName: "",
     expiresInDays: "30",
   });
 
-  // Generate a random invite code
-  const generateInviteCode = (): string => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Excluding confusing chars
-    let code = "";
-    for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+  const rpcUntyped = (supabase as unknown as {
+    rpc: (fn: string, args?: Record<string, unknown>) => any;
+  }).rpc;
+
+  const setCopiedTemporarily = (value: string) => {
+    setCopiedCode(value);
+    if (copyTimeoutRef.current) {
+      clearTimeout(copyTimeoutRef.current);
     }
-    return code;
+    copyTimeoutRef.current = setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const fetchInviteCodes = async () => {
+  const buildInviteShareText = (code: InviteCodeItem) => `You've been invited to create a brand account on R/HOOD Portal!
+
+Brand: ${code.brand_name}
+Invite Code: ${code.code}
+
+To create your account:
+1. Go to the login page
+2. Click "Create Account"
+3. Toggle to "Sign up as Brand instead"
+4. Enter your details and the invite code above
+5. Complete your registration
+
+The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "the expiration date set by the admin"}.`;
+
+  const fetchInviteCodes = useCallback(async () => {
     try {
       setIsLoading(true);
-      const userId = await getCurrentUserId();
 
       const { data, error } = await supabase
         .from("invite_codes")
@@ -74,9 +108,8 @@ export default function InviteCodesPage() {
         throw error;
       }
 
-      setInviteCodes(data || []);
-    } catch (error) {
-      console.error("Error fetching invite codes:", error);
+      setInviteCodes((data ?? []) as InviteCodeItem[]);
+    } catch {
       toast({
         title: "Error",
         description: "Failed to load invite codes.",
@@ -85,11 +118,18 @@ export default function InviteCodesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchInviteCodes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchInviteCodes]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
   }, []);
 
   const handleGenerateCode = async () => {
@@ -104,45 +144,14 @@ export default function InviteCodesPage() {
 
     setIsGenerating(true);
     try {
-      const userId = await getCurrentUserId();
-      if (!userId) {
-        throw new Error("User not authenticated");
-      }
-
-      // Generate unique code
-      let code = generateInviteCode();
-      let attempts = 0;
-      while (attempts < 10) {
-        const { data: existing } = await supabase
-          .from("invite_codes")
-          .select("id")
-          .eq("code", code)
-          .single();
-
-        if (!existing) {
-          break; // Code is unique
-        }
-        code = generateInviteCode();
-        attempts++;
-      }
-
-      // Calculate expiration date
-      const expiresAt = new Date();
-      expiresAt.setDate(
-        expiresAt.getDate() + parseInt(formData.expiresInDays)
-      );
-
-      const { data, error } = await supabase
-        .from("invite_codes")
-        .insert({
-          code,
-          brand_name: formData.brandName.trim(),
-          created_by: userId,
-          expires_at: expiresAt.toISOString(),
-          is_active: true,
-        })
-        .select()
-        .single();
+      const parsedDays = Number.parseInt(formData.expiresInDays, 10);
+      const expiresInDays = Number.isFinite(parsedDays)
+        ? Math.min(365, Math.max(1, parsedDays))
+        : 30;
+      const { data, error } = await rpcUntyped("create_brand_invite_code", {
+        p_brand_name: formData.brandName.trim(),
+        p_expires_in_days: expiresInDays,
+      });
 
       if (error) {
         throw error;
@@ -153,21 +162,27 @@ export default function InviteCodesPage() {
         description: `Invite code created for ${formData.brandName}`,
       });
 
+      setInviteCodes((prev: InviteCodeItem[]) => [
+        {
+          ...(data as InviteCodeItem),
+          created_by_profile: null,
+          used_by_profile: null,
+        },
+        ...prev,
+      ]);
       setIsDialogOpen(false);
       setFormData({ brandName: "", expiresInDays: "30" });
-      fetchInviteCodes();
 
       // Auto-copy to clipboard
       if (data?.code) {
-        navigator.clipboard.writeText(data.code);
-        setCopiedCode(data.code);
-        setTimeout(() => setCopiedCode(null), 2000);
+        await navigator.clipboard.writeText(data.code);
+        setCopiedTemporarily(data.code);
       }
-    } catch (error: any) {
-      console.error("Error generating invite code:", error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to generate invite code.";
       toast({
         title: "Error",
-        description: error.message || "Failed to generate invite code.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -178,8 +193,7 @@ export default function InviteCodesPage() {
   const handleCopyCode = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
-      setCopiedCode(code);
-      setTimeout(() => setCopiedCode(null), 2000);
+      setCopiedTemporarily(code);
       toast({
         title: "Copied!",
         description: "Invite code copied to clipboard",
@@ -193,23 +207,9 @@ export default function InviteCodesPage() {
     }
   };
 
-  const handleShareCode = async (code: any) => {
-    const shareText = `You've been invited to create a brand account on R/HOOD Portal!
-
-Brand: ${code.brand_name}
-Invite Code: ${code.code}
-
-To create your account:
-1. Go to the login page
-2. Click "Create Account"
-3. Toggle to "Sign up as Brand instead"
-4. Enter your details and the invite code above
-5. Complete your registration
-
-The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'the expiration date set by the admin'}.`;
-
+  const handleShareCode = async (code: InviteCodeItem) => {
     try {
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(buildInviteShareText(code));
       toast({
         title: "Instructions Copied!",
         description: "Share instructions copied to clipboard. You can paste this in an email or message.",
@@ -224,6 +224,7 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'th
   };
 
   const handleDeactivateCode = async (codeId: string) => {
+    setDeactivatingId(codeId);
     try {
       const { error } = await supabase
         .from("invite_codes")
@@ -239,18 +240,23 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'th
         description: "The invite code has been deactivated.",
       });
 
-      fetchInviteCodes();
-    } catch (error) {
-      console.error("Error deactivating code:", error);
+      setInviteCodes((prev: InviteCodeItem[]) =>
+        prev.map((code: InviteCodeItem) =>
+          code.id === codeId ? { ...code, is_active: false } : code
+        )
+      );
+    } catch {
       toast({
         title: "Error",
         description: "Failed to deactivate invite code.",
         variant: "destructive",
       });
+    } finally {
+      setDeactivatingId(null);
     }
   };
 
-  const getStatusBadge = (code: any) => {
+  const getStatusBadge = (code: InviteCodeItem) => {
     if (code.used_by) {
       return (
         <Badge
@@ -354,7 +360,7 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'th
             </p>
           </div>
         ) : (
-          inviteCodes.map((code) => (
+          inviteCodes.map((code: InviteCodeItem) => (
             <Card key={code.id} className="bg-card border-border">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
@@ -440,10 +446,15 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : 'th
                           size="sm"
                           className="text-red-600 hover:text-red-700 text-xs sm:text-sm flex-1 sm:flex-initial"
                           onClick={() => handleDeactivateCode(code.id)}
+                          disabled={deactivatingId === code.id}
                         >
                           <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                          <span className="hidden sm:inline">Deactivate</span>
-                          <span className="sm:hidden">Deactivate</span>
+                          <span className="hidden sm:inline">
+                            {deactivatingId === code.id ? "Deactivating..." : "Deactivate"}
+                          </span>
+                          <span className="sm:hidden">
+                            {deactivatingId === code.id ? "..." : "Deactivate"}
+                          </span>
                         </Button>
                       </>
                     )}

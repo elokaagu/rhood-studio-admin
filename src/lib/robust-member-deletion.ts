@@ -1,5 +1,5 @@
-// Robust member deletion function
-// This is a standalone function that can be imported into the members pages
+// Client-side cascade delete helpers (browser Supabase).
+// Admin UI should prefer `deleteAdminMemberAction` from `@/actions/admin-members` (server + session).
 
 import { supabase } from "@/integrations/supabase/client";
 

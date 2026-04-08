@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { textStyles } from "@/lib/typography";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
+import {
+  buildScheduleUpdatePayload,
+  opportunityRowToScheduleForm,
+  saveOpportunitySchedule,
+  validateScheduleForm,
+  type ScheduleFormState,
+} from "@/lib/admin/opportunities/opportunity-schedule";
 import {
   Calendar,
   Clock,
@@ -27,98 +37,171 @@ import {
   CheckCircle,
 } from "lucide-react";
 
+const emptyForm = (): ScheduleFormState => ({
+  eventDate: "",
+  startTime: "",
+  endTime: "",
+  venue: "",
+  locationPlaceId: "",
+  setupTime: "",
+  soundcheckTime: "",
+  capacity: "",
+  notes: "",
+  scheduleStatus: "scheduled",
+});
+
 export default function ScheduleEventPage() {
   const params = useParams();
   const router = useRouter();
-  const opportunityId = params.id;
+  const { toast } = useToast();
+  const opportunityId = params.id as string;
 
-  // Mock data - in a real app, this would be fetched from an API
-  const opportunities = [
-    {
-      id: 1,
-      title: "Underground Warehouse Rave",
-      location: "East London",
-      date: "2024-08-15",
-      pay: "£300",
-      applicants: 12,
-      status: "active",
-      genre: "Techno",
-      description:
-        "High-energy underground techno event in a converted warehouse space.",
-      requirements: "Professional DJ equipment, 3+ years experience",
-      additionalInfo: "Contact: events@warehouse.com",
-    },
-    {
-      id: 2,
-      title: "Rooftop Summer Sessions",
-      location: "Shoreditch",
-      date: "2024-08-20",
-      pay: "£450",
-      applicants: 8,
-      status: "active",
-      genre: "House",
-      description: "Sunset house music sessions with panoramic city views.",
-      requirements: "House music experience, own equipment preferred",
-      additionalInfo: "Venue provides sound system",
-    },
-    {
-      id: 3,
-      title: "Club Residency Audition",
-      location: "Camden",
-      date: "2024-08-25",
-      pay: "£200 + Residency",
-      applicants: 15,
-      status: "completed",
-      genre: "Drum & Bass",
-      selected: "Alex Thompson",
-      description: "Weekly residency opportunity at premier London club.",
-      requirements: "Drum & Bass expertise, club experience",
-      additionalInfo: "Selected candidate will receive ongoing residency",
-    },
-  ];
+  const [opportunityTitle, setOpportunityTitle] = useState("");
+  const [formData, setFormData] = useState<ScheduleFormState>(emptyForm);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const opportunity = opportunities.find(
-    (opp) => opp.id === parseInt(opportunityId as string)
-  );
+  const fetchOpportunity = async () => {
+    setLoadError(null);
+    setIsLoading(true);
+    try {
+      const userProfile = await getCurrentUserProfile();
+      const userId = await getCurrentUserId();
 
-  const [formData, setFormData] = useState({
-    eventDate: opportunity?.date || "",
-    startTime: "20:00",
-    endTime: "02:00",
-    venue: opportunity?.location || "",
-    capacity: "200",
-    setupTime: "18:00",
-    soundcheckTime: "19:00",
-    notes: "",
-    status: "scheduled",
-  });
+      let query = supabase
+        .from("opportunities")
+        .select(
+          "id, title, event_date, event_end_time, location, schedule_details, organizer_id"
+        )
+        .eq("id", opportunityId);
+
+      if (userProfile?.role === "brand" && userId) {
+        query = query.eq("organizer_id", userId);
+      }
+
+      const { data, error } = await query.single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (
+        userProfile?.role === "brand" &&
+        userId &&
+        data &&
+        data.organizer_id !== userId
+      ) {
+        toast({
+          title: "Access Denied",
+          description: "You can only edit your own opportunities.",
+          variant: "destructive",
+        });
+        router.push("/admin/opportunities");
+        return;
+      }
+
+      if (data) {
+        setOpportunityTitle(data.title || "Opportunity");
+        setFormData(opportunityRowToScheduleForm(data));
+      }
+    } catch (error) {
+      console.error("Error fetching opportunity:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to load opportunity.";
+      setLoadError(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOpportunity();
+  }, [opportunityId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const persist = async (mode: "draft" | "publish") => {
+    setIsSubmitting(true);
+    try {
+      const validated = validateScheduleForm(formData);
+      if (!validated.ok) {
+        toast({
+          title: "Check your entries",
+          description: validated.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const payload = buildScheduleUpdatePayload(formData, validated, mode);
+      const result = await saveOpportunitySchedule(opportunityId, payload);
+      if (!result.ok) {
+        throw new Error(result.message);
+      }
+
+      toast({
+        title: mode === "publish" ? "Schedule saved" : "Draft saved",
+        description:
+          mode === "publish"
+            ? "Event schedule has been updated."
+            : "Schedule draft saved.",
+      });
+
+      router.push(`/admin/opportunities/${opportunityId}`);
+    } catch (error) {
+      console.error("Error saving schedule:", error);
+      toast({
+        title: "Save failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Could not save schedule. Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log("Scheduling event:", formData);
-    router.push(`/admin/opportunities/${opportunityId}`);
+    void persist("publish");
   };
 
   const handleSaveDraft = () => {
-    console.log("Saving draft schedule:", { ...formData, status: "draft" });
-    router.push(`/admin/opportunities/${opportunityId}`);
+    void persist("draft");
   };
 
-  if (!opportunity) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="text-center">
-          <h1 className={textStyles.headline.section}>OPPORTUNITY NOT FOUND</h1>
-          <p className={textStyles.body.regular}>
-            The opportunity you&apos;re looking for doesn&apos;t exist.
-          </p>
-          <Button
-            onClick={() => router.push("/admin/opportunities")}
-            className="mt-4"
-          >
+        <div className="text-center py-8">
+          <div className="flex items-center justify-center py-8">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green border-t-transparent" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="space-y-6 max-w-lg mx-auto text-center">
+        <h1 className={textStyles.headline.section}>Could not load schedule</h1>
+        <p className={`${textStyles.body.regular} text-muted-foreground`}>
+          {loadError}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button variant="outline" onClick={() => fetchOpportunity()}>
+            Retry
+          </Button>
+          <Button onClick={() => router.push("/admin/opportunities")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Opportunities
+            Back to opportunities
           </Button>
         </div>
       </div>
@@ -127,7 +210,6 @@ export default function ScheduleEventPage() {
 
   return (
     <div className="space-y-6 animate-blur-in">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button
@@ -140,14 +222,13 @@ export default function ScheduleEventPage() {
           <div>
             <h1 className={textStyles.headline.section}>SCHEDULE EVENT</h1>
             <p className={textStyles.body.regular}>
-              Schedule event details for {opportunity.title}
+              Schedule event details for {opportunityTitle}
             </p>
           </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Event Schedule */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className={textStyles.subheading.small}>
@@ -158,7 +239,7 @@ export default function ScheduleEventPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="eventDate" className={textStyles.body.regular}>
-                  <Calendar className="h-4 w-4 mr-2" />
+                  <Calendar className="h-4 w-4 mr-2 inline" />
                   Event Date
                 </Label>
                 <RhoodDatePicker
@@ -171,7 +252,7 @@ export default function ScheduleEventPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="venue" className={textStyles.body.regular}>
-                  <MapPin className="h-4 w-4 mr-2" />
+                  <MapPin className="h-4 w-4 mr-2 inline" />
                   Venue
                 </Label>
                 <LocationAutocomplete
@@ -179,7 +260,18 @@ export default function ScheduleEventPage() {
                   placeholder="Search for a venue or address"
                   value={formData.venue}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, venue: value })
+                    setFormData((prev: ScheduleFormState) => ({
+                      ...prev,
+                      venue: value,
+                      locationPlaceId: "",
+                    }))
+                  }
+                  onLocationSelect={(selection) =>
+                    setFormData((prev: ScheduleFormState) => ({
+                      ...prev,
+                      venue: selection.formattedAddress ?? selection.description,
+                      locationPlaceId: selection.placeId,
+                    }))
                   }
                   className="bg-secondary border-border text-foreground"
                   country="gb"
@@ -191,7 +283,7 @@ export default function ScheduleEventPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startTime" className={textStyles.body.regular}>
-                  <Clock className="h-4 w-4 mr-2" />
+                  <Clock className="h-4 w-4 mr-2 inline" />
                   Start Time
                 </Label>
                 <RhoodTimePicker
@@ -204,7 +296,7 @@ export default function ScheduleEventPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="endTime" className={textStyles.body.regular}>
-                  <Clock className="h-4 w-4 mr-2" />
+                  <Clock className="h-4 w-4 mr-2 inline" />
                   End Time
                 </Label>
                 <RhoodTimePicker
@@ -215,10 +307,14 @@ export default function ScheduleEventPage() {
                 />
               </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              If the event ends after midnight, end time can be earlier on the
+              clock than start time (e.g. 20:00–02:00); it will be stored as the
+              next calendar day.
+            </p>
           </CardContent>
         </Card>
 
-        {/* Setup Details */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className={textStyles.subheading.small}>
@@ -229,7 +325,7 @@ export default function ScheduleEventPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="setupTime" className={textStyles.body.regular}>
-                  <Clock className="h-4 w-4 mr-2" />
+                  <Clock className="h-4 w-4 mr-2 inline" />
                   Setup Time
                 </Label>
                 <RhoodTimePicker
@@ -241,8 +337,11 @@ export default function ScheduleEventPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="soundcheckTime" className={textStyles.body.regular}>
-                  <Clock className="h-4 w-4 mr-2" />
+                <Label
+                  htmlFor="soundcheckTime"
+                  className={textStyles.body.regular}
+                >
+                  <Clock className="h-4 w-4 mr-2 inline" />
                   Soundcheck Time
                 </Label>
                 <RhoodTimePicker
@@ -255,12 +354,13 @@ export default function ScheduleEventPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="capacity" className={textStyles.body.regular}>
-                  <Users className="h-4 w-4 mr-2" />
+                  <Users className="h-4 w-4 mr-2 inline" />
                   Capacity
                 </Label>
                 <Input
                   id="capacity"
-                  placeholder="200"
+                  inputMode="numeric"
+                  placeholder="e.g. 200"
                   value={formData.capacity}
                   onChange={(e) =>
                     setFormData({ ...formData, capacity: e.target.value })
@@ -272,7 +372,6 @@ export default function ScheduleEventPage() {
           </CardContent>
         </Card>
 
-        {/* Additional Information */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className={textStyles.subheading.small}>
@@ -299,55 +398,47 @@ export default function ScheduleEventPage() {
               <Label htmlFor="status" className={textStyles.body.regular}>
                 Schedule Status
               </Label>
+              <p className="text-xs text-muted-foreground">
+                Stored in <code className="text-xs">schedule_details</code> on
+                this opportunity (separate from listing status on the edit page).
+              </p>
               <Select
-                value={formData.status}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, status: value })
+                value={formData.scheduleStatus}
+                onValueChange={(value: string) =>
+                  setFormData({ ...formData, scheduleStatus: value })
                 }
               >
                 <SelectTrigger className="bg-secondary border-border text-foreground">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
-                  <SelectItem
-                    value="draft"
-                    className="text-foreground hover:bg-accent"
-                  >
-                    Draft
-                  </SelectItem>
-                  <SelectItem
-                    value="scheduled"
-                    className="text-foreground hover:bg-accent"
-                  >
-                    Scheduled
-                  </SelectItem>
-                  <SelectItem
-                    value="confirmed"
-                    className="text-foreground hover:bg-accent"
-                  >
-                    Confirmed
-                  </SelectItem>
-                  <SelectItem
-                    value="completed"
-                    className="text-foreground hover:bg-accent"
-                  >
-                    Completed
-                  </SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </CardContent>
         </Card>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end space-x-4">
-          <Button type="button" variant="outline" onClick={handleSaveDraft}>
+        <div className="flex items-center justify-end gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSaveDraft}
+            disabled={isSubmitting}
+          >
             <Save className="h-4 w-4 mr-2" />
-            Save Draft
+            {isSubmitting ? "Saving…" : "Save Draft"}
           </Button>
-          <Button type="submit" className="bg-brand-green hover:bg-brand-green/90 text-brand-black">
+          <Button
+            type="submit"
+            className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+            disabled={isSubmitting}
+          >
             <CheckCircle className="h-4 w-4 mr-2" />
-            Schedule Event
+            {isSubmitting ? "Saving…" : "Schedule Event"}
           </Button>
         </div>
       </form>

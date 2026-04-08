@@ -1,15 +1,23 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatTimeRange } from "@/lib/date-utils";
-import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
 import Image from "next/image";
+import {
+  fetchAdminOpportunitiesList,
+  paySortValue,
+  type OpportunityListItem,
+} from "@/lib/admin/opportunities/opportunity-list";
+import {
+  deleteOpportunityById,
+  updateOpportunityArchiveState,
+} from "@/lib/admin/opportunities/opportunity-detail";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +44,6 @@ import {
   Calendar,
   MapPin,
   Users,
-  Edit,
   Trash2,
   Eye,
   Clock,
@@ -48,9 +55,18 @@ import {
   Coins,
 } from "lucide-react";
 
+type ListSortKey =
+  | "newest"
+  | "oldest"
+  | "pay_high"
+  | "pay_low"
+  | "applicants_high"
+  | "applicants_low";
+
 export default function OpportunitiesPage() {
   const { toast } = useToast();
-  const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [opportunities, setOpportunities] = useState<OpportunityListItem[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [opportunityToDelete, setOpportunityToDelete] = useState<{
@@ -65,246 +81,25 @@ export default function OpportunitiesPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft" | "completed" | "closed" | "archived">("all");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "pay_high" | "pay_low" | "applicants_high" | "applicants_low">("newest");
 
-  // Fetch opportunities from database
-  const fetchOpportunities = async () => {
-    try {
-      const userProfile = await getCurrentUserProfile();
-      const userId = await getCurrentUserId();
-      
-      // Store user role and credits
-      if (userProfile) {
-        setUserRole(userProfile.role || null);
-      }
-      
-      // Fetch user credits if user is a DJ
-      if (userId && userProfile?.role !== "brand" && userProfile?.role !== "admin") {
-        // @ts-ignore - credits column not in types yet (migration needed)
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("credits")
-          .eq("id", userId)
-          .single();
-        if (profile && (profile as any).credits !== undefined) {
-          setUserCredits((profile as any).credits || 0);
-        }
-      }
-
-      // Build query based on user role
-      let query = supabase.from("opportunities").select("*");
-
-      // Brands can only see their own opportunities
-      if (userProfile?.role === "brand" && userId) {
-        query = query.eq("organizer_id", userId);
-      }
-
-      const { data, error } = await query.order("created_at", {
-        ascending: false,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      // Fetch applicants count and boost information for each opportunity
-      if (data && data.length > 0) {
-        const opportunitiesWithApplicants = await Promise.all(
-          data.map(async (opportunity) => {
-            try {
-              const [applicantsResult, boostsResult] = await Promise.all([
-                supabase
-                  .from("applications")
-                  .select("*", { count: "exact", head: true })
-                  .eq("opportunity_id", opportunity.id)
-                  .then((result: any) => ({ ...result, countError: result.error })),
-                // @ts-ignore - opportunity_boosts table not in types yet (migration needed)
-                (supabase.from as any)("opportunity_boosts")
-                  .select("id, user_id, boost_expires_at")
-                  .eq("opportunity_id", opportunity.id)
-                  .eq("is_active", true)
-                  .gte("boost_expires_at", new Date().toISOString())
-                  .order("created_at", { ascending: false }),
-              ]);
-
-              const hasActiveBoost = boostsResult.data && boostsResult.data.length > 0;
-              const userBoost = userId
-                ? (boostsResult.data as any)?.find((boost: any) => boost.user_id === userId)
-                : null;
-
-              return {
-                ...opportunity,
-                applicants: applicantsResult.countError ? 0 : applicantsResult.count || 0,
-                hasBoost: hasActiveBoost,
-                userBoost: userBoost,
-                boostCount: (boostsResult.data as any)?.length || 0,
-              };
-            } catch (err) {
-              console.warn(
-                `Could not fetch data for opportunity ${opportunity.id}:`,
-                err
-              );
-              return {
-                ...opportunity,
-                applicants: 0,
-                hasBoost: false,
-                userBoost: null,
-                boostCount: 0,
-              };
-            }
-          })
-        );
-
-        const now = new Date();
-        const expiredIds: string[] = [];
-
-        let normalized = opportunitiesWithApplicants.map((opportunity) => {
-          const normalizedId =
-            typeof opportunity.id === "number"
-              ? String(opportunity.id)
-              : typeof opportunity.id === "string"
-              ? opportunity.id
-              : String(opportunity.id ?? "");
-          const endDate = opportunity.event_end_time
-            ? new Date(opportunity.event_end_time)
-            : opportunity.event_date
-            ? new Date(opportunity.event_date)
-            : null;
-          const isArchived = opportunity.is_archived ?? false;
-          const rawStatus = (opportunity as { status?: string | null }).status;
-          const derivedStatus = rawStatus
-            ? rawStatus
-            : opportunity.is_active
-            ? "active"
-            : "draft";
-
-          if (
-            endDate &&
-            !isNaN(endDate.getTime()) &&
-            endDate.getTime() < now.getTime() &&
-            !isArchived
-          ) {
-            expiredIds.push(normalizedId);
-          }
-
-          return {
-            ...opportunity,
-            id: normalizedId,
-            is_archived: isArchived,
-            status: isArchived ? "archived" : derivedStatus,
-          };
-        });
-
-        if (expiredIds.length > 0) {
-          const { error: archiveError } = await supabase
-            .from("opportunities")
-            .update({ is_archived: true, is_active: false })
-            .in("id", expiredIds);
-
-          if (archiveError) {
-            console.error(
-              "Failed to auto-archive expired opportunities:",
-              archiveError
-            );
-          } else {
-            normalized = normalized.map((opportunity) =>
-              expiredIds.includes(opportunity.id)
-                ? {
-                    ...opportunity,
-                    is_archived: true,
-                    is_active: false,
-                    status: "archived",
-                  }
-                : opportunity
-            );
-            toast({
-              title: "Opportunities archived",
-              description: `${expiredIds.length} expired opportunity${
-                expiredIds.length === 1 ? "" : "ies"
-              } moved out of the app automatically.`,
-            });
-          }
-        }
-
-        // Sort opportunities: boosted ones first, then by created_at
-        const sorted = normalized.sort((a, b) => {
-          // Boosted opportunities first
-          if (a.hasBoost && !b.hasBoost) return -1;
-          if (!a.hasBoost && b.hasBoost) return 1;
-          // If both boosted, sort by boost count (more boosts = higher)
-          if (a.hasBoost && b.hasBoost) {
-            if ((b.boostCount || 0) !== (a.boostCount || 0)) {
-              return (b.boostCount || 0) - (a.boostCount || 0);
-            }
-          }
-          // Then by created_at (newest first)
-          const aDate = new Date(a.created_at || 0).getTime();
-          const bDate = new Date(b.created_at || 0).getTime();
-          return bDate - aDate;
-        });
-
-        setOpportunities(sorted);
-      } else {
-        setOpportunities([]);
-      }
-    } catch (error) {
-      console.error("Error fetching opportunities:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load opportunities. Using demo data.",
-        variant: "destructive",
-      });
-      // Fallback to demo data
-      setOpportunities([
-        {
-          id: "1",
-          title: "Underground Warehouse Rave",
-          location: "East London",
-          date: "2024-08-15",
-          event_end_time: null,
-          pay: "£300",
-          applicants: 12,
-          status: "active",
-          genre: "Techno",
-          description:
-            "High-energy underground techno event in a converted warehouse space.",
-          is_archived: false,
-        },
-        {
-          id: "2",
-          title: "Rooftop Summer Sessions",
-          location: "Shoreditch",
-          date: "2024-08-20",
-          event_end_time: null,
-          pay: "£450",
-          applicants: 8,
-          status: "active",
-          genre: "House",
-          description: "Sunset house music sessions with panoramic city views.",
-          is_archived: false,
-        },
-        {
-          id: "3",
-          title: "Club Residency Audition",
-          location: "Camden",
-          date: "2024-08-25",
-          event_end_time: null,
-          pay: "£200 + Residency",
-          applicants: 15,
-          status: "completed",
-          genre: "Drum & Bass",
-          selected: "Alex Thompson",
-          description: "Weekly residency opportunity at premier London club.",
-          is_archived: false,
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
+  const loadOpportunitiesList = useCallback(async (showLoading = true) => {
+    setFetchError(null);
+    if (showLoading) setIsLoading(true);
+    const result = await fetchAdminOpportunitiesList();
+    if (!result.ok) {
+      setFetchError(result.message);
+      setOpportunities([]);
+      if (showLoading) setIsLoading(false);
+      return;
     }
-  };
+    setOpportunities(result.items);
+    setUserCredits(result.userCredits);
+    setUserRole(result.userRole);
+    if (showLoading) setIsLoading(false);
+  }, []);
 
-  // Load opportunities on component mount
   useEffect(() => {
-    fetchOpportunities();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    void loadOpportunitiesList(true);
+  }, [loadOpportunitiesList]);
 
   const handleDelete = async (
     opportunityId: string,
@@ -339,8 +134,7 @@ export default function OpportunitiesPage() {
         description: `${opportunityTitle} has been boosted to the top of the list for 24 hours.`,
       });
 
-      // Refresh opportunities and user credits
-      await fetchOpportunities();
+      await loadOpportunitiesList(false);
     } catch (error: any) {
       console.error("Error boosting opportunity:", error);
       toast({
@@ -357,18 +151,12 @@ export default function OpportunitiesPage() {
     if (!opportunityToDelete) return;
 
     try {
-      // Delete from Supabase database
-      const { error } = await supabase
-        .from("opportunities")
-        .delete()
-        .eq("id", opportunityToDelete.id);
-
-      if (error) {
-        throw error;
+      const result = await deleteOpportunityById(opportunityToDelete.id);
+      if (!result.ok) {
+        throw new Error(result.message);
       }
 
-      // Remove from local state
-      setOpportunities((prevOpportunities) =>
+      setOpportunities((prevOpportunities: OpportunityListItem[]) =>
         prevOpportunities.filter((opp) => opp.id !== opportunityToDelete.id)
       );
 
@@ -402,43 +190,15 @@ export default function OpportunitiesPage() {
     setActionLoadingId(opportunityId);
 
     try {
-      const currentOpportunity = opportunities.find(
-        (opp) => opp.id === opportunityId
+      const result = await updateOpportunityArchiveState(
+        opportunityId,
+        shouldArchive
       );
-      const nextIsActive = shouldArchive
-        ? false
-        : currentOpportunity?.status === "active";
-
-      const { error } = await supabase
-        .from("opportunities")
-        .update({
-          is_archived: shouldArchive,
-          is_active: nextIsActive,
-        })
-        .eq("id", opportunityId);
-
-      if (error) {
-        throw error;
+      if (!result.ok) {
+        throw new Error(result.message);
       }
 
-      setOpportunities((previous) =>
-        previous.map((opp) =>
-          opp.id === opportunityId
-            ? {
-                ...opp,
-                is_archived: shouldArchive,
-                is_active: nextIsActive,
-                status: shouldArchive
-                  ? "archived"
-                  : nextIsActive
-                  ? "active"
-                  : opp.status === "archived"
-                  ? "draft"
-                  : opp.status,
-              }
-            : opp
-        )
-      );
+      await loadOpportunitiesList(false);
 
       toast({
         title: shouldArchive ? "Opportunity archived" : "Opportunity reopened",
@@ -512,37 +272,36 @@ export default function OpportunitiesPage() {
     }
   };
 
-  const getPayValue = (opportunity: any) => {
-    const value = opportunity.payment ?? opportunity.pay ?? "";
-    if (typeof value === "number") return value;
-    if (typeof value === "string") {
-      const numeric = parseFloat(value.replace(/[^0-9.]/g, ""));
-      return isNaN(numeric) ? 0 : numeric;
-    }
-    return 0;
-  };
-
   const filteredOpportunities = useMemo(() => {
-    let list = opportunities.filter((opp) => (showArchived ? true : !opp.is_archived));
+    let list = opportunities.filter((opp: OpportunityListItem) =>
+      showArchived ? true : !opp.is_archived
+    );
 
     if (statusFilter !== "all") {
-      list = list.filter((opp) =>
+      list = list.filter((opp: OpportunityListItem) =>
         statusFilter === "archived"
           ? opp.is_archived
           : !opp.is_archived && opp.status === statusFilter
       );
     }
 
-    const sorter = {
-      newest: (a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
-      oldest: (a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
-      pay_high: (a: any, b: any) => getPayValue(b) - getPayValue(a),
-      pay_low: (a: any, b: any) => getPayValue(a) - getPayValue(b),
-      applicants_high: (a: any, b: any) => (b.applicants || 0) - (a.applicants || 0),
-      applicants_low: (a: any, b: any) => (a.applicants || 0) - (b.applicants || 0),
-    }[sortBy];
+    const sortFns: Record<
+      ListSortKey,
+      (a: OpportunityListItem, b: OpportunityListItem) => number
+    > = {
+      newest: (a, b) =>
+        new Date(b.created_at || 0).getTime() -
+        new Date(a.created_at || 0).getTime(),
+      oldest: (a, b) =>
+        new Date(a.created_at || 0).getTime() -
+        new Date(b.created_at || 0).getTime(),
+      pay_high: (a, b) => paySortValue(b) - paySortValue(a),
+      pay_low: (a, b) => paySortValue(a) - paySortValue(b),
+      applicants_high: (a, b) => b.applicants - a.applicants,
+      applicants_low: (a, b) => a.applicants - b.applicants,
+    };
 
-    return [...list].sort(sorter);
+    return [...list].sort(sortFns[sortBy as ListSortKey]);
   }, [opportunities, showArchived, statusFilter, sortBy]);
 
   return (
@@ -558,14 +317,32 @@ export default function OpportunitiesPage() {
           </p>
         </div>
         <Button
+          asChild
           className="bg-brand-green hover:bg-brand-green/90 text-brand-black w-full sm:w-auto"
-          onClick={() => (window.location.href = "/admin/create-opportunity")}
         >
-          <Plus className="h-4 w-4 mr-2" />
-          <span className="hidden sm:inline">Create Opportunity</span>
-          <span className="sm:hidden">Create</span>
+          <Link href="/admin/create-opportunity">
+            <Plus className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Create Opportunity</span>
+            <span className="sm:hidden">Create</span>
+          </Link>
         </Button>
       </div>
+
+      {fetchError && !isLoading && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-destructive">{fetchError}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => void loadOpportunitiesList(true)}
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card className="bg-card border-border">
@@ -627,7 +404,8 @@ export default function OpportunitiesPage() {
                 <p className="text-2xl font-bold text-foreground">
                   {
                     opportunities.filter(
-                      (opp) => opp.status === "active" && !opp.is_archived
+                      (opp: OpportunityListItem) =>
+                        opp.status === "active" && !opp.is_archived
                     ).length
                   }
                 </p>
@@ -663,7 +441,7 @@ export default function OpportunitiesPage() {
                 <p className="text-2xl font-bold text-foreground">
                   {
                     opportunities.filter(
-                      (opp) =>
+                      (opp: OpportunityListItem) =>
                         !opp.is_archived &&
                         (opp.status === "completed" || opp.status === "closed")
                     ).length
@@ -682,7 +460,10 @@ export default function OpportunitiesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Archived</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {opportunities.filter((opp) => opp.is_archived).length}
+                  {
+                    opportunities.filter((opp: OpportunityListItem) => opp.is_archived)
+                      .length
+                  }
                 </p>
               </div>
               <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center">
@@ -704,11 +485,13 @@ export default function OpportunitiesPage() {
         ) : filteredOpportunities.length === 0 ? (
           <div className="text-center py-8">
             <p className={textStyles.body.regular}>
-              No opportunities found. Create your first opportunity!
+              {fetchError && opportunities.length === 0
+                ? "Could not load opportunities. Use Retry above or refresh the page."
+                : "No opportunities found. Create your first opportunity!"}
             </p>
           </div>
         ) : (
-          filteredOpportunities.map((opportunity) => (
+          filteredOpportunities.map((opportunity: OpportunityListItem) => (
             <Card
               key={opportunity.id}
               className={`bg-card border-border ${
@@ -747,7 +530,7 @@ export default function OpportunitiesPage() {
                         <span className="truncate">
                           {opportunity.event_date
                             ? formatDate(opportunity.event_date)
-                            : opportunity.date}
+                            : "—"}
                         </span>
                       </div>
                       <div className="flex items-center">
@@ -765,9 +548,9 @@ export default function OpportunitiesPage() {
                       </div>
                       <div className="flex items-center">
                         <span className="truncate">
-                          {opportunity.payment
+                          {opportunity.payment != null
                             ? `£${opportunity.payment}`
-                            : opportunity.pay}
+                            : "—"}
                         </span>
                       </div>
                     </div>
@@ -786,25 +569,11 @@ export default function OpportunitiesPage() {
                           Boosted
                         </Badge>
                       )}
-                      {opportunity.selected && (
-                        <div className="flex items-center">
-                          <span className="text-brand-green">Selected: </span>
-                          <span className="text-foreground truncate">
-                            {opportunity.selected}
-                          </span>
-                        </div>
-                      )}
                     </div>
 
                     {/* Mobile: Action buttons below content */}
                     <div className="flex flex-wrap items-center gap-2 sm:hidden mt-3">
-                      {getStatusBadge(
-                        opportunity.is_archived
-                          ? "archived"
-                          : opportunity.is_active
-                          ? "active"
-                          : opportunity.status
-                      )}
+                      {getStatusBadge(opportunity.status)}
                       {opportunity.genre && (
                         <Badge
                           variant="outline"
@@ -849,12 +618,12 @@ export default function OpportunitiesPage() {
                         variant="outline"
                         size="sm"
                         className="text-foreground text-xs"
-                        onClick={() =>
-                          (window.location.href = `/admin/opportunities/${opportunity.id}`)
-                        }
+                        asChild
                       >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View
+                        <Link href={`/admin/opportunities/${opportunity.id}`}>
+                          <Eye className="h-3 w-3 mr-1" />
+                          View
+                        </Link>
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -905,13 +674,7 @@ export default function OpportunitiesPage() {
 
                   {/* Desktop: Action buttons on the right */}
                   <div className="hidden sm:flex items-center space-x-2">
-                    {getStatusBadge(
-                      opportunity.is_archived
-                        ? "archived"
-                        : opportunity.is_active
-                        ? "active"
-                        : opportunity.status
-                    )}
+                    {getStatusBadge(opportunity.status)}
                     {opportunity.genre && (
                       <Badge
                         variant="outline"
@@ -956,12 +719,12 @@ export default function OpportunitiesPage() {
                       variant="outline"
                       size="sm"
                       className="text-foreground"
-                      onClick={() =>
-                        (window.location.href = `/admin/opportunities/${opportunity.id}`)
-                      }
+                      asChild
                     >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Details
+                      <Link href={`/admin/opportunities/${opportunity.id}`}>
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Details
+                      </Link>
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

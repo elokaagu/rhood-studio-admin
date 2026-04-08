@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
@@ -26,10 +25,8 @@ import {
   MapPin,
   Music,
   Save,
-  X,
   ArrowLeft,
   Clock,
-  CheckCircle,
   Link as LinkIcon,
   Sparkles,
   Loader2,
@@ -44,16 +41,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getDisplayLength, getDisplayText } from "@/lib/text-utils";
-
-const DESCRIPTION_MAX_LENGTH = 700;
+import { getDisplayLength } from "@/lib/text-utils";
+import {
+  OPPORTUNITY_DESCRIPTION_MAX_LENGTH,
+  buildOpportunityUpdatePayload,
+  opportunityRowToFormState,
+  processOpportunityDescription,
+  saveOpportunity,
+  validateOpportunityForm,
+  type OpportunityFormState,
+} from "@/lib/admin/opportunities/opportunity-edit";
 
 export default function EditOpportunityPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const opportunityId = params.id;
+  const opportunityId = params.id as string;
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
@@ -62,8 +67,28 @@ export default function EditOpportunityPage() {
   const [isRefining, setIsRefining] = useState(false);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch opportunity data from database
+  const [formData, setFormData] = useState<OpportunityFormState>({
+    title: "",
+    description: "",
+    location: "",
+    locationPlaceId: "",
+    dateType: "single",
+    date: "",
+    endDate: "",
+    time: "",
+    endTime: "",
+    pay: "",
+    genre: "",
+    requirements: "",
+    additionalInfo: "",
+    status: "draft",
+    imageUrl: "",
+    archived: false,
+  });
+
   const fetchOpportunity = async () => {
+    setLoadError(null);
+    setIsLoading(true);
     try {
       const userProfile = await getCurrentUserProfile();
       const userId = await getCurrentUserId();
@@ -71,9 +96,8 @@ export default function EditOpportunityPage() {
       let query = supabase
         .from("opportunities")
         .select("*")
-        .eq("id", opportunityId as string);
+        .eq("id", opportunityId);
 
-      // Brands can only access their own opportunities
       if (userProfile?.role === "brand" && userId) {
         query = query.eq("organizer_id", userId);
       }
@@ -84,7 +108,6 @@ export default function EditOpportunityPage() {
         throw error;
       }
 
-      // Check if brand is trying to access someone else's opportunity
       if (
         userProfile?.role === "brand" &&
         userId &&
@@ -101,158 +124,26 @@ export default function EditOpportunityPage() {
       }
 
       if (data) {
-        // Parse the event_date to separate date and time
-        const eventDate = data.event_date ? new Date(data.event_date) : null;
-        const dateStr = eventDate ? eventDate.toISOString().split("T")[0] : "";
-        const timeStr = eventDate
-          ? eventDate.toTimeString().split(" ")[0].substring(0, 5)
-          : "";
-        const eventEnd = data.event_end_time
-          ? new Date(data.event_end_time)
-          : null;
-        const endTimeStr = eventEnd
-          ? eventEnd.toTimeString().split(" ")[0].substring(0, 5)
-          : "";
-        const endDateStr = eventEnd ? eventEnd.toISOString().split("T")[0] : "";
-
-        // Determine if this is a date range (different dates) or single date
-        const isRange =
-          eventDate &&
-          eventEnd &&
-          dateStr !== endDateStr &&
-          !isNaN(eventDate.getTime()) &&
-          !isNaN(eventEnd.getTime());
-
-        setFormData({
-          title: data.title || "",
-          description: (data.description || "").slice(0, DESCRIPTION_MAX_LENGTH),
-          location: data.location || "",
-          locationPlaceId: "",
-          dateType: isRange ? "range" : "single",
-          date: dateStr,
-          endDate: isRange ? endDateStr : "",
-          time: timeStr,
-          endTime: endTimeStr,
-          pay: data.payment ? data.payment.toString() : "",
-          genre: data.genre || "",
-          requirements: data.skill_level || "",
-          additionalInfo: "",
-          status: data.is_active ? "active" : "draft",
-          imageUrl: data.image_url || "",
-          archived: data.is_archived ?? false,
-        });
+        setFormData(opportunityRowToFormState(data));
       }
     } catch (error) {
       console.error("Error fetching opportunity:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to load opportunity.";
+      setLoadError(message);
       toast({
         title: "Error",
-        description: "Failed to load opportunity data. Using demo data.",
+        description: message,
         variant: "destructive",
-      });
-      // Fallback to demo data
-      const opportunities = [
-        {
-          id: 1,
-          title: "Underground Warehouse Rave",
-          location: "East London",
-          date: "2024-08-15",
-          endTime: "",
-          pay: "£300",
-          applicants: 12,
-          status: "active",
-          is_archived: false,
-          genre: "Techno",
-          description:
-            "High-energy underground techno event in a converted warehouse space.",
-          requirements: "Professional DJ equipment, 3+ years experience",
-          additionalInfo: "Contact: events@warehouse.com",
-        },
-        {
-          id: 2,
-          title: "Rooftop Summer Sessions",
-          location: "Shoreditch",
-          date: "2024-08-20",
-          endTime: "",
-          pay: "£450",
-          applicants: 8,
-          status: "active",
-          is_archived: false,
-          genre: "House",
-          description: "Sunset house music sessions with panoramic city views.",
-          requirements: "House music experience, own equipment preferred",
-          additionalInfo: "Venue provides sound system",
-        },
-        {
-          id: 3,
-          title: "Club Residency Audition",
-          location: "Camden",
-          date: "2024-08-25",
-          endTime: "",
-          pay: "£200 + Residency",
-          applicants: 15,
-          status: "completed",
-          is_archived: false,
-          genre: "Drum & Bass",
-          selected: "Alex Thompson",
-          description: "Weekly residency opportunity at premier London club.",
-          requirements: "Drum & Bass expertise, club experience",
-          additionalInfo: "Selected candidate will receive ongoing residency",
-        },
-      ];
-
-      const opportunity = opportunities.find(
-        (opp) => opp.id === parseInt(opportunityId as string)
-      );
-
-      setFormData({
-        title: opportunity?.title || "",
-        description: (opportunity?.description || "").slice(
-          0,
-          DESCRIPTION_MAX_LENGTH
-        ),
-        location: opportunity?.location || "",
-        locationPlaceId: "",
-        dateType: "single" as "single" | "range",
-        date: opportunity?.date || "",
-        endDate: "",
-        time: "",
-        endTime: opportunity?.endTime || "",
-        pay: opportunity?.pay || "",
-        genre: opportunity?.genre || "",
-        requirements: opportunity?.requirements || "",
-        additionalInfo: opportunity?.additionalInfo || "",
-        status: opportunity?.status || "draft",
-        imageUrl: "",
-        archived: opportunity?.is_archived ?? false,
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Load opportunity data on component mount
   useEffect(() => {
     fetchOpportunity();
   }, [opportunityId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    location: "",
-    locationPlaceId: "",
-    dateType: "single" as "single" | "range",
-    date: "",
-    endDate: "",
-    time: "",
-    endTime: "",
-    pay: "",
-    genre: "",
-    requirements: "",
-    additionalInfo: "",
-    status: "draft",
-    imageUrl: "",
-    archived: false,
-  });
 
   const genres = [
     "House",
@@ -268,120 +159,52 @@ export default function EditOpportunityPage() {
     "Breakbeat",
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const persistOpportunity = async (mode: "publish" | "draft") => {
     setIsSubmitting(true);
-
     try {
-      if (!formData.date || !formData.time || !formData.endTime) {
+      const validated = validateOpportunityForm(formData);
+      if (!validated.ok) {
         toast({
-          title: "Missing Schedule",
-          description: "Please provide a date, start time, and finish time.",
+          title: "Check your entries",
+          description: validated.message,
           variant: "destructive",
         });
         return;
       }
 
-      // Validate date range if in range mode
-      if (formData.dateType === "range" && !formData.endDate) {
-        toast({
-          title: "Missing End Date",
-          description: "Please provide an end date for the campaign range.",
-          variant: "destructive",
-        });
-        return;
-      }
+      const processedDescription = processOpportunityDescription(
+        formData.description
+      );
 
-      if (formData.dateType === "range" && formData.endDate < formData.date) {
-        toast({
-          title: "Invalid Date Range",
-          description: "End date must be on or after the start date.",
-          variant: "destructive",
-        });
-        return;
-      }
+      const payload = buildOpportunityUpdatePayload(
+        formData,
+        validated,
+        mode,
+        processedDescription
+      );
 
-      const eventStart = new Date(`${formData.date}T${formData.time}`);
-      let eventEnd: Date;
-
-      if (formData.dateType === "range") {
-        // For date range, use end date with end time
-        eventEnd = new Date(`${formData.endDate}T${formData.endTime}`);
-      } else {
-        // For single date, use same date with end time
-        eventEnd = new Date(`${formData.date}T${formData.endTime}`);
-      }
-
-      if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
-        toast({
-          title: "Invalid Time",
-          description: "Please enter a valid start and finish time.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (eventEnd <= eventStart) {
-        toast({
-          title: "Invalid Schedule",
-          description: "Finish time must be after the start time.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!formData.location.trim()) {
-        toast({
-          title: "Location Required",
-          description: "Please choose a location for this opportunity.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Parse payment amount
-      const paymentAmount = formData.pay
-        ? parseFloat(formData.pay.replace(/[£,]/g, ""))
-        : null;
-
-      // Process description to convert markdown links to display text only
-      // This ensures URLs don't show in the app - only the link text is displayed
-      const processedDescription = getDisplayText(
-        formData.description.trim()
-      ).slice(0, DESCRIPTION_MAX_LENGTH);
-
-      const { error } = await supabase
-        .from("opportunities")
-        .update({
-          title: formData.title,
-          description: processedDescription,
-          location: formData.location.trim(),
-          event_date: eventStart.toISOString(),
-          event_end_time: eventEnd.toISOString(),
-          payment: paymentAmount,
-          genre: formData.genre,
-          skill_level: formData.requirements,
-          is_active: formData.status === "active" && !formData.archived,
-          is_archived: formData.archived,
-          image_url: formData.imageUrl || null,
-        })
-        .eq("id", opportunityId as string);
-
-      if (error) {
-        throw error;
+      const saveResult = await saveOpportunity(opportunityId, payload);
+      if (!saveResult.ok) {
+        throw new Error(saveResult.message);
       }
 
       toast({
-        title: "Success",
-        description: "Opportunity updated successfully!",
+        title: mode === "publish" ? "Success" : "Draft Saved",
+        description:
+          mode === "publish"
+            ? "Opportunity updated successfully!"
+            : "Opportunity saved as draft successfully!",
       });
 
       router.push(`/admin/opportunities/${opportunityId}`);
     } catch (error) {
-      console.error("Error updating opportunity:", error);
+      console.error("Error saving opportunity:", error);
       toast({
         title: "Error",
-        description: "Failed to update opportunity. Please try again.",
+        description:
+          mode === "publish"
+            ? "Failed to update opportunity. Please try again."
+            : "Failed to save draft. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -389,123 +212,13 @@ export default function EditOpportunityPage() {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await persistOpportunity("publish");
+  };
+
   const handleSaveDraft = async () => {
-    setIsSubmitting(true);
-
-    try {
-      if (!formData.date || !formData.time || !formData.endTime) {
-        toast({
-          title: "Missing Schedule",
-          description: "Please provide a date, start time, and finish time.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Validate date range if in range mode
-      if (formData.dateType === "range" && !formData.endDate) {
-        toast({
-          title: "Missing End Date",
-          description: "Please provide an end date for the campaign range.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (formData.dateType === "range" && formData.endDate < formData.date) {
-        toast({
-          title: "Invalid Date Range",
-          description: "End date must be on or after the start date.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const eventStart = new Date(`${formData.date}T${formData.time}`);
-      let eventEnd: Date;
-
-      if (formData.dateType === "range") {
-        // For date range, use end date with end time
-        eventEnd = new Date(`${formData.endDate}T${formData.endTime}`);
-      } else {
-        // For single date, use same date with end time
-        eventEnd = new Date(`${formData.date}T${formData.endTime}`);
-      }
-
-      if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
-        toast({
-          title: "Invalid Time",
-          description: "Please enter a valid start and finish time.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (eventEnd <= eventStart) {
-        toast({
-          title: "Invalid Schedule",
-          description: "Finish time must be after the start time.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!formData.location.trim()) {
-        toast({
-          title: "Location Required",
-          description: "Please choose a location for this opportunity.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const paymentAmount = formData.pay
-        ? parseFloat(formData.pay.replace(/[£,]/g, ""))
-        : null;
-
-      // Process description to convert markdown links to display text only
-      // This ensures URLs don't show in the app - only the link text is displayed
-      const processedDescription = getDisplayText(
-        formData.description.trim()
-      ).slice(0, DESCRIPTION_MAX_LENGTH);
-
-      const { error } = await supabase
-        .from("opportunities")
-        .update({
-          title: formData.title,
-          description: processedDescription,
-          location: formData.location.trim(),
-          event_date: eventStart.toISOString(),
-          event_end_time: eventEnd.toISOString(),
-          payment: paymentAmount,
-          genre: formData.genre,
-          skill_level: formData.requirements,
-          is_active: false, // Draft is not active
-          is_archived: formData.archived,
-          image_url: formData.imageUrl || null,
-        })
-        .eq("id", opportunityId as string);
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Draft Saved",
-        description: "Opportunity saved as draft successfully!",
-      });
-
-      router.push(`/admin/opportunities/${opportunityId}`);
-    } catch (error) {
-      console.error("Error saving draft:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save draft. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    await persistOpportunity("draft");
   };
 
   const handleOpenLinkDialog = () => {
@@ -541,10 +254,10 @@ export default function EditOpportunityPage() {
 
     // Check display length (excluding markdown syntax) instead of raw length
     const displayLength = getDisplayLength(newDescription);
-    if (displayLength > DESCRIPTION_MAX_LENGTH) {
+    if (displayLength > OPPORTUNITY_DESCRIPTION_MAX_LENGTH) {
       toast({
         title: "Error",
-        description: `Link would exceed the ${DESCRIPTION_MAX_LENGTH} character limit`,
+        description: `Link would exceed the ${OPPORTUNITY_DESCRIPTION_MAX_LENGTH} character limit`,
         variant: "destructive",
       });
       return;
@@ -582,7 +295,7 @@ export default function EditOpportunityPage() {
         },
         body: JSON.stringify({
           text: formData.description,
-          maxLength: DESCRIPTION_MAX_LENGTH,
+          maxLength: OPPORTUNITY_DESCRIPTION_MAX_LENGTH,
         }),
       });
 
@@ -595,10 +308,10 @@ export default function EditOpportunityPage() {
       const refinedText = data.refinedText || formData.description;
 
       // Check display length before applying
-      if (getDisplayLength(refinedText) > DESCRIPTION_MAX_LENGTH) {
+      if (getDisplayLength(refinedText) > OPPORTUNITY_DESCRIPTION_MAX_LENGTH) {
         toast({
           title: "Refinement too long",
-          description: `The refined text exceeds the ${DESCRIPTION_MAX_LENGTH} character limit.`,
+          description: `The refined text exceeds the ${OPPORTUNITY_DESCRIPTION_MAX_LENGTH} character limit.`,
           variant: "destructive",
         });
         return;
@@ -657,6 +370,26 @@ export default function EditOpportunityPage() {
           <div className="flex items-center justify-center py-8">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green border-t-transparent" />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="space-y-6 max-w-lg mx-auto text-center">
+        <h1 className={textStyles.headline.section}>Could not load opportunity</h1>
+        <p className={`${textStyles.body.regular} text-muted-foreground`}>
+          {loadError}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button variant="outline" onClick={() => fetchOpportunity()}>
+            Retry
+          </Button>
+          <Button onClick={() => router.push("/admin/opportunities")}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to opportunities
+          </Button>
         </div>
       </div>
     );
@@ -746,7 +479,7 @@ export default function EditOpportunityPage() {
                 onChange={(e) => {
                   const newValue = e.target.value;
                   // Only update if display length is within limit
-                  if (getDisplayLength(newValue) <= DESCRIPTION_MAX_LENGTH) {
+                  if (getDisplayLength(newValue) <= OPPORTUNITY_DESCRIPTION_MAX_LENGTH) {
                     setFormData({ ...formData, description: newValue });
                   }
                 }}
@@ -754,7 +487,7 @@ export default function EditOpportunityPage() {
                 required
               />
               <p className="text-xs text-muted-foreground text-right">
-                {getDisplayLength(formData.description)}/{DESCRIPTION_MAX_LENGTH} characters
+                {getDisplayLength(formData.description)}/{OPPORTUNITY_DESCRIPTION_MAX_LENGTH} characters
               </p>
             </div>
 
@@ -1003,6 +736,11 @@ export default function EditOpportunityPage() {
               <Label htmlFor="status" className={textStyles.body.regular}>
                 Status
               </Label>
+              <p className="text-xs text-muted-foreground">
+                Saved as <code className="text-xs">listing_status</code>. “Active”
+                also sets <code className="text-xs">is_active</code> for the app when
+                not archived.
+              </p>
               <Select
                 value={formData.status}
                 onValueChange={(value) =>
@@ -1152,7 +890,7 @@ export default function EditOpportunityPage() {
             <DialogDescription>
               AI will refine your description to be clearer and more concise
               while preserving all key information. The text will stay within
-              the {DESCRIPTION_MAX_LENGTH} character limit.
+              the {OPPORTUNITY_DESCRIPTION_MAX_LENGTH} character limit.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1162,7 +900,7 @@ export default function EditOpportunityPage() {
                 {formData.description || "(empty)"}
               </div>
               <p className="text-xs text-muted-foreground">
-                {getDisplayLength(formData.description)}/{DESCRIPTION_MAX_LENGTH} characters
+                {getDisplayLength(formData.description)}/{OPPORTUNITY_DESCRIPTION_MAX_LENGTH} characters
               </p>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate } from "@/lib/date-utils";
-import { deleteMemberWithCascade } from "@/lib/robust-member-deletion";
+import { deleteAdminMemberAction } from "@/actions/admin-members";
 import type { DjMember, DjSortBy, FetchDjsResult } from "./types";
 
 const ACTIVE_DAYS_THRESHOLD = 30;
@@ -142,9 +142,5 @@ export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
 }
 
 export async function deleteDj(id: string): Promise<{ ok: true } | { ok: false; message: string }> {
-  const result = await deleteMemberWithCascade(id);
-  if (!result.success) {
-    return { ok: false, message: result.error || "Failed to delete DJ." };
-  }
-  return { ok: true };
+  return deleteAdminMemberAction(id);
 }

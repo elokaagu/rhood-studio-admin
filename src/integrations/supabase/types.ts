@@ -621,6 +621,7 @@ export type Database = {
       };
       opportunities: {
         Row: {
+          additional_info: string | null;
           created_at: string | null;
           description: string;
           event_date: string | null;
@@ -630,15 +631,18 @@ export type Database = {
           image_url: string | null;
           is_active: boolean | null;
           is_archived: boolean | null;
+          listing_status: string | null;
           location: string;
           organizer_id: string | null;
           organizer_name: string;
           payment: number | null;
+          schedule_details: Json | null;
           skill_level: string | null;
           title: string;
           updated_at: string | null;
         };
         Insert: {
+          additional_info?: string | null;
           created_at?: string | null;
           description: string;
           event_date?: string | null;
@@ -648,15 +652,18 @@ export type Database = {
           image_url?: string | null;
           is_active?: boolean | null;
           is_archived?: boolean | null;
+          listing_status?: string | null;
           location: string;
           organizer_id?: string | null;
           organizer_name: string;
           payment?: number | null;
+          schedule_details?: Json | null;
           skill_level?: string | null;
           title: string;
           updated_at?: string | null;
         };
         Update: {
+          additional_info?: string | null;
           created_at?: string | null;
           description?: string;
           event_date?: string | null;
@@ -666,10 +673,12 @@ export type Database = {
           image_url?: string | null;
           is_active?: boolean | null;
           is_archived?: boolean | null;
+          listing_status?: string | null;
           location?: string;
           organizer_id?: string | null;
           organizer_name?: string;
           payment?: number | null;
+          schedule_details?: Json | null;
           skill_level?: string | null;
           title?: string;
           updated_at?: string | null;

@@ -130,24 +130,23 @@ export default function EditFormPage() {
           throw fieldsRes.error;
         }
 
-        const transformedFields = (fieldsRes.data || []).map((field: {
-          id: string;
-          field_type: string;
-          field_name: string;
-          field_label: string;
-          field_placeholder: string | null;
-          is_required: boolean;
-          field_options: string[] | null;
-        }) => ({
-          clientId: field.id,
-          dbId: field.id,
-          type: field.field_type,
-          name: field.field_name,
-          label: field.field_label,
-          placeholder: field.field_placeholder || "",
-          required: field.is_required,
-          options: Array.isArray(field.field_options) ? field.field_options : [],
-        }));
+        const transformedFields = (fieldsRes.data || []).map((field) => {
+          const rawOpts = field.field_options;
+          const options =
+            Array.isArray(rawOpts)
+              ? rawOpts.filter((x): x is string => typeof x === "string")
+              : [];
+          return {
+            clientId: field.id,
+            dbId: field.id,
+            type: field.field_type,
+            name: field.field_name,
+            label: field.field_label,
+            placeholder: field.field_placeholder || "",
+            required: field.is_required,
+            options,
+          };
+        });
         setFields(transformedFields);
         setLoadError(null);
       } catch (error) {

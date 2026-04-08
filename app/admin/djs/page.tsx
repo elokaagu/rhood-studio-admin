@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { textStyles } from "@/lib/typography";
-import { formatDate } from "@/lib/date-utils";
 import {
   Search,
   MapPin,
@@ -42,146 +41,54 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
+import { deleteDj, fetchDjs } from "@/lib/admin/djs/service";
+import type { DjMember, DjSortBy } from "@/lib/admin/djs/types";
 
 export default function DJsPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("date_joined_newest");
+  const [sortBy, setSortBy] = useState<DjSortBy>("date_joined_newest");
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteFormData, setInviteFormData] = useState({
     name: "",
     email: "",
     message: "",
   });
-  const [members, setMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<DjMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<{
     id: string;
     name: string;
   } | null>(null);
   const [messageModalOpen, setMessageModalOpen] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [selectedMember, setSelectedMember] = useState<DjMember | null>(null);
   const [messageContent, setMessageContent] = useState("");
 
-  // Get sort order based on current sort option
-  const getSortOrder = () => {
-    switch (sortBy) {
-      case "date_joined_newest":
-        return { column: "created_at", ascending: false };
-      case "date_joined_oldest":
-        return { column: "created_at", ascending: true };
-      case "last_active_newest":
-        return { column: "updated_at", ascending: false };
-      case "last_active_oldest":
-        return { column: "updated_at", ascending: true };
-      default:
-        return { column: "created_at", ascending: false };
-    }
-  };
-
-  // Fetch DJs from database (filter out brands)
-  const fetchMembers = async () => {
-    try {
-      const sortOrder = getSortOrder();
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .select("*")
-        .or("role.is.null,role.neq.brand")
-        .order(sortOrder.column, { ascending: sortOrder.ascending });
-
-      if (error) {
-        // Check if it's a table doesn't exist error
-        if (
-          error.message?.includes("relation") &&
-          error.message?.includes("does not exist")
-        ) {
-          console.warn(
-            "User profiles table doesn't exist yet. Using demo data."
-          );
-          toast({
-            title: "Database Setup Required",
-            description:
-              "User profiles table not found. Please create it in Supabase dashboard. Using demo data for now.",
-            variant: "destructive",
-          });
-        } else {
-          throw error;
-        }
-      } else {
-        // Transform the data to match the expected format
-        const transformedMembers = await Promise.all(
-          (data || []).map(async (member: any) => {
-            // Calculate rating from ai_matching_feedback table
-            let rating = 0.0;
-            try {
-              const { data: feedbackData } = await supabase
-                .from("ai_matching_feedback")
-                .select("rating")
-                .eq("user_id", member.id);
-
-              if (feedbackData && feedbackData.length > 0) {
-                const totalRating = feedbackData.reduce(
-                  (sum, feedback) => sum + feedback.rating,
-                  0
-                );
-                rating = totalRating / feedbackData.length;
-              }
-            } catch (ratingError) {
-              console.warn(
-                "Could not fetch rating for user:",
-                member.id,
-                ratingError
-              );
-            }
-
-            return {
-              id: member.id,
-              name: `${member.first_name} ${member.last_name}`,
-              email: member.email,
-              location: member.city,
-              joinedDate: member.created_at
-                ? (() => {
-                    const formatted = formatDate(member.created_at);
-                    return formatted === "Invalid Date" ? "Unknown" : formatted;
-                  })()
-                : "Unknown",
-              gigs: 0, // This field might need to be calculated from applications
-              rating: Math.round(rating * 10) / 10, // Round to 1 decimal place
-              genres: member.genres || [],
-              status: "active", // Default status
-              lastActive: "Unknown", // This field might need to be tracked
-              djName: member.dj_name,
-              bio: member.bio,
-              instagram: member.instagram,
-              soundcloud: member.soundcloud,
-              profileImageUrl: member.profile_image_url,
-            };
-          })
-        );
-
-        setMembers(transformedMembers);
-        setIsLoading(false);
-        return; // Exit early if successful
-      }
-    } catch (error) {
-      console.error("Error fetching DJs:", error);
+  const loadMembers = useCallback(async () => {
+    setIsLoading(true);
+    const result = await fetchDjs(sortBy);
+    if (!result.ok) {
       toast({
-        title: "Database Error",
-        description: "Failed to load DJs from database. Using demo data.",
+        title: "Error",
+        description: result.message,
         variant: "destructive",
       });
+      setMembers([]);
+      setIsLoading(false);
+      return;
     }
-
-    // Fallback to demo data
+    setMembers(result.data);
     setIsLoading(false);
-  };
+  }, [sortBy, toast]);
 
   // Load members on component mount and when sorting changes
   useEffect(() => {
-    fetchMembers();
-  }, [sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
+    loadMembers();
+  }, [loadMembers]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -207,29 +114,31 @@ export default function DJsPage() {
   };
 
   const getInitials = (name: string) => {
+    if (!name.trim()) return "DJ";
     return name
       .split(" ")
+      .filter(Boolean)
       .map((word) => word[0])
       .join("")
       .toUpperCase();
   };
 
   // Filter members based on search term and active filter
-  const filteredMembers = members.filter((member) => {
-    const matchesSearch =
-      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (member.djName && member.djName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      member.genres.some((genre: string) =>
-        genre.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  const filteredMembers = useMemo(() => {
+    const q = searchTerm.toLowerCase().trim();
+    return members.filter((member) => {
+      const matchesSearch =
+        !q ||
+        member.name.toLowerCase().includes(q) ||
+        member.email.toLowerCase().includes(q) ||
+        (member.location || "").toLowerCase().includes(q) ||
+        (member.djName || "").toLowerCase().includes(q) ||
+        member.genres.some((genre) => genre.toLowerCase().includes(q));
 
-    const matchesFilter =
-      activeFilter === "all" || member.status === activeFilter;
-
-    return matchesSearch && matchesFilter;
-  });
+      const matchesFilter = activeFilter === "all" || member.status === activeFilter;
+      return matchesSearch && matchesFilter;
+    });
+  }, [members, searchTerm, activeFilter]);
 
   const handleInviteMember = () => {
     setIsInviteModalOpen(true);
@@ -263,7 +172,7 @@ export default function DJsPage() {
     setIsInviteModalOpen(false);
   };
 
-  const handleMessageMember = (member: any) => {
+  const handleMessageMember = (member: DjMember) => {
     setSelectedMember(member);
     setMessageContent("");
     setMessageModalOpen(true);
@@ -275,7 +184,7 @@ export default function DJsPage() {
     // Open mailto link with the message
     const subject = encodeURIComponent(`Message from R/HOOD Admin`);
     const body = encodeURIComponent(messageContent);
-    window.location.href = `mailto:${selectedMember.email}?subject=${subject}&body=${body}`;
+    window.location.assign(`mailto:${selectedMember.email}?subject=${subject}&body=${body}`);
 
     toast({
       title: "Message Sent",
@@ -296,129 +205,15 @@ export default function DJsPage() {
     if (!memberToDelete) return;
 
     try {
-      console.log("Deleting DJ:", memberToDelete.id, memberToDelete.name);
-
-      // Direct deletion approach - handle foreign key constraints step by step
-      console.log("Starting step-by-step deletion...");
-
-      // Step 1: Delete from community_members
-      const { error: communityMembersError } = await supabase
-        .from("community_members")
-        .delete()
-        .eq("user_id", memberToDelete.id);
-
-      if (communityMembersError) {
-        console.error(
-          "Error deleting community members:",
-          communityMembersError
-        );
+      setIsDeleting(true);
+      const result = await deleteDj(memberToDelete.id);
+      if (!result.ok) {
+        throw new Error(result.message);
       }
-
-      // Step 2: Delete from messages
-      const { error: messagesError } = await supabase
-        .from("messages")
-        .delete()
-        .eq("sender_id", memberToDelete.id);
-
-      if (messagesError) {
-        console.error("Error deleting messages:", messagesError);
-      }
-
-      // Step 3: Delete from applications
-      const { error: applicationsError } = await supabase
-        .from("applications")
-        .delete()
-        .eq("user_id", memberToDelete.id);
-
-      if (applicationsError) {
-        console.error("Error deleting applications:", applicationsError);
-      }
-
-      // Step 4: Delete from message_threads
-      console.log("Step 4: Deleting from message_threads...");
-      const { error: messageThreadsError1 } = await supabase
-        .from("message_threads" as any)
-        .delete()
-        .eq("participant_1", memberToDelete.id);
-
-      if (messageThreadsError1) {
-        console.error(
-          "Error deleting message_threads (participant_1):",
-          messageThreadsError1
-        );
-      }
-
-      const { error: messageThreadsError2 } = await supabase
-        .from("message_threads" as any)
-        .delete()
-        .eq("participant_2", memberToDelete.id);
-
-      if (messageThreadsError2) {
-        console.error(
-          "Error deleting message_threads (participant_2):",
-          messageThreadsError2
-        );
-      }
-
-      // Step 5: Delete from connections
-      console.log("Step 5: Deleting from connections...");
-      const { error: connectionsError1 } = await supabase
-        .from("connections" as any)
-        .delete()
-        .eq("follower_id", memberToDelete.id);
-
-      if (connectionsError1) {
-        console.error(
-          "Error deleting connections (follower_id):",
-          connectionsError1
-        );
-      }
-
-      const { error: connectionsError2 } = await supabase
-        .from("connections" as any)
-        .delete()
-        .eq("following_id", memberToDelete.id);
-
-      if (connectionsError2) {
-        console.error(
-          "Error deleting connections (following_id):",
-          connectionsError2
-        );
-      }
-
-      // Step 6: Delete user profile
-      console.log("Step 6: Attempting to delete user profile...");
-      const { data: deletedData, error: userProfileError } = await supabase
-        .from("user_profiles")
-        .delete()
-        .eq("id", memberToDelete.id)
-        .select();
-
-      if (userProfileError) {
-        console.error("Error deleting user profile:", userProfileError);
-
-        if (
-          userProfileError.message &&
-          userProfileError.message.includes("foreign key")
-        ) {
-          throw new Error(
-            `Unable to delete DJ due to database constraints. ` +
-              `Please use the manual deletion script: ` +
-              `Run the SQL commands in manual-user-deletion.sql in your Supabase dashboard, ` +
-              `replacing 'USER_ID_HERE' with: ${memberToDelete.id}`
-          );
-        } else {
-          throw userProfileError;
-        }
-      } else {
-        console.log("User profile deleted successfully");
-      }
-
-      console.log("Deletion completed successfully:", deletedData);
 
       // Remove from local state immediately
-      setMembers((prevMembers) =>
-        prevMembers.filter((member) => member.id !== memberToDelete.id)
+      setMembers((prevMembers: DjMember[]) =>
+        prevMembers.filter((member: DjMember) => member.id !== memberToDelete.id)
       );
 
       toast({
@@ -426,7 +221,6 @@ export default function DJsPage() {
         description: `"${memberToDelete.name}" has been deleted successfully.`,
       });
     } catch (error) {
-      console.error("Error deleting DJ:", error);
       toast({
         title: "Delete Failed",
         description: `Failed to delete DJ: ${
@@ -435,6 +229,7 @@ export default function DJsPage() {
         variant: "destructive",
       });
     } finally {
+      setIsDeleting(false);
       setDeleteModalOpen(false);
       setMemberToDelete(null);
     }
@@ -670,7 +465,7 @@ export default function DJsPage() {
             <p className={textStyles.body.regular}>No DJs found.</p>
           </div>
         ) : (
-          filteredMembers.map((member) => (
+          filteredMembers.map((member: DjMember) => (
             <Card key={member.id} className="bg-card border-border">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -734,7 +529,7 @@ export default function DJsPage() {
                       size="sm"
                       className="text-foreground text-xs sm:text-sm flex-1 sm:flex-initial"
                       onClick={() =>
-                        (window.location.href = `/admin/members/${member.id}`)
+                        router.push(`/admin/members/${member.id}`)
                       }
                     >
                       <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
@@ -812,9 +607,10 @@ export default function DJsPage() {
               variant="destructive"
               onClick={confirmDeleteMember}
               className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={isDeleting}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+              {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

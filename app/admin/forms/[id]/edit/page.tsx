@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Save, X, Plus, ArrowLeft, FileText } from "lucide-react";
 
 interface FormField {
-  id: string;
+  clientId: string;
+  dbId: string | null;
   type: string;
   name: string;
   label: string;
@@ -29,13 +30,38 @@ interface FormField {
   options?: string[];
 }
 
+type OpportunityOption = {
+  id: string;
+  title: string | null;
+};
+
+type FormValidationError = {
+  fieldId: string;
+  message: string;
+};
+
+const FIELD_TYPES = [
+  { value: "text", label: "Text Input" },
+  { value: "textarea", label: "Text Area" },
+  { value: "select", label: "Dropdown" },
+  { value: "radio", label: "Radio Buttons" },
+  { value: "checkbox", label: "Checkboxes" },
+  { value: "file", label: "File Upload" },
+  { value: "date", label: "Date Picker" },
+  { value: "number", label: "Number Input" },
+] as const;
+
+const OPTION_FIELD_TYPES = new Set(["select", "radio", "checkbox"]);
+
 export default function EditFormPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const formId = params.id;
+  const formIdParam = params.id;
+  const formId = Array.isArray(formIdParam) ? formIdParam[0] : formIdParam;
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -43,38 +69,54 @@ export default function EditFormPage() {
     is_active: true,
   });
   const [fields, setFields] = useState<FormField[]>([]);
-  const [availableOpportunities, setAvailableOpportunities] = useState<any[]>(
+  const [availableOpportunities, setAvailableOpportunities] = useState<
+    OpportunityOption[]
+  >(
+    []
+  );
+  const [validationErrors, setValidationErrors] = useState<FormValidationError[]>(
     []
   );
 
   // Load form data and opportunities on component mount
   useEffect(() => {
     const fetchData = async () => {
+      if (!formId) {
+        setLoadError("Invalid form id");
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        // Fetch opportunities
-        const { data: opportunities, error: oppError } = await supabase
-          .from("opportunities")
-          .select("id, title")
-          .eq("is_active", true)
-          .order("title");
+        const [opportunitiesRes, formRes, fieldsRes] = await Promise.all([
+          supabase
+            .from("opportunities")
+            .select("id, title")
+            .eq("is_active", true)
+            .order("title"),
+          supabase
+            .from("application_forms")
+            .select("*")
+            .eq("id", formId)
+            .single(),
+          supabase
+            .from("application_form_fields")
+            .select("*")
+            .eq("form_id", formId)
+            .order("field_order"),
+        ]);
 
-        if (oppError) {
-          console.error("Error fetching opportunities:", oppError);
-        } else {
-          setAvailableOpportunities(opportunities || []);
+        if (opportunitiesRes.error) {
+          throw opportunitiesRes.error;
         }
 
-        // Fetch form data
-        const { data: form, error: formError } = await supabase
-          .from("application_forms")
-          .select("*")
-          .eq("id", formId as string)
-          .single();
+        setAvailableOpportunities((opportunitiesRes.data ?? []) as OpportunityOption[]);
 
-        if (formError) {
-          throw formError;
+        if (formRes.error) {
+          throw formRes.error;
         }
 
+        const form = formRes.data;
         if (form) {
           setFormData({
             title: form.title,
@@ -82,62 +124,39 @@ export default function EditFormPage() {
             opportunity_id: form.opportunity_id || "none",
             is_active: form.is_active,
           });
-
-          // Fetch form fields
-          const { data: formFields, error: fieldsError } = await supabase
-            .from("application_form_fields")
-            .select("*")
-            .eq("form_id", formId as string)
-            .order("field_order");
-
-          if (fieldsError) {
-            console.error("Error fetching form fields:", fieldsError);
-          } else {
-            const transformedFields = (formFields || []).map((field: any) => ({
-              id: field.id,
-              type: field.field_type,
-              name: field.field_name,
-              label: field.field_label,
-              placeholder: field.field_placeholder || "",
-              required: field.is_required,
-              options: field.field_options || [],
-            }));
-            setFields(transformedFields);
-          }
         }
+
+        if (fieldsRes.error) {
+          throw fieldsRes.error;
+        }
+
+        const transformedFields = (fieldsRes.data || []).map((field: {
+          id: string;
+          field_type: string;
+          field_name: string;
+          field_label: string;
+          field_placeholder: string | null;
+          is_required: boolean;
+          field_options: string[] | null;
+        }) => ({
+          clientId: field.id,
+          dbId: field.id,
+          type: field.field_type,
+          name: field.field_name,
+          label: field.field_label,
+          placeholder: field.field_placeholder || "",
+          required: field.is_required,
+          options: Array.isArray(field.field_options) ? field.field_options : [],
+        }));
+        setFields(transformedFields);
+        setLoadError(null);
       } catch (error) {
-        console.error("Error fetching form data:", error);
+        setLoadError("Failed to load form editor data.");
         toast({
           title: "Error",
-          description: "Failed to load form data. Using demo data.",
+          description: "Failed to load form data. Please retry.",
           variant: "destructive",
         });
-
-        // Fallback to demo data
-        setFormData({
-          title: "Barcelona Beach Club",
-          description: "Application form for Barcelona Beach Club residency",
-          opportunity_id: "none",
-          is_active: true,
-        });
-        setFields([
-          {
-            id: "field_1",
-            type: "text",
-            name: "dj_name",
-            label: "DJ Name",
-            placeholder: "Enter your DJ name",
-            required: true,
-          },
-          {
-            id: "field_2",
-            type: "select",
-            name: "experience",
-            label: "Years of Experience",
-            required: true,
-            options: ["0-1 years", "2-5 years", "5+ years"],
-          },
-        ]);
       } finally {
         setIsLoading(false);
       }
@@ -146,20 +165,18 @@ export default function EditFormPage() {
     fetchData();
   }, [formId, toast]);
 
-  const fieldTypes = [
-    { value: "text", label: "Text Input" },
-    { value: "textarea", label: "Text Area" },
-    { value: "select", label: "Dropdown" },
-    { value: "radio", label: "Radio Buttons" },
-    { value: "checkbox", label: "Checkboxes" },
-    { value: "file", label: "File Upload" },
-    { value: "date", label: "Date Picker" },
-    { value: "number", label: "Number Input" },
-  ];
+  const validationErrorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    validationErrors.forEach((err: FormValidationError) =>
+      map.set(err.fieldId, err.message)
+    );
+    return map;
+  }, [validationErrors]);
 
   const addField = () => {
     const newField: FormField = {
-      id: `field_${Date.now()}`,
+      clientId: `local_${crypto.randomUUID()}`,
+      dbId: null,
       type: "text",
       name: "",
       label: "",
@@ -167,25 +184,25 @@ export default function EditFormPage() {
       required: false,
       options: [],
     };
-    setFields([...fields, newField]);
+    setFields((prev) => [...prev, newField]);
   };
 
-  const updateField = (fieldId: string, updates: Partial<FormField>) => {
-    setFields(
-      fields.map((field) =>
-        field.id === fieldId ? { ...field, ...updates } : field
+  const updateField = (fieldClientId: string, updates: Partial<FormField>) => {
+    setFields((prev) =>
+      prev.map((field) =>
+        field.clientId === fieldClientId ? { ...field, ...updates } : field
       )
     );
   };
 
-  const removeField = (fieldId: string) => {
-    setFields(fields.filter((field) => field.id !== fieldId));
+  const removeField = (fieldClientId: string) => {
+    setFields((prev) => prev.filter((field) => field.clientId !== fieldClientId));
   };
 
-  const addOption = (fieldId: string) => {
-    setFields(
-      fields.map((field) =>
-        field.id === fieldId
+  const addOption = (fieldClientId: string) => {
+    setFields((prev) =>
+      prev.map((field) =>
+        field.clientId === fieldClientId
           ? { ...field, options: [...(field.options || []), ""] }
           : field
       )
@@ -193,13 +210,13 @@ export default function EditFormPage() {
   };
 
   const updateOption = (
-    fieldId: string,
+    fieldClientId: string,
     optionIndex: number,
     value: string
   ) => {
-    setFields(
-      fields.map((field) =>
-        field.id === fieldId
+    setFields((prev) =>
+      prev.map((field) =>
+        field.clientId === fieldClientId
           ? {
               ...field,
               options:
@@ -212,10 +229,10 @@ export default function EditFormPage() {
     );
   };
 
-  const removeOption = (fieldId: string, optionIndex: number) => {
-    setFields(
-      fields.map((field) =>
-        field.id === fieldId
+  const removeOption = (fieldClientId: string, optionIndex: number) => {
+    setFields((prev) =>
+      prev.map((field) =>
+        field.clientId === fieldClientId
           ? {
               ...field,
               options:
@@ -226,8 +243,70 @@ export default function EditFormPage() {
     );
   };
 
+  const validateBeforeSubmit = (): FormValidationError[] => {
+    const errors: FormValidationError[] = [];
+
+    if (!formData.title.trim()) {
+      errors.push({ fieldId: "__form__", message: "Form title is required." });
+    }
+
+    const seenNames = new Set<string>();
+    fields.forEach((field) => {
+      if (!field.name.trim()) {
+        errors.push({
+          fieldId: field.clientId,
+          message: "Field name is required.",
+        });
+      }
+      if (!field.label.trim()) {
+        errors.push({
+          fieldId: field.clientId,
+          message: "Field label is required.",
+        });
+      }
+
+      const normalizedName = field.name.trim().toLowerCase();
+      if (normalizedName) {
+        if (seenNames.has(normalizedName)) {
+          errors.push({
+            fieldId: field.clientId,
+            message: "Field names must be unique.",
+          });
+        }
+        seenNames.add(normalizedName);
+      }
+
+      if (OPTION_FIELD_TYPES.has(field.type)) {
+        const nonEmptyOptions = (field.options ?? []).filter((opt: string) =>
+          opt.trim()
+        );
+        if (nonEmptyOptions.length === 0) {
+          errors.push({
+            fieldId: field.clientId,
+            message: "This field type needs at least one option.",
+          });
+        }
+      }
+    });
+
+    return errors;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formId) return;
+
+    const errors = validateBeforeSubmit();
+    setValidationErrors(errors);
+    if (errors.length > 0) {
+      toast({
+        title: "Fix validation errors",
+        description: errors[0]?.message ?? "Please review the form and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -235,46 +314,71 @@ export default function EditFormPage() {
       const { error: formError } = await supabase
         .from("application_forms")
         .update({
-          title: formData.title,
-          description: formData.description,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
           opportunity_id:
             formData.opportunity_id === "none"
               ? null
               : formData.opportunity_id || null,
           is_active: formData.is_active,
         })
-        .eq("id", formId as string);
+        .eq("id", formId);
 
       if (formError) {
         throw formError;
       }
 
-      // Delete existing fields
-      await supabase
+      const payload = fields.map((field, index) => ({
+        id: field.dbId ?? undefined,
+        form_id: formId,
+        field_type: field.type,
+        field_name: field.name.trim(),
+        field_label: field.label.trim(),
+        field_placeholder: field.placeholder?.trim() || null,
+        field_options: OPTION_FIELD_TYPES.has(field.type)
+          ? (field.options ?? [])
+              .map((o: string) => o.trim())
+              .filter(Boolean)
+          : null,
+        is_required: field.required,
+        field_order: index + 1,
+      }));
+
+      const existingDbIds = fields
+        .map((field) => field.dbId)
+        .filter((id): id is string => Boolean(id));
+
+      const { data: existingRows, error: existingRowsError } = await supabase
         .from("application_form_fields")
-        .delete()
-        .eq("form_id", formId as string);
+        .select("id")
+        .eq("form_id", formId);
 
-      // Create new form fields
-      if (fields.length > 0) {
-        const fieldsToInsert = fields.map((field, index) => ({
-          form_id: formId as string,
-          field_type: field.type,
-          field_name: field.name,
-          field_label: field.label,
-          field_placeholder: field.placeholder,
-          field_options:
-            field.options && field.options.length > 0 ? field.options : null,
-          is_required: field.required,
-          field_order: index + 1,
-        }));
+      if (existingRowsError) {
+        throw existingRowsError;
+      }
 
-        const { error: fieldsError } = await supabase
+      const existingIdsInDb = (existingRows ?? []).map((row: { id: string }) => row.id);
+      const idsToDelete = existingIdsInDb.filter(
+        (id: string) => !existingDbIds.includes(id)
+      );
+
+      if (idsToDelete.length > 0) {
+        const { error: deleteError } = await supabase
           .from("application_form_fields")
-          .insert(fieldsToInsert);
+          .delete()
+          .in("id", idsToDelete);
+        if (deleteError) {
+          throw deleteError;
+        }
+      }
 
-        if (fieldsError) {
-          throw fieldsError;
+      if (payload.length > 0) {
+        const { error: upsertError } = await supabase
+          .from("application_form_fields")
+          .upsert(payload, { onConflict: "id" });
+
+        if (upsertError) {
+          throw upsertError;
         }
       }
 
@@ -284,8 +388,7 @@ export default function EditFormPage() {
       });
 
       router.push("/admin/forms");
-    } catch (error) {
-      console.error("Error updating form:", error);
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update form. Please try again.",
@@ -304,6 +407,31 @@ export default function EditFormPage() {
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green border-t-transparent" />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="space-y-6 animate-blur-in">
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className={textStyles.subheading.small}>
+              Couldn&apos;t load form editor
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className={textStyles.body.regular}>{loadError}</p>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+              <Button variant="outline" onClick={() => router.push("/admin/forms")}>
+                Back to forms
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -344,12 +472,15 @@ export default function EditFormPage() {
                 placeholder="e.g., DJ Application Form"
                 value={formData.title}
                 onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
+                  setFormData((prev) => ({ ...prev, title: e.target.value }))
                 }
                 className="bg-secondary border-border text-foreground"
                 required
               />
             </div>
+            {validationErrorMap.get("__form__") && (
+              <p className="text-sm text-red-400">{validationErrorMap.get("__form__")}</p>
+            )}
             <div className="space-y-2">
               <Label htmlFor="description" className={textStyles.body.regular}>
                 Description
@@ -359,7 +490,7 @@ export default function EditFormPage() {
                 placeholder="Describe what this form is for..."
                 value={formData.description}
                 onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
+                  setFormData((prev) => ({ ...prev, description: e.target.value }))
                 }
                 className="bg-secondary border-border text-foreground min-h-[100px]"
               />
@@ -371,7 +502,7 @@ export default function EditFormPage() {
               <Select
                 value={formData.opportunity_id}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, opportunity_id: value })
+                  setFormData((prev) => ({ ...prev, opportunity_id: value }))
                 }
               >
                 <SelectTrigger className="w-full bg-secondary border-border text-foreground">
@@ -384,13 +515,13 @@ export default function EditFormPage() {
                   >
                     No specific opportunity
                   </SelectItem>
-                  {availableOpportunities.map((opportunity) => (
+                  {availableOpportunities.map((opportunity: OpportunityOption) => (
                     <SelectItem
                       key={opportunity.id}
                       value={opportunity.id}
                       className="text-foreground hover:bg-accent"
                     >
-                      {opportunity.title}
+                      {opportunity.title ?? "Untitled opportunity"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -402,7 +533,7 @@ export default function EditFormPage() {
                 id="is_active"
                 checked={formData.is_active}
                 onChange={(e) =>
-                  setFormData({ ...formData, is_active: e.target.checked })
+                  setFormData((prev) => ({ ...prev, is_active: e.target.checked }))
                 }
                 className="rounded border-border"
               />
@@ -442,7 +573,7 @@ export default function EditFormPage() {
               </div>
             ) : (
               fields.map((field, index) => (
-                <Card key={field.id} className="bg-secondary border-border">
+                <Card key={field.clientId} className="bg-secondary border-border">
                   <CardContent className="p-4">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -453,11 +584,16 @@ export default function EditFormPage() {
                           type="button"
                           variant="destructive"
                           size="sm"
-                          onClick={() => removeField(field.id)}
+                          onClick={() => removeField(field.clientId)}
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
+                      {validationErrorMap.get(field.clientId) && (
+                        <p className="text-sm text-red-400">
+                          {validationErrorMap.get(field.clientId)}
+                        </p>
+                      )}
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -467,14 +603,14 @@ export default function EditFormPage() {
                           <Select
                             value={field.type}
                             onValueChange={(value) =>
-                              updateField(field.id, { type: value })
+                              updateField(field.clientId, { type: value })
                             }
                           >
                             <SelectTrigger className="bg-background border-border text-foreground">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-popover border-border">
-                              {fieldTypes.map((type) => (
+                              {FIELD_TYPES.map((type) => (
                                 <SelectItem
                                   key={type.value}
                                   value={type.value}
@@ -495,7 +631,7 @@ export default function EditFormPage() {
                             placeholder="e.g., dj_name"
                             value={field.name}
                             onChange={(e) =>
-                              updateField(field.id, { name: e.target.value })
+                              updateField(field.clientId, { name: e.target.value })
                             }
                             className="bg-background border-border text-foreground"
                           />
@@ -510,7 +646,7 @@ export default function EditFormPage() {
                           placeholder="e.g., DJ Name"
                           value={field.label}
                           onChange={(e) =>
-                            updateField(field.id, { label: e.target.value })
+                            updateField(field.clientId, { label: e.target.value })
                           }
                           className="bg-background border-border text-foreground"
                         />
@@ -524,7 +660,7 @@ export default function EditFormPage() {
                           placeholder="e.g., Enter your DJ name"
                           value={field.placeholder || ""}
                           onChange={(e) =>
-                            updateField(field.id, {
+                            updateField(field.clientId, {
                               placeholder: e.target.value,
                             })
                           }
@@ -542,7 +678,7 @@ export default function EditFormPage() {
                           </Label>
                           <div className="space-y-2">
                             {(field.options || []).map(
-                              (option, optionIndex) => (
+                              (option: string, optionIndex: number) => (
                                 <div
                                   key={optionIndex}
                                   className="flex items-center space-x-2"
@@ -552,7 +688,7 @@ export default function EditFormPage() {
                                     value={option}
                                     onChange={(e) =>
                                       updateOption(
-                                        field.id,
+                                        field.clientId,
                                         optionIndex,
                                         e.target.value
                                       )
@@ -564,7 +700,7 @@ export default function EditFormPage() {
                                     variant="destructive"
                                     size="sm"
                                     onClick={() =>
-                                      removeOption(field.id, optionIndex)
+                                      removeOption(field.clientId, optionIndex)
                                     }
                                   >
                                     <X className="h-4 w-4" />
@@ -576,7 +712,7 @@ export default function EditFormPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => addOption(field.id)}
+                              onClick={() => addOption(field.clientId)}
                               className="text-foreground"
                             >
                               <Plus className="h-4 w-4 mr-2" />
@@ -589,17 +725,17 @@ export default function EditFormPage() {
                       <div className="flex items-center space-x-2">
                         <input
                           type="checkbox"
-                          id={`required_${field.id}`}
+                          id={`required_${field.clientId}`}
                           checked={field.required}
                           onChange={(e) =>
-                            updateField(field.id, {
+                            updateField(field.clientId, {
                               required: e.target.checked,
                             })
                           }
                           className="rounded border-border"
                         />
                         <Label
-                          htmlFor={`required_${field.id}`}
+                          htmlFor={`required_${field.clientId}`}
                           className={textStyles.body.small}
                         >
                           Required field

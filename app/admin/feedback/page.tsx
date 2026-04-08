@@ -8,7 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
+import {
+  getCurrentUserProfile,
+  getCurrentUserId,
+  type UserProfile,
+} from "@/lib/auth-utils";
 import { textStyles } from "@/lib/typography";
 import { formatDateShort } from "@/lib/date-utils";
 import {
@@ -43,9 +47,11 @@ import {
 
 export default function FeedbackPage() {
   const { toast } = useToast();
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [authLoaded, setAuthLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [formData, setFormData] = useState({
@@ -65,9 +71,17 @@ export default function FeedbackPage() {
       const id = await getCurrentUserId();
       setUserProfile(profile);
       setUserId(id);
+      setAuthLoaded(true);
     };
     load();
   }, []);
+
+  const updateForm = useCallback(
+    <K extends keyof typeof formData>(key: K, value: (typeof formData)[K]) => {
+      setFormData((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
 
   const fetchFeedback = useCallback(async () => {
     setIsLoadingList(true);
@@ -91,10 +105,10 @@ export default function FeedbackPage() {
   }, [isAdmin, userId, toast]);
 
   useEffect(() => {
-    if (userId !== undefined) {
+    if (authLoaded) {
       fetchFeedback();
     }
-  }, [userId, isAdmin, fetchFeedback]);
+  }, [authLoaded, userId, isAdmin, fetchFeedback]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,10 +174,15 @@ export default function FeedbackPage() {
 
   const handleStatusChange = async (id: string, status: FeedbackStatus) => {
     try {
+      setUpdatingId(id);
       const result = await updateFeedbackStatus({ id, status });
       if (!result.ok) throw new Error(result.message);
       toast({ title: "Status updated" });
-      fetchFeedback();
+      setFeedbackList((prev: FeedbackItem[]) =>
+        prev.map((item: FeedbackItem) =>
+          item.id === id ? { ...item, status } : item
+        )
+      );
     } catch (err) {
       toast({
         title: "Error",
@@ -171,6 +190,9 @@ export default function FeedbackPage() {
           err instanceof Error ? err.message : "Failed to update status",
         variant: "destructive",
       });
+      fetchFeedback();
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -236,9 +258,7 @@ export default function FeedbackPage() {
                 <Input
                   id="issue_title"
                   value={formData.issue_title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, issue_title: e.target.value })
-                  }
+                  onChange={(e) => updateForm("issue_title", e.target.value)}
                   placeholder="Short, clear title"
                   className="bg-secondary border-border"
                   required
@@ -248,9 +268,7 @@ export default function FeedbackPage() {
                 <Label>Type</Label>
                 <Select
                   value={formData.type}
-                  onValueChange={(v) =>
-                    setFormData({ ...formData, type: v as FeedbackType })
-                  }
+                  onValueChange={(v) => updateForm("type", v as FeedbackType)}
                 >
                   <SelectTrigger className="bg-secondary border-border">
                     <SelectValue />
@@ -269,7 +287,7 @@ export default function FeedbackPage() {
                 <Select
                   value={formData.severity}
                   onValueChange={(v) =>
-                    setFormData({ ...formData, severity: v as FeedbackSeverity })
+                    updateForm("severity", v as FeedbackSeverity)
                   }
                 >
                   <SelectTrigger className="bg-secondary border-border">
@@ -290,7 +308,7 @@ export default function FeedbackPage() {
                   id="where"
                   value={formData.where_it_happens}
                   onChange={(e) =>
-                    setFormData({ ...formData, where_it_happens: e.target.value })
+                    updateForm("where_it_happens", e.target.value)
                   }
                   placeholder="e.g. Dashboard, Booking flow"
                   className="bg-secondary border-border"
@@ -302,7 +320,7 @@ export default function FeedbackPage() {
                   id="steps"
                   value={formData.steps_to_reproduce}
                   onChange={(e) =>
-                    setFormData({ ...formData, steps_to_reproduce: e.target.value })
+                    updateForm("steps_to_reproduce", e.target.value)
                   }
                   placeholder="1. Go to... 2. Click..."
                   rows={3}
@@ -315,9 +333,7 @@ export default function FeedbackPage() {
                   id="screenshot"
                   type="url"
                   value={formData.screenshot_link}
-                  onChange={(e) =>
-                    setFormData({ ...formData, screenshot_link: e.target.value })
-                  }
+                  onChange={(e) => updateForm("screenshot_link", e.target.value)}
                   placeholder="https://..."
                   className="bg-secondary border-border"
                 />
@@ -388,6 +404,7 @@ export default function FeedbackPage() {
                           onValueChange={(v) =>
                             handleStatusChange(item.id, v as FeedbackStatus)
                           }
+                          disabled={updatingId === item.id}
                         >
                           <SelectTrigger className="w-[140px] bg-background border-border">
                             <SelectValue />

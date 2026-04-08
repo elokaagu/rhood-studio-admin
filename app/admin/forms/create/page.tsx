@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,10 @@ import {
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Save, X, Plus, ArrowLeft, FileText, Settings } from "lucide-react";
+import { Save, X, Plus, ArrowLeft, FileText } from "lucide-react";
 
 interface FormField {
-  id: string;
+  clientId: string;
   type: string;
   name: string;
   label: string;
@@ -28,6 +28,29 @@ interface FormField {
   required: boolean;
   options?: string[];
 }
+
+type OpportunityOption = {
+  id: string;
+  title: string | null;
+};
+
+type FormValidationError = {
+  fieldId: string;
+  message: string;
+};
+
+const FIELD_TYPES = [
+  { value: "text", label: "Text Input" },
+  { value: "textarea", label: "Text Area" },
+  { value: "select", label: "Dropdown" },
+  { value: "radio", label: "Radio Buttons" },
+  { value: "checkbox", label: "Checkboxes" },
+  { value: "file", label: "File Upload" },
+  { value: "date", label: "Date Picker" },
+  { value: "number", label: "Number Input" },
+] as const;
+
+const OPTION_FIELD_TYPES = new Set(["select", "radio", "checkbox"]);
 
 export default function CreateFormPage() {
   const router = useRouter();
@@ -39,7 +62,12 @@ export default function CreateFormPage() {
     opportunity_id: "",
   });
   const [fields, setFields] = useState<FormField[]>([]);
-  const [availableOpportunities, setAvailableOpportunities] = useState<any[]>(
+  const [availableOpportunities, setAvailableOpportunities] = useState<
+    OpportunityOption[]
+  >(
+    []
+  );
+  const [validationErrors, setValidationErrors] = useState<FormValidationError[]>(
     []
   );
 
@@ -56,7 +84,7 @@ export default function CreateFormPage() {
         if (error) {
           console.error("Error fetching opportunities:", error);
         } else {
-          setAvailableOpportunities(data || []);
+          setAvailableOpportunities((data ?? []) as OpportunityOption[]);
         }
       } catch (error) {
         console.error("Error fetching opportunities:", error);
@@ -66,20 +94,17 @@ export default function CreateFormPage() {
     fetchOpportunities();
   }, []);
 
-  const fieldTypes = [
-    { value: "text", label: "Text Input" },
-    { value: "textarea", label: "Text Area" },
-    { value: "select", label: "Dropdown" },
-    { value: "radio", label: "Radio Buttons" },
-    { value: "checkbox", label: "Checkboxes" },
-    { value: "file", label: "File Upload" },
-    { value: "date", label: "Date Picker" },
-    { value: "number", label: "Number Input" },
-  ];
+  const validationErrorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    validationErrors.forEach((err: FormValidationError) =>
+      map.set(err.fieldId, err.message)
+    );
+    return map;
+  }, [validationErrors]);
 
   const addField = () => {
     const newField: FormField = {
-      id: `field_${Date.now()}`,
+      clientId: `local_${crypto.randomUUID()}`,
       type: "text",
       name: "",
       label: "",
@@ -87,25 +112,25 @@ export default function CreateFormPage() {
       required: false,
       options: [],
     };
-    setFields([...fields, newField]);
+    setFields((prev) => [...prev, newField]);
   };
 
-  const updateField = (fieldId: string, updates: Partial<FormField>) => {
-    setFields(
-      fields.map((field) =>
-        field.id === fieldId ? { ...field, ...updates } : field
+  const updateField = (fieldClientId: string, updates: Partial<FormField>) => {
+    setFields((prev) =>
+      prev.map((field) =>
+        field.clientId === fieldClientId ? { ...field, ...updates } : field
       )
     );
   };
 
-  const removeField = (fieldId: string) => {
-    setFields(fields.filter((field) => field.id !== fieldId));
+  const removeField = (fieldClientId: string) => {
+    setFields((prev) => prev.filter((field) => field.clientId !== fieldClientId));
   };
 
-  const addOption = (fieldId: string) => {
-    setFields(
-      fields.map((field) =>
-        field.id === fieldId
+  const addOption = (fieldClientId: string) => {
+    setFields((prev) =>
+      prev.map((field) =>
+        field.clientId === fieldClientId
           ? { ...field, options: [...(field.options || []), ""] }
           : field
       )
@@ -113,13 +138,13 @@ export default function CreateFormPage() {
   };
 
   const updateOption = (
-    fieldId: string,
+    fieldClientId: string,
     optionIndex: number,
     value: string
   ) => {
-    setFields(
-      fields.map((field) =>
-        field.id === fieldId
+    setFields((prev) =>
+      prev.map((field) =>
+        field.clientId === fieldClientId
           ? {
               ...field,
               options:
@@ -132,10 +157,10 @@ export default function CreateFormPage() {
     );
   };
 
-  const removeOption = (fieldId: string, optionIndex: number) => {
-    setFields(
-      fields.map((field) =>
-        field.id === fieldId
+  const removeOption = (fieldClientId: string, optionIndex: number) => {
+    setFields((prev) =>
+      prev.map((field) =>
+        field.clientId === fieldClientId
           ? {
               ...field,
               options:
@@ -146,44 +171,78 @@ export default function CreateFormPage() {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const validateBeforeSave = (isActive: boolean): FormValidationError[] => {
+    const errors: FormValidationError[] = [];
 
-    try {
-      // Check if application_forms table exists
-      const { error: tableCheckError } = await supabase
-        .from("application_forms")
-        .select("id")
-        .limit(1);
+    if (isActive && !formData.title.trim()) {
+      errors.push({ fieldId: "__form__", message: "Brief title is required." });
+    }
 
-      if (tableCheckError) {
-        if (
-          tableCheckError.message?.includes("relation") &&
-          tableCheckError.message?.includes("does not exist")
-        ) {
-          toast({
-            title: "Database Setup Required",
-            description:
-              "Application forms table doesn't exist. Please run the SQL setup script first.",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw tableCheckError;
+    const seenNames = new Set<string>();
+    fields.forEach((field) => {
+      if (!field.name.trim()) {
+        errors.push({
+          fieldId: field.clientId,
+          message: "Field name is required.",
+        });
+      }
+      if (!field.label.trim()) {
+        errors.push({
+          fieldId: field.clientId,
+          message: "Field label is required.",
+        });
       }
 
-      // Create the form
+      const normalizedName = field.name.trim().toLowerCase();
+      if (normalizedName) {
+        if (seenNames.has(normalizedName)) {
+          errors.push({
+            fieldId: field.clientId,
+            message: "Field names must be unique.",
+          });
+        }
+        seenNames.add(normalizedName);
+      }
+
+      if (OPTION_FIELD_TYPES.has(field.type)) {
+        const nonEmptyOptions = (field.options ?? []).filter((opt: string) =>
+          opt.trim()
+        );
+        if (nonEmptyOptions.length === 0) {
+          errors.push({
+            fieldId: field.clientId,
+            message: "This field type needs at least one option.",
+          });
+        }
+      }
+    });
+
+    return errors;
+  };
+
+  const persistForm = async (isActive: boolean) => {
+    const errors = validateBeforeSave(isActive);
+    setValidationErrors(errors);
+    if (errors.length > 0) {
+      toast({
+        title: "Fix validation errors",
+        description: errors[0]?.message ?? "Please review and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
       const { data: createdForm, error: formError } = await supabase
         .from("application_forms")
         .insert({
-          title: formData.title,
-          description: formData.description,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
           opportunity_id:
             formData.opportunity_id === "none"
               ? null
               : formData.opportunity_id || null,
-          is_active: true,
+          is_active: isActive,
         })
         .select()
         .single();
@@ -192,16 +251,18 @@ export default function CreateFormPage() {
         throw formError;
       }
 
-      // Create form fields
       if (fields.length > 0) {
-        const fieldsToInsert = fields.map((field, index) => ({
+        const fieldsToInsert = fields.map((field: FormField, index: number) => ({
           form_id: createdForm.id,
           field_type: field.type,
-          field_name: field.name,
-          field_label: field.label,
-          field_placeholder: field.placeholder,
-          field_options:
-            field.options && field.options.length > 0 ? field.options : null,
+          field_name: field.name.trim(),
+          field_label: field.label.trim(),
+          field_placeholder: field.placeholder?.trim() || null,
+          field_options: OPTION_FIELD_TYPES.has(field.type)
+            ? (field.options ?? [])
+                .map((opt: string) => opt.trim())
+                .filter(Boolean)
+            : null,
           is_required: field.required,
           field_order: index + 1,
         }));
@@ -211,66 +272,44 @@ export default function CreateFormPage() {
           .insert(fieldsToInsert);
 
         if (fieldsError) {
+          await supabase
+            .from("application_forms")
+            .delete()
+            .eq("id", createdForm.id);
           throw fieldsError;
         }
       }
 
       toast({
-        title: "Success",
-        description: "Application form created successfully!",
+        title: isActive ? "Success" : "Draft Saved",
+        description: isActive
+          ? "Application form created successfully!"
+          : "Form and fields saved as draft successfully!",
       });
 
       router.push("/admin/forms");
-    } catch (error) {
-      console.error("Error creating form:", error);
+    } catch {
       toast({
         title: "Error",
-        description: "Failed to create form. Please try again.",
+        description: isActive
+          ? "Failed to create form. Please try again."
+          : "Failed to save draft. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    await persistForm(true);
+    setIsSubmitting(false);
   };
 
   const handleSaveDraft = async () => {
     setIsSubmitting(true);
-
-    try {
-      const { data: createdForm, error: formError } = await supabase
-        .from("application_forms")
-        .insert({
-          title: formData.title || "Untitled Form",
-          description: formData.description,
-          opportunity_id:
-            formData.opportunity_id === "none"
-              ? null
-              : formData.opportunity_id || null,
-          is_active: false, // Draft is not active
-        })
-        .select()
-        .single();
-
-      if (formError) {
-        throw formError;
-      }
-
-      toast({
-        title: "Draft Saved",
-        description: "Form saved as draft successfully!",
-      });
-
-      router.push("/admin/forms");
-    } catch (error) {
-      console.error("Error saving draft:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save draft. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    await persistForm(false);
+    setIsSubmitting(false);
   };
 
   return (
@@ -309,12 +348,15 @@ export default function CreateFormPage() {
                 placeholder="e.g., DJ Application Brief"
                 value={formData.title}
                 onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
+                  setFormData((prev) => ({ ...prev, title: e.target.value }))
                 }
                 className="bg-secondary border-border text-foreground"
                 required
               />
             </div>
+            {validationErrorMap.get("__form__") && (
+              <p className="text-sm text-red-400">{validationErrorMap.get("__form__")}</p>
+            )}
             <div className="space-y-2">
               <Label htmlFor="description" className={textStyles.body.regular}>
                 Description
@@ -324,7 +366,7 @@ export default function CreateFormPage() {
                 placeholder="Describe what this brief is for..."
                 value={formData.description}
                 onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
+                  setFormData((prev) => ({ ...prev, description: e.target.value }))
                 }
                 className="bg-secondary border-border text-foreground min-h-[100px]"
               />
@@ -336,7 +378,7 @@ export default function CreateFormPage() {
               <Select
                 value={formData.opportunity_id}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, opportunity_id: value })
+                  setFormData((prev) => ({ ...prev, opportunity_id: value }))
                 }
               >
                 <SelectTrigger className="w-full bg-secondary border-border text-foreground">
@@ -349,13 +391,13 @@ export default function CreateFormPage() {
                   >
                     No specific opportunity
                   </SelectItem>
-                  {availableOpportunities.map((opportunity) => (
+                  {availableOpportunities.map((opportunity: OpportunityOption) => (
                     <SelectItem
                       key={opportunity.id}
                       value={opportunity.id}
                       className="text-foreground hover:bg-accent"
                     >
-                      {opportunity.title}
+                      {opportunity.title ?? "Untitled opportunity"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -393,7 +435,7 @@ export default function CreateFormPage() {
               </div>
             ) : (
               fields.map((field, index) => (
-                <Card key={field.id} className="bg-secondary border-border">
+                <Card key={field.clientId} className="bg-secondary border-border">
                   <CardContent className="p-4">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -404,11 +446,16 @@ export default function CreateFormPage() {
                           type="button"
                           variant="destructive"
                           size="sm"
-                          onClick={() => removeField(field.id)}
+                          onClick={() => removeField(field.clientId)}
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
+                      {validationErrorMap.get(field.clientId) && (
+                        <p className="text-sm text-red-400">
+                          {validationErrorMap.get(field.clientId)}
+                        </p>
+                      )}
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -418,14 +465,14 @@ export default function CreateFormPage() {
                           <Select
                             value={field.type}
                             onValueChange={(value) =>
-                              updateField(field.id, { type: value })
+                              updateField(field.clientId, { type: value })
                             }
                           >
                             <SelectTrigger className="bg-background border-border text-foreground">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-popover border-border">
-                              {fieldTypes.map((type) => (
+                              {FIELD_TYPES.map((type) => (
                                 <SelectItem
                                   key={type.value}
                                   value={type.value}
@@ -446,7 +493,7 @@ export default function CreateFormPage() {
                             placeholder="e.g., dj_name"
                             value={field.name}
                             onChange={(e) =>
-                              updateField(field.id, { name: e.target.value })
+                              updateField(field.clientId, { name: e.target.value })
                             }
                             className="bg-background border-border text-foreground"
                           />
@@ -461,7 +508,7 @@ export default function CreateFormPage() {
                           placeholder="e.g., DJ Name"
                           value={field.label}
                           onChange={(e) =>
-                            updateField(field.id, { label: e.target.value })
+                            updateField(field.clientId, { label: e.target.value })
                           }
                           className="bg-background border-border text-foreground"
                         />
@@ -475,7 +522,7 @@ export default function CreateFormPage() {
                           placeholder="e.g., Enter your DJ name"
                           value={field.placeholder || ""}
                           onChange={(e) =>
-                            updateField(field.id, {
+                            updateField(field.clientId, {
                               placeholder: e.target.value,
                             })
                           }
@@ -503,7 +550,7 @@ export default function CreateFormPage() {
                                     value={option}
                                     onChange={(e) =>
                                       updateOption(
-                                        field.id,
+                                        field.clientId,
                                         optionIndex,
                                         e.target.value
                                       )
@@ -515,7 +562,7 @@ export default function CreateFormPage() {
                                     variant="destructive"
                                     size="sm"
                                     onClick={() =>
-                                      removeOption(field.id, optionIndex)
+                                      removeOption(field.clientId, optionIndex)
                                     }
                                   >
                                     <X className="h-4 w-4" />
@@ -527,7 +574,7 @@ export default function CreateFormPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => addOption(field.id)}
+                              onClick={() => addOption(field.clientId)}
                               className="text-foreground"
                             >
                               <Plus className="h-4 w-4 mr-2" />
@@ -540,17 +587,17 @@ export default function CreateFormPage() {
                       <div className="flex items-center space-x-2">
                         <input
                           type="checkbox"
-                          id={`required_${field.id}`}
+                          id={`required_${field.clientId}`}
                           checked={field.required}
                           onChange={(e) =>
-                            updateField(field.id, {
+                            updateField(field.clientId, {
                               required: e.target.checked,
                             })
                           }
                           className="rounded border-border"
                         />
                         <Label
-                          htmlFor={`required_${field.id}`}
+                          htmlFor={`required_${field.clientId}`}
                           className={textStyles.body.small}
                         >
                           Required field

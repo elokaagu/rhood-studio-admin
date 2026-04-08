@@ -195,12 +195,13 @@ export async function updateMemberProfile(
   const validation = validateMemberEdit(trimmed);
   if (validation) return { ok: false, message: validation };
 
+  /** Matches `user_profiles` Update: string columns are `string`, not `null`. */
   const payload = {
-    dj_name: trimmed.dj_name || null,
-    first_name: trimmed.first_name || null,
-    last_name: trimmed.last_name || null,
+    dj_name: trimmed.dj_name || "",
+    first_name: trimmed.first_name || "",
+    last_name: trimmed.last_name || "",
     email: trimmed.email,
-    city: trimmed.city || null,
+    city: trimmed.city || "",
     bio: trimmed.bio || null,
     instagram: trimmed.instagram
       ? instagramHandleToStored(trimmed.instagram)

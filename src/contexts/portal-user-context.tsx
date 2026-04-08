@@ -120,9 +120,7 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
 
       const { data: row, error: profileError } = await supabase
         .from("user_profiles")
-        .select(
-          "id, role, first_name, last_name, dj_name, brand_name, credits"
-        )
+        .select("id, role, first_name, last_name, dj_name, brand_name")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -139,7 +137,42 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
         return;
       }
 
-      setProfile(rowToSnapshot(row as UserProfilesRow));
+      let credits = 0;
+      try {
+        const { data: creditsRow } = await (supabase.from as unknown as {
+          from: (table: string) => {
+            select: (columns: string) => {
+              eq: (column: string, value: string) => {
+                maybeSingle: () => Promise<{
+                  data: { credits?: unknown } | null;
+                }>;
+              };
+            };
+          };
+        })
+          .from("user_profiles")
+          .select("credits")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (creditsRow && typeof creditsRow.credits === "number") {
+          credits = creditsRow.credits;
+        }
+      } catch {
+        // Keep credits at 0 when the column is absent in generated types or schema.
+      }
+
+      setProfile(
+        rowToSnapshot({
+          id: row.id,
+          role: row.role,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          dj_name: row.dj_name,
+          brand_name: row.brand_name,
+          credits,
+        })
+      );
       setStatus("ready");
     } catch (e) {
       setProfile(null);

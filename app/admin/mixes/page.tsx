@@ -258,13 +258,10 @@ export default function MixesPage() {
                   if (!listError && files && files.length > 0) {
                     const artworkFile = findImageFile(files);
                     if (artworkFile) {
-                      const { data: signed } = await supabase.storage
+                      const { data: publicData } = supabase.storage
                         .from("mixes")
-                        .createSignedUrl(
-                          `${mix.id}/${artworkFile.name}`,
-                          60 * 60 * 24 * 7
-                        ); // 7 days
-                      if (signed?.signedUrl) return signed.signedUrl;
+                        .getPublicUrl(`${mix.id}/${artworkFile.name}`);
+                      if (publicData?.publicUrl) return publicData.publicUrl;
                     }
                   }
                 }
@@ -282,13 +279,10 @@ export default function MixesPage() {
                     if (!legacyListError && files && files.length > 0) {
                       const artworkFile = findImageFile(files);
                       if (artworkFile) {
-                        const { data: signed } = await supabase.storage
+                        const { data: publicData } = supabase.storage
                           .from("mixes")
-                          .createSignedUrl(
-                            `${folderPath}/${artworkFile.name}`,
-                            60 * 60 * 24 * 7
-                          );
-                        if (signed?.signedUrl) return signed.signedUrl;
+                          .getPublicUrl(`${folderPath}/${artworkFile.name}`);
+                        if (publicData?.publicUrl) return publicData.publicUrl;
                       }
                     }
                   }
@@ -326,7 +320,9 @@ export default function MixesPage() {
               }
             };
 
-            const shouldRefreshArtwork = forceRefreshArtwork || !imageUrl;
+            // Also refresh if the stored URL is an expiring signed URL (contains token=)
+            const isSignedUrl = typeof imageUrl === "string" && imageUrl.includes("token=");
+            const shouldRefreshArtwork = forceRefreshArtwork || !imageUrl || isSignedUrl;
             if (shouldRefreshArtwork) {
               const refreshedUrl = await resolveArtworkUrl();
               if (refreshedUrl && refreshedUrl !== imageUrl) {
@@ -495,19 +491,19 @@ export default function MixesPage() {
     }
 
     try {
-      // Get signed URL for the selected image
-      const { data: signed, error: urlError } = await supabase.storage
+      // Get permanent public URL — no expiry
+      const { data: publicData } = supabase.storage
         .from("mixes")
-        .createSignedUrl(selectedImagePath, 60 * 60 * 24 * 365); // 1 year for permanent storage
+        .getPublicUrl(selectedImagePath);
 
-      if (urlError || !signed?.signedUrl) {
+      if (!publicData?.publicUrl) {
         throw new Error("Could not get image URL");
       }
 
-      // Update mix with the image URL
+      // Update mix with the permanent public URL
       const { error: updateError } = await supabase
         .from("mixes")
-        .update({ image_url: signed.signedUrl })
+        .update({ image_url: publicData.publicUrl })
         .eq("id", selectedMixForArtwork.id);
 
       if (updateError) {

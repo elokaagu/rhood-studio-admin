@@ -58,6 +58,7 @@ import {
   Trophy,
   Building2,
   MessageCircle,
+  ContactRound,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -141,6 +142,12 @@ const allSidebarItems = [
     title: "Leaderboard",
     url: "/admin/leaderboard",
     icon: Trophy,
+    roles: ["admin"] as UserRole[],
+  },
+  {
+    title: "Beta CRM",
+    url: "/admin/crm",
+    icon: ContactRound,
     roles: ["admin"] as UserRole[],
   },
   {

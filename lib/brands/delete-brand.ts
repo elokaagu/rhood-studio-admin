@@ -41,17 +41,15 @@ export async function deleteBrandWithRelations(
     .eq("participant_2", userId);
   if (e4b) console.error("delete message_threads p2:", e4b);
 
-  const { error: e5a } = await supabase
-    .from("connections" as never)
-    .delete()
-    .eq("follower_id", userId);
-  if (e5a) console.error("delete connections follower:", e5a);
-
-  const { error: e5b } = await supabase
-    .from("connections" as never)
-    .delete()
-    .eq("following_id", userId);
-  if (e5b) console.error("delete connections following:", e5b);
+  for (const col of ["follower_id", "following_id", "user_id", "from_user_id", "to_user_id"]) {
+    const { error: connErr } = await (supabase as any)
+      .from("connections")
+      .delete()
+      .eq(col, userId);
+    if (connErr && !connErr.message?.includes("does not exist")) {
+      console.warn(`connections cleanup (${col}):`, connErr.message);
+    }
+  }
 
   const { error: profileError } = await supabase
     .from("user_profiles")

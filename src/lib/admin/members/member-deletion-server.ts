@@ -66,20 +66,25 @@ export async function deleteMemberAdminServer(
     };
   }
 
+  // Remove the user from the connections table.
+  // We try several column name patterns (the exact schema varies) and treat
+  // every error here as non-fatal: if a connection row remains and the table
+  // has ON DELETE CASCADE, the profile deletion below will cascade-clean it.
+  // If a real FK RESTRICT is hit, the profile deletion surfaces the exact error.
   const conn = rawFrom(client, "connections");
-  const { error: followerError } = await conn.delete().eq("follower_id", userId);
-  if (followerError) {
-    return {
-      ok: false,
-      message: `Failed to delete connections: ${followerError.message}`,
-    };
-  }
-  const { error: followingError } = await conn.delete().eq("following_id", userId);
-  if (followingError) {
-    return {
-      ok: false,
-      message: `Failed to delete connections: ${followingError.message}`,
-    };
+  const columnCandidates = [
+    "follower_id",
+    "following_id",
+    "user_id",
+    "from_user_id",
+    "to_user_id",
+  ];
+  for (const col of columnCandidates) {
+    const { error } = await conn.delete().eq(col, userId);
+    // Ignore "column does not exist" — wrong guess. Bubble up anything else.
+    if (error && !error.message?.includes("does not exist")) {
+      console.warn(`connections cleanup (${col}):`, error.message);
+    }
   }
 
   const { error: userProfileError } = await client

@@ -459,30 +459,16 @@ export default function MembersPage() {
         );
       }
 
-      // Step 5: Delete from connections
+      // Step 5: Delete from connections (non-fatal — column names vary by schema)
       console.log("Step 5: Deleting from connections...");
-      const { error: connectionsError1 } = await supabase
-        .from("connections" as any)
-        .delete()
-        .eq("follower_id", memberToDelete.id);
-
-      if (connectionsError1) {
-        console.error(
-          "Error deleting connections (follower_id):",
-          connectionsError1
-        );
-      }
-
-      const { error: connectionsError2 } = await supabase
-        .from("connections" as any)
-        .delete()
-        .eq("following_id", memberToDelete.id);
-
-      if (connectionsError2) {
-        console.error(
-          "Error deleting connections (following_id):",
-          connectionsError2
-        );
+      for (const col of ["follower_id", "following_id", "user_id", "from_user_id", "to_user_id"]) {
+        const { error: connErr } = await (supabase as any)
+          .from("connections")
+          .delete()
+          .eq(col, memberToDelete.id);
+        if (connErr && !connErr.message?.includes("does not exist")) {
+          console.warn(`connections cleanup (${col}):`, connErr.message);
+        }
       }
 
       // Step 6: Delete user profile

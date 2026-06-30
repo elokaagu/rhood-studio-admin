@@ -199,12 +199,11 @@ export default function EditOpportunityPage() {
       router.push(`/admin/opportunities/${opportunityId}`);
     } catch (error) {
       console.error("Error saving opportunity:", error);
+      const msg =
+        error instanceof Error ? error.message : "An unexpected error occurred.";
       toast({
-        title: "Error",
-        description:
-          mode === "publish"
-            ? "Failed to update opportunity. Please try again."
-            : "Failed to save draft. Please try again.",
+        title: mode === "publish" ? "Failed to update opportunity" : "Failed to save draft",
+        description: msg,
         variant: "destructive",
       });
     } finally {

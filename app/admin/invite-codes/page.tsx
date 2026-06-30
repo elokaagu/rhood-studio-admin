@@ -187,7 +187,10 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
         setCopiedTemporarily(data.code);
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to generate invite code.";
+      const message =
+        error instanceof Error
+          ? error.message
+          : (error as any)?.message ?? "Failed to generate invite code.";
       toast({
         title: "Error",
         description: message,

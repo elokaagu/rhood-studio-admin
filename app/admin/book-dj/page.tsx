@@ -143,8 +143,10 @@ export default function BookDJPage() {
     <div className="space-y-4 sm:space-y-6 animate-blur-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Book a DJ</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
+          <h1 className="font-ts-block ts-xl uppercase text-brand-white text-lg sm:text-xl md:text-2xl">
+            BOOK A DJ
+          </h1>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
             Browse and search for DJs to book for your event
           </p>
         </div>

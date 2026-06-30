@@ -520,6 +520,53 @@ export async function updatePortalApplicationStatus(params: {
   applicationType: ApplicationSourceType;
   status: "approved" | "rejected";
 }): Promise<{ ok: true } | { ok: false; message: string }> {
+  const userProfile = await getCurrentUserProfile();
+  const userId = await getCurrentUserId();
+
+  // Brands own the opportunities so they update applications directly,
+  // bypassing the admin-only RPC. We verify ownership before updating.
+  if (userProfile?.role === "brand" && userId) {
+    const tableName =
+      params.applicationType === "form_response"
+        ? "application_form_responses"
+        : "applications";
+
+    // Confirm this application belongs to one of the brand's opportunities.
+    const { data: appRow } = await fromUntyped(tableName)
+      .select("opportunity_id")
+      .eq("id", params.applicationId)
+      .maybeSingle();
+
+    if (!appRow?.opportunity_id) {
+      return { ok: false, message: "Application not found." };
+    }
+
+    const { data: oppRow } = await supabase
+      .from("opportunities")
+      .select("id")
+      .eq("id", appRow.opportunity_id)
+      .eq("organizer_id", userId)
+      .maybeSingle();
+
+    if (!oppRow) {
+      return {
+        ok: false,
+        message: "You can only manage applications for your own opportunities.",
+      };
+    }
+
+    const { error } = await fromUntyped(tableName)
+      .update({ status: params.status, updated_at: new Date().toISOString() })
+      .eq("id", params.applicationId);
+
+    if (error) {
+      return { ok: false, message: error.message || "Failed to update application." };
+    }
+
+    return { ok: true };
+  }
+
+  // Admins use the privileged RPC.
   const rpcFunctionName =
     params.applicationType === "form_response"
       ? "admin_update_form_response_status"

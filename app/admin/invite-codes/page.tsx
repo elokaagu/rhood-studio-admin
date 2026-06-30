@@ -63,9 +63,17 @@ export default function InviteCodesPage() {
     expiresInDays: "30",
   });
 
-  const rpcUntyped = (supabase as unknown as {
-    rpc: (fn: string, args?: Record<string, unknown>) => any;
-  }).rpc;
+  // Call rpc through the client so its `this` stays bound to the Supabase
+  // instance. Extracting the method (`const rpc = supabase.rpc`) detaches it,
+  // which makes it crash internally with "Cannot read properties of undefined
+  // (reading 'rest')".
+  const rpcUntyped = (
+    fn: string,
+    args?: Record<string, unknown>
+  ): any =>
+    (supabase as unknown as {
+      rpc: (fn: string, args?: Record<string, unknown>) => any;
+    }).rpc(fn, args);
 
   const setCopiedTemporarily = (value: string) => {
     setCopiedCode(value);

@@ -13,10 +13,13 @@ export interface BrandAcceptedContract {
   id: string;
   event_title: string;
   event_date: string;
+  event_end_time: string | null;
   location: string;
   payment_amount: number | null;
   payment_currency: string;
   status: string;
+  agreement_signed_at: string | null;
+  agreement_signed_by: string | null;
   dj_profile: {
     dj_name: string;
     profile_image_url: string | null;

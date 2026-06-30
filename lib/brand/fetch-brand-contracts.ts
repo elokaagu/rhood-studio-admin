@@ -14,10 +14,13 @@ export async function fetchAcceptedContractsForBrand(
           id,
           event_title,
           event_date,
+          event_end_time,
           location,
           payment_amount,
           payment_currency,
           status,
+          agreement_signed_at,
+          agreement_signed_by,
           dj_profile:user_profiles!booking_requests_dj_id_fkey(
             dj_name,
             profile_image_url
@@ -34,6 +37,6 @@ export async function fetchAcceptedContractsForBrand(
 
   return {
     ok: true,
-    contracts: (data as BrandAcceptedContract[]) || [],
+    contracts: (data as unknown as BrandAcceptedContract[]) || [],
   };
 }

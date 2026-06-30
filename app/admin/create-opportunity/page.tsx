@@ -45,6 +45,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getDisplayLength } from "@/lib/text-utils";
+import { getCurrentUserProfile } from "@/lib/auth-utils";
+import { checkCanPublishOpportunity } from "@/lib/brand/subscription";
 
 export default function CreateOpportunityPage() {
   const router = useRouter();
@@ -247,6 +249,21 @@ export default function CreateOpportunityPage() {
   }, []);
 
   const handleCreateOrDraft = async (mode: OpportunityCreateMode) => {
+    if (mode === "publish") {
+      const user = await getCurrentUserProfile();
+      if (user?.role === "brand") {
+        const { canPublish, reason } = await checkCanPublishOpportunity(user.id);
+        if (!canPublish) {
+          toast({
+            title: "Subscription required",
+            description: reason ?? "An active subscription is required to publish opportunities.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const result = await createOpportunity({

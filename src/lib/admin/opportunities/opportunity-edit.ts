@@ -156,8 +156,9 @@ export async function saveOpportunity(
       (error.message?.includes("column") && error.message?.includes("does not exist"));
 
     if (isMissingColumn) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { listing_status, additional_info, ...corePayload } = payload as any;
+      const corePayload = { ...(payload as any) };
+      delete corePayload.listing_status;
+      delete corePayload.additional_info;
       const { error: retryError } = await supabase
         .from("opportunities")
         .update(corePayload)

@@ -72,7 +72,7 @@ export default function CreateOpportunityPage() {
     genre: "",
     requirements: "",
     additionalInfo: "",
-    status: "draft",
+    status: "active",
     imageUrl: "",
   });
 

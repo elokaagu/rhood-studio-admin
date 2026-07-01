@@ -204,8 +204,10 @@ export async function createOpportunity(
     OPPORTUNITY_DESCRIPTION_MAX_LENGTH
   );
 
-  const isActive =
-    mode === "publish" && form.status === "active" ? true : false;
+  // Clicking "Create Opportunity" (publish) always makes the listing live.
+  // "Save Draft" always keeps it hidden. The status dropdown controls listing_status
+  // workflow state but does not block visibility when publishing.
+  const isActive = mode === "publish";
 
   const { data: inserted, error } = await supabase
     .from("opportunities")

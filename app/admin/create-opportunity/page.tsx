@@ -47,11 +47,16 @@ import {
 import { getDisplayLength } from "@/lib/text-utils";
 import { getCurrentUserProfile } from "@/lib/auth-utils";
 import { checkCanPublishOpportunity } from "@/lib/brand/subscription";
+import { fetchBrandList, type BrandListItem } from "@/lib/brands/fetch-brand-list";
+import { Building2 } from "lucide-react";
 
 export default function CreateOpportunityPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [brands, setBrands] = useState<BrandListItem[]>([]);
+  const [selectedBrandId, setSelectedBrandId] = useState<string>("none");
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
@@ -228,6 +233,16 @@ export default function CreateOpportunityPage() {
     }
   };
 
+  // Load brand list for admins so they can post on behalf of a brand
+  useEffect(() => {
+    getCurrentUserProfile().then((profile) => {
+      if (profile?.role === "admin") {
+        setIsAdmin(true);
+        fetchBrandList().then(setBrands);
+      }
+    });
+  }, []);
+
   // Handle Ctrl+K / Cmd+K keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -266,10 +281,16 @@ export default function CreateOpportunityPage() {
 
     setIsSubmitting(true);
     try {
+      const brandOverride =
+        isAdmin && selectedBrandId !== "none"
+          ? brands.find((b) => b.id === selectedBrandId) ?? null
+          : null;
+
       const result = await createOpportunity({
         form: formData,
         selectedGenres,
         mode,
+        brandOverride,
       });
 
       if (!result.ok) {
@@ -323,6 +344,49 @@ export default function CreateOpportunityPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+        {/* Admin: post on behalf of a brand */}
+        {isAdmin && brands.length > 0 && (
+          <Card className="bg-card border-brand-green/30 border">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-foreground flex items-center gap-2 text-base">
+                <Building2 className="h-4 w-4 text-brand-green" />
+                Post on behalf of a brand
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label className="text-foreground text-sm">Brand account</Label>
+                <Select value={selectedBrandId} onValueChange={setSelectedBrandId}>
+                  <SelectTrigger className="bg-secondary border-border text-foreground">
+                    <SelectValue placeholder="Select a brand (optional)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border">
+                    <SelectItem value="none" className="text-foreground hover:bg-accent">
+                      — Post as admin (no brand) —
+                    </SelectItem>
+                    {brands.map((brand) => (
+                      <SelectItem
+                        key={brand.id}
+                        value={brand.id}
+                        className="text-foreground hover:bg-accent"
+                      >
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedBrandId !== "none" && (
+                  <p className="text-xs text-brand-green">
+                    This opportunity will be attributed to{" "}
+                    <strong>{brands.find((b) => b.id === selectedBrandId)?.name}</strong> and will appear
+                    under their brand account.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Basic Information */}
         <Card className="bg-card border-border">
           <CardHeader>

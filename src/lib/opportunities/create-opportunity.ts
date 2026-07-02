@@ -26,6 +26,8 @@ export type CreateOpportunityParams = {
   form: OpportunityCreateFormInput;
   selectedGenres: string[];
   mode: OpportunityCreateMode;
+  /** Admin posting on behalf of a brand: override organizer_id and organizer_name */
+  brandOverride?: { id: string; name: string } | null;
 };
 
 export type CreateOpportunityFailure = {
@@ -132,7 +134,7 @@ function resolveOrganizerName(
 export async function createOpportunity(
   params: CreateOpportunityParams
 ): Promise<CreateOpportunityResult> {
-  const { form, selectedGenres, mode } = params;
+  const { form, selectedGenres, mode, brandOverride } = params;
 
   const validationError = validateOpportunityCreate(form);
   if (validationError) return validationError;
@@ -220,8 +222,8 @@ export async function createOpportunity(
       payment: paymentAmount,
       genre: genreValue,
       skill_level: form.requirements || null,
-      organizer_id: user.id,
-      organizer_name: organizerName,
+      organizer_id: brandOverride ? brandOverride.id : user.id,
+      organizer_name: brandOverride ? brandOverride.name : organizerName,
       is_active: isActive,
       is_archived: false,
       image_url: form.imageUrl || null,

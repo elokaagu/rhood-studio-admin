@@ -7,6 +7,15 @@ export type ApplicationChatMessage = {
   created_at: string;
 };
 
+/** Tables/RPCs not present in generated Database types. */
+function fromUntyped(table: string) {
+  return (supabase as unknown as { from: (name: string) => any }).from(table);
+}
+
+function rpcUntyped(fn: string, args: Record<string, unknown>) {
+  return supabase.rpc(fn as never, args as never);
+}
+
 function sortedPair(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }
@@ -14,7 +23,7 @@ function sortedPair(a: string, b: string): [string, string] {
 export async function hasApplicationConversationAccess(
   otherUserId: string
 ): Promise<boolean> {
-  const { data, error } = await supabase.rpc(
+  const { data, error } = await rpcUntyped(
     "has_application_conversation_access",
     { other_user_id: otherUserId }
   );
@@ -31,8 +40,7 @@ export async function findOrCreateApplicationThread(
 ): Promise<string | null> {
   const [id1, id2] = sortedPair(myId, otherUserId);
 
-  const { data: existing } = await supabase
-    .from("message_threads")
+  const { data: existing } = await fromUntyped("message_threads")
     .select("id")
     .eq("type", "individual")
     .or(
@@ -44,8 +52,7 @@ export async function findOrCreateApplicationThread(
 
   if (existing?.id) return existing.id as string;
 
-  const { data: created, error } = await supabase
-    .from("message_threads")
+  const { data: created, error } = await fromUntyped("message_threads")
     .insert({
       type: "individual",
       user_id_1: id1,
@@ -64,8 +71,7 @@ export async function findOrCreateApplicationThread(
 export async function listThreadMessages(
   threadId: string
 ): Promise<ApplicationChatMessage[]> {
-  const { data, error } = await supabase
-    .from("messages")
+  const { data, error } = await fromUntyped("messages")
     .select("id, sender_id, content, created_at")
     .eq("thread_id", threadId)
     .order("created_at", { ascending: true })
@@ -83,8 +89,7 @@ export async function sendThreadMessage(
   senderId: string,
   content: string
 ): Promise<ApplicationChatMessage | null> {
-  const { data, error } = await supabase
-    .from("messages")
+  const { data, error } = await fromUntyped("messages")
     .insert({
       thread_id: threadId,
       sender_id: senderId,

@@ -156,9 +156,19 @@ export async function saveOpportunity(
       (error.message?.includes("column") && error.message?.includes("does not exist"));
 
     if (isMissingColumn) {
-      const corePayload = { ...(payload as any) };
-      delete corePayload.listing_status;
-      delete corePayload.additional_info;
+      const corePayload = {
+        title: payload.title,
+        description: payload.description,
+        location: payload.location,
+        event_date: payload.event_date,
+        event_end_time: payload.event_end_time,
+        payment: payload.payment,
+        genre: payload.genre,
+        skill_level: payload.skill_level,
+        is_active: payload.is_active,
+        is_archived: payload.is_archived,
+        image_url: payload.image_url,
+      };
       const { error: retryError } = await supabase
         .from("opportunities")
         .update(corePayload)

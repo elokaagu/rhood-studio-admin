@@ -7,7 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { getCurrentUserProfile } from "@/lib/auth-utils";
 import { fetchBrandProfileForUser } from "@/lib/brand/fetch-brand-profile";
 import { fetchAcceptedContractsForBrand } from "@/lib/brand/fetch-brand-contracts";
-import { fetchBrandSubscription, type BrandSubscription } from "@/lib/brand/subscription";
 import { updateBrandProfile } from "@/lib/brand/update-brand-profile";
 import {
   brandProfileFormReducer,
@@ -16,16 +15,12 @@ import {
 import type { BrandProfile, BrandAcceptedContract } from "@/lib/brand/types";
 import { BrandProfileCard } from "@/components/admin/brand/BrandProfileCard";
 import { BrandContractsList } from "@/components/admin/brand/BrandContractsList";
-import { BrandSubscriptionCard } from "@/components/admin/brand/BrandSubscriptionCard";
-import { textStyles } from "@/lib/typography";
 
 export default function BrandProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
   const [profile, setProfile] = useState<BrandProfile | null>(null);
   const [contracts, setContracts] = useState<BrandAcceptedContract[]>([]);
-  const [subscription, setSubscription] = useState<BrandSubscription | null>(null);
-  const [userId, setUserId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,12 +42,10 @@ export default function BrandProfilePage() {
     }
 
     setIsLoading(true);
-    setUserId(user.id);
 
-    const [profileRes, contractsRes, subscriptionRes] = await Promise.all([
+    const [profileRes, contractsRes] = await Promise.all([
       fetchBrandProfileForUser(user.id),
       fetchAcceptedContractsForBrand(user.id),
-      fetchBrandSubscription(user.id),
     ]);
 
     if (!profileRes.ok) {
@@ -78,10 +71,6 @@ export default function BrandProfilePage() {
         variant: "destructive",
       });
       setContracts([]);
-    }
-
-    if (subscriptionRes.ok) {
-      setSubscription(subscriptionRes.subscription);
     }
 
     setIsLoading(false);
@@ -179,33 +168,22 @@ export default function BrandProfilePage() {
         onCancel={handleCancel}
       />
 
-      {/* Two-column layout on large screens */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main column: agreements */}
-        <div className="lg:col-span-2">
-          <BrandContractsList
-            contracts={contracts}
-            brandName={brandName}
-            onViewDetails={(id: string) =>
-              router.push(`/admin/booking-requests/${id}`)
-            }
-            onAgreementSigned={(contractId, signedAt, signedBy) =>
-              setContracts((prev) =>
-                prev.map((c) =>
-                  c.id === contractId
-                    ? { ...c, agreement_signed_at: signedAt, agreement_signed_by: signedBy }
-                    : c
-                )
-              )
-            }
-          />
-        </div>
-
-        {/* Sidebar: subscription */}
-        <div className="lg:col-span-1">
-          <BrandSubscriptionCard subscription={subscription} userId={userId} />
-        </div>
-      </div>
+      <BrandContractsList
+        contracts={contracts}
+        brandName={brandName}
+        onViewDetails={(id: string) =>
+          router.push(`/admin/booking-requests/${id}`)
+        }
+        onAgreementSigned={(contractId, signedAt, signedBy) =>
+          setContracts((prev) =>
+            prev.map((c) =>
+              c.id === contractId
+                ? { ...c, agreement_signed_at: signedAt, agreement_signed_by: signedBy }
+                : c
+            )
+          )
+        }
+      />
     </div>
   );
 }

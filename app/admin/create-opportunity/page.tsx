@@ -46,7 +46,6 @@ import {
 } from "@/components/ui/dialog";
 import { getDisplayLength } from "@/lib/text-utils";
 import { getCurrentUserProfile } from "@/lib/auth-utils";
-import { checkCanPublishOpportunity } from "@/lib/brand/subscription";
 import { fetchBrandList, type BrandListItem } from "@/lib/brands/fetch-brand-list";
 import { Building2 } from "lucide-react";
 
@@ -264,21 +263,6 @@ export default function CreateOpportunityPage() {
   }, []);
 
   const handleCreateOrDraft = async (mode: OpportunityCreateMode) => {
-    if (mode === "publish") {
-      const user = await getCurrentUserProfile();
-      if (user?.role === "brand") {
-        const { canPublish, reason } = await checkCanPublishOpportunity(user.id);
-        if (!canPublish) {
-          toast({
-            title: "Subscription required",
-            description: reason ?? "An active subscription is required to publish opportunities.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-    }
-
     setIsSubmitting(true);
     try {
       const brandOverride =

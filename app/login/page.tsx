@@ -267,23 +267,16 @@ export default function AdminLoginPage() {
                 : "LOGIN"}
             </CardTitle>
           </div>
-          <div className="text-center">
-            {!isSignUp || !isBrandSignup ? (
-              <Badge
-                variant="outline"
-                className={`border-primary ${textStyles.headline.badge}`}
-              >
-                R/HOOD TEAM ONLY
-              </Badge>
-            ) : (
+          {isSignUp && isBrandSignup && (
+            <div className="text-center">
               <Badge
                 variant="outline"
                 className={`border-primary ${textStyles.headline.badge}`}
               >
                 BRAND PORTAL
               </Badge>
-            )}
-          </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">

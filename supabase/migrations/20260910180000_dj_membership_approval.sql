@@ -39,46 +39,51 @@ ALTER TABLE public.user_profiles
   ADD COLUMN IF NOT EXISTS membership_reviewed_by UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS invite_code_used TEXT;
 
+-- This database may already have membership_source values from another
+-- feature. Map unknowns so the invite-only check can be added.
 UPDATE public.user_profiles
-SET
-  membership_status = 'approved',
-  membership_source = CASE
-    WHEN role IN ('admin', 'brand') THEN 'staff'
-    ELSE 'existing'
-  END
-WHERE membership_status IS NULL;
+SET membership_status = CASE
+  WHEN membership_status IN ('pending', 'approved', 'rejected') THEN membership_status
+  ELSE 'approved'
+END;
+
+UPDATE public.user_profiles
+SET membership_source = CASE
+  WHEN membership_source IN (
+    'invite',
+    'invite_code',
+    'application',
+    'existing',
+    'staff'
+  ) THEN membership_source
+  WHEN role IN ('admin', 'brand') THEN 'staff'
+  ELSE 'existing'
+END;
 
 ALTER TABLE public.user_profiles
   ALTER COLUMN membership_status SET DEFAULT 'pending';
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'user_profiles_membership_status_check'
-  ) THEN
-    ALTER TABLE public.user_profiles
-      ADD CONSTRAINT user_profiles_membership_status_check
-      CHECK (membership_status IN ('pending', 'approved', 'rejected'));
-  END IF;
+ALTER TABLE public.user_profiles
+  DROP CONSTRAINT IF EXISTS user_profiles_membership_status_check;
 
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'user_profiles_membership_source_check'
-  ) THEN
-    ALTER TABLE public.user_profiles
-      ADD CONSTRAINT user_profiles_membership_source_check
-      CHECK (
-        membership_source IS NULL OR membership_source IN (
-          'invite',
-          'invite_code',
-          'application',
-          'existing',
-          'staff'
-        )
-      );
-  END IF;
-END $$;
+ALTER TABLE public.user_profiles
+  ADD CONSTRAINT user_profiles_membership_status_check
+  CHECK (membership_status IN ('pending', 'approved', 'rejected'));
+
+ALTER TABLE public.user_profiles
+  DROP CONSTRAINT IF EXISTS user_profiles_membership_source_check;
+
+ALTER TABLE public.user_profiles
+  ADD CONSTRAINT user_profiles_membership_source_check
+  CHECK (
+    membership_source IS NULL OR membership_source IN (
+      'invite',
+      'invite_code',
+      'application',
+      'existing',
+      'staff'
+    )
+  );
 
 CREATE INDEX IF NOT EXISTS idx_user_profiles_membership_status
   ON public.user_profiles (membership_status);

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import {
   getCurrentUserProfile,
@@ -46,6 +47,7 @@ import {
 } from "lucide-react";
 
 export default function FeedbackPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -105,10 +107,13 @@ export default function FeedbackPage() {
   }, [isAdmin, userId, toast]);
 
   useEffect(() => {
-    if (authLoaded) {
-      fetchFeedback();
+    if (!authLoaded) return;
+    if (userProfile?.role === "brand") {
+      router.replace("/admin/dashboard");
+      return;
     }
-  }, [authLoaded, userId, isAdmin, fetchFeedback]);
+    fetchFeedback();
+  }, [authLoaded, userId, isAdmin, fetchFeedback, userProfile, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,6 +232,10 @@ export default function FeedbackPage() {
     };
     return <Badge className={map[status]}>{STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status}</Badge>;
   };
+
+  if (authLoaded && userProfile?.role === "brand") {
+    return null;
+  }
 
   return (
     <div className="space-y-6 animate-blur-in">

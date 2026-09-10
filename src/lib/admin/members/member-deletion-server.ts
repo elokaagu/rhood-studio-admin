@@ -14,6 +14,23 @@ export async function deleteMemberAdminServer(
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const client = await createClient();
 
+  const {
+    data: { user },
+  } = await client.auth.getUser();
+  if (!user) {
+    return { ok: false, message: "Not authenticated." };
+  }
+
+  const { data: caller } = await client
+    .from("user_profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (caller?.role !== "admin") {
+    return { ok: false, message: "Only admins can delete members." };
+  }
+
   const { error: communityMembersError } = await client
     .from("community_members")
     .delete()

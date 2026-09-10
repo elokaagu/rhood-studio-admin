@@ -153,7 +153,7 @@ const allSidebarItems = [
     title: "Feedback",
     url: "/admin/feedback",
     icon: MessageCircle,
-    roles: ["admin", "brand", "dj"] as UserRole[],
+    roles: ["admin", "dj"] as UserRole[],
   },
 ];
 

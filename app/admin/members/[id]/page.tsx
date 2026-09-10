@@ -37,6 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { usePortalUser } from "@/contexts/portal-user-context";
 import { deleteAdminMemberAction } from "@/actions/admin-members";
 import {
   creatorLabelFromInviteCode,
@@ -51,6 +52,8 @@ export default function MemberDetailsPage() {
   const router = useRouter();
   const memberId = params.id as string;
   const { toast } = useToast();
+  const { role } = usePortalUser();
+  const viewerIsAdmin = role === "admin";
   const [member, setMember] = useState<AdminMemberProfileView | null>(null);
   const [inviteCodes, setInviteCodes] = useState<AdminMemberInviteCodeRow[]>(
     []
@@ -86,14 +89,13 @@ export default function MemberDetailsPage() {
   }, [loadProfile]);
 
   const handleDelete = () => {
-    if (member) {
-      setMemberToDelete({ id: memberId, name: member.name });
-      setDeleteModalOpen(true);
-    }
+    if (!viewerIsAdmin || !member) return;
+    setMemberToDelete({ id: memberId, name: member.name });
+    setDeleteModalOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (!memberToDelete) return;
+    if (!viewerIsAdmin || !memberToDelete) return;
     setIsDeleting(true);
     try {
       const result = await deleteAdminMemberAction(memberToDelete.id);
@@ -199,7 +201,7 @@ export default function MemberDetailsPage() {
     );
   }
 
-  const isBrand = member.role === "brand";
+  const memberIsBrand = member.role === "brand";
   const displayName = member.brandName || member.name;
 
   const socialEntries = [
@@ -216,7 +218,9 @@ export default function MemberDetailsPage() {
             {displayName}
           </h1>
           <p className={textStyles.body.regular}>
-            {isBrand ? "Brand profile and details" : "Member profile and details"}
+            {memberIsBrand
+              ? "Brand profile and details"
+              : "Member profile and details"}
           </p>
         </div>
         <Button variant="outline" onClick={() => router.back()}>
@@ -265,16 +269,22 @@ export default function MemberDetailsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div
+                className={`grid grid-cols-1 gap-4 ${
+                  viewerIsAdmin ? "md:grid-cols-3" : ""
+                }`}
+              >
                 <div className="flex items-center text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4 mr-2" />
                   {member.location}
                 </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Joined {member.joinDate}
-                </div>
-                {!isBrand && (
+                {viewerIsAdmin && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Joined {member.joinDate}
+                  </div>
+                )}
+                {viewerIsAdmin && !memberIsBrand && (
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Music className="h-4 w-4 mr-2" />
                     {member.gigs} gigs
@@ -342,7 +352,7 @@ export default function MemberDetailsPage() {
             </CardContent>
           </Card>
 
-          {/* Credit Transactions */}
+          {viewerIsAdmin && (
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
@@ -368,7 +378,6 @@ export default function MemberDetailsPage() {
             </CardContent>
           </Card>
 
-          {/* Invite Codes */}
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
@@ -436,6 +445,7 @@ export default function MemberDetailsPage() {
               )}
             </CardContent>
           </Card>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -456,39 +466,48 @@ export default function MemberDetailsPage() {
                 <Mail className="h-4 w-4 mr-2" />
                 Email member
               </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => router.push(`/admin/members/${member.id}/edit`)}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start">
-                    <MoreVertical className="h-4 w-4 mr-2" />
-                    More Actions
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="bg-card border-border"
-                >
-                  <DropdownMenuItem
-                    onClick={handleDelete}
-                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
+              {viewerIsAdmin && (
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() =>
+                      router.push(`/admin/members/${member.id}/edit`)
+                    }
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Member
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                      >
+                        <MoreVertical className="h-4 w-4 mr-2" />
+                        More Actions
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="bg-card border-border"
+                    >
+                      <DropdownMenuItem
+                        onClick={handleDelete}
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Member
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
             </CardContent>
           </Card>
 
-          {/* Statistics */}
+          {viewerIsAdmin && (
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className={textStyles.subheading.small}>
@@ -496,7 +515,7 @@ export default function MemberDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!isBrand && (
+              {!memberIsBrand && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <Music className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -506,7 +525,7 @@ export default function MemberDetailsPage() {
                 </div>
               )}
 
-              {!isBrand && (
+              {!memberIsBrand && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <Star className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -518,7 +537,7 @@ export default function MemberDetailsPage() {
                 </div>
               )}
 
-              {!isBrand && (
+              {!memberIsBrand && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <Coins className="h-4 w-4 mr-2 text-brand-green" />
@@ -531,6 +550,7 @@ export default function MemberDetailsPage() {
               )}
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
 

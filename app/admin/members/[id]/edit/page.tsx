@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
+import { usePortalUser } from "@/contexts/portal-user-context";
 import {
   fetchMemberCompletedGigsCount,
   fetchMemberForEdit,
@@ -52,6 +53,8 @@ export default function EditMemberPage() {
   const memberId = routeMemberId(params);
   const router = useRouter();
   const { toast } = useToast();
+  const { role, status: portalStatus } = usePortalUser();
+  const viewerIsAdmin = role === "admin";
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [member, setMember] = useState<MemberEditView | null>(null);
@@ -100,8 +103,18 @@ export default function EditMemberPage() {
   }, [memberId, toast]);
 
   useEffect(() => {
+    if (portalStatus !== "ready") return;
+    if (!viewerIsAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "Only admins can edit member profiles.",
+        variant: "destructive",
+      });
+      router.replace(memberId ? `/admin/members/${memberId}` : "/admin/dashboard");
+      return;
+    }
     loadMember();
-  }, [loadMember]);
+  }, [portalStatus, viewerIsAdmin, loadMember, memberId, router, toast]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -114,7 +127,7 @@ export default function EditMemberPage() {
   };
 
   const handleSave = async () => {
-    if (!memberId) return;
+    if (!memberId || !viewerIsAdmin) return;
 
     setIsSaving(true);
     try {

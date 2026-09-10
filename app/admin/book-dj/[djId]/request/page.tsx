@@ -27,6 +27,8 @@ import {
 } from "@/lib/booking/create-booking-request";
 import type { BookingRequestFormData, DjProfileForBooking } from "@/lib/booking/types";
 import LocationAutocomplete from "@/components/location-autocomplete";
+import { GenrePicker } from "@/components/admin/GenrePicker";
+import { serializeGenres } from "@/lib/opportunities/genres";
 import {
   Calendar,
   MapPin,
@@ -51,6 +53,7 @@ export default function BookingRequestPage() {
   const [formData, setFormData] = useState<BookingRequestFormData>(
     getDefaultBookingRequestForm()
   );
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
 
   // Fetch DJ profile
   useEffect(() => {
@@ -109,7 +112,7 @@ export default function BookingRequestPage() {
     try {
       const result = await createBookingRequestWithNotifications({
         djId,
-        formData,
+        formData: { ...formData, genre: serializeGenres(selectedGenres) },
         djProfile,
         brandContext: brandProfile,
       });
@@ -284,39 +287,32 @@ export default function BookingRequestPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="event_date"
-                      className="text-foreground flex items-center"
-                    >
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Event Date *
-                    </Label>
-                    <RhoodDatePicker
-                      value={formData.event_date}
-                      onChange={(value) =>
-                        setFormData({ ...formData, event_date: value })
-                      }
-                      min={new Date().toISOString().split("T")[0]}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="event_date"
+                    className="text-foreground flex items-center"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Event Date *
+                  </Label>
+                  <RhoodDatePicker
+                    value={formData.event_date}
+                    onChange={(value) =>
+                      setFormData({ ...formData, event_date: value })
+                    }
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="genre" className="text-foreground flex items-center">
-                      <Music className="h-4 w-4 mr-2" />
-                      Genre
-                    </Label>
-                    <Input
-                      id="genre"
-                      placeholder="e.g., House, Techno"
-                      value={formData.genre}
-                      onChange={(e) =>
-                        setFormData({ ...formData, genre: e.target.value })
-                      }
-                      className="bg-secondary border-border text-foreground"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label className="text-foreground flex items-center">
+                    <Music className="h-4 w-4 mr-2" />
+                    Genre
+                  </Label>
+                  <GenrePicker
+                    value={selectedGenres}
+                    onChange={setSelectedGenres}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

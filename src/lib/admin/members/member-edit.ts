@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserProfile } from "@/lib/auth-utils";
 import { formatDateShort } from "@/lib/date-utils";
 
 export type MemberEditView = {
@@ -191,6 +192,11 @@ export async function updateMemberProfile(
   memberId: string,
   data: MemberEditFormState
 ): Promise<{ ok: true } | { ok: false; message: string }> {
+  const caller = await getCurrentUserProfile();
+  if (caller?.role !== "admin") {
+    return { ok: false, message: "Only admins can edit member profiles." };
+  }
+
   const trimmed = trimFields(data);
   const validation = validateMemberEdit(trimmed);
   if (validation) return { ok: false, message: validation };

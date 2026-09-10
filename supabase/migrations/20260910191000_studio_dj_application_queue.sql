@@ -55,10 +55,14 @@ BEGIN
       WHEN p_status = 'pending' THEN 'application'
       ELSE COALESCE(membership_source, 'application')
     END,
+    role = CASE
+      WHEN role IS DISTINCT FROM 'brand' THEN 'dj'
+      ELSE role
+    END,
     membership_reviewed_at = now(),
     membership_reviewed_by = auth.uid()
   WHERE id = p_user_id
-    AND (role IS NULL OR role = 'dj')
+    AND (role IS NULL OR role <> 'brand')
   RETURNING * INTO v_row;
 
   IF NOT FOUND THEN

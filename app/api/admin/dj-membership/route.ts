@@ -75,10 +75,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    const { data: target } = await admin
+      .from("user_profiles")
+      .select("id, role")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!target || target.role === "brand") {
+      return NextResponse.json({ error: "DJ profile not found." }, { status: 404 });
+    }
+
     const payload: Record<string, string> = {
       membership_status: status,
       membership_source: source,
     };
+    // Studio defaults new profiles to admin, including DJ app signups.
+    if (target.role !== "dj") {
+      payload.role = "dj";
+    }
+
     const withReview = {
       ...payload,
       membership_reviewed_at: new Date().toISOString(),

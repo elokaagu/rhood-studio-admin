@@ -84,21 +84,32 @@ function isMissingMembershipColumn(message: string | undefined): boolean {
   return !!message && message.toLowerCase().includes("membership_");
 }
 
-function selectDjProfiles(columns: string) {
+/** Studio historically defaulted new profiles to role=admin, so DJ app
+ *  signups are often admin rather than dj. Match the DJs page: anyone
+ *  who is not a brand. */
+function selectApplicantProfiles(columns: string) {
   return supabase
     .from("user_profiles")
     .select(columns)
-    .or("role.is.null,role.eq.dj")
+    .or("role.is.null,role.neq.brand")
     .order("created_at", { ascending: false });
 }
 
+function isQueueRow(row: ProfileRow): boolean {
+  const status = parseStatus(row.membership_status);
+  if (status === "pending" || status === "rejected") return true;
+  return (
+    status === "approved" && parseSource(row.membership_source) === "application"
+  );
+}
+
 export async function fetchDjApplications(): Promise<FetchDjApplicationsResult> {
-  const withStatus = await selectDjProfiles(PROFILE_COLUMNS_WITHOUT_REVIEW);
+  const withStatus = await selectApplicantProfiles(PROFILE_COLUMNS_WITHOUT_REVIEW);
   if (!withStatus.error) {
-    const withReview = await selectDjProfiles(PROFILE_COLUMNS);
+    const withReview = await selectApplicantProfiles(PROFILE_COLUMNS);
     const rows = asProfiles(
       withReview.error ? withStatus.data : withReview.data
-    );
+    ).filter(isQueueRow);
     return {
       ok: true,
       schemaReady: true,
@@ -113,7 +124,7 @@ export async function fetchDjApplications(): Promise<FetchDjApplicationsResult> 
     };
   }
 
-  const core = await selectDjProfiles(PROFILE_COLUMNS_CORE);
+  const core = await selectApplicantProfiles(PROFILE_COLUMNS_CORE);
   if (core.error) {
     return {
       ok: false,
@@ -125,7 +136,7 @@ export async function fetchDjApplications(): Promise<FetchDjApplicationsResult> 
   return {
     ok: true,
     schemaReady: false,
-    data: asProfiles(core.data).map(rowToApplication),
+    data: asProfiles(core.data).filter(isQueueRow).map(rowToApplication),
   };
 }
 
@@ -133,7 +144,7 @@ export async function countPendingDjApplications(): Promise<number> {
   const { count, error } = await supabase
     .from("user_profiles")
     .select("id", { count: "exact", head: true })
-    .or("role.is.null,role.eq.dj")
+    .or("role.is.null,role.neq.brand")
     .eq("membership_status", "pending");
 
   if (error) return 0;

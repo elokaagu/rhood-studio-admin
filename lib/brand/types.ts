@@ -3,10 +3,13 @@ export interface BrandProfile {
   brand_name: string | null;
   brand_description: string | null;
   website: string | null;
+  profile_image_url: string | null;
   first_name: string;
   last_name: string;
   email: string;
   created_at: string | null;
+  studio_agreement_signed_at: string | null;
+  studio_agreement_signed_by: string | null;
 }
 
 export interface BrandAcceptedContract {

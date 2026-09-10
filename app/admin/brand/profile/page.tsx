@@ -15,6 +15,8 @@ import {
 import type { BrandProfile, BrandAcceptedContract } from "@/lib/brand/types";
 import { BrandProfileCard } from "@/components/admin/brand/BrandProfileCard";
 import { BrandContractsList } from "@/components/admin/brand/BrandContractsList";
+import { StudioAgreementDialog } from "@/components/admin/brand/StudioAgreementDialog";
+import { Button } from "@/components/ui/button";
 
 export default function BrandProfilePage() {
   const router = useRouter();
@@ -24,6 +26,7 @@ export default function BrandProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [studioAgreementOpen, setStudioAgreementOpen] = useState(false);
   const [formData, dispatch] = useReducer(
     brandProfileFormReducer,
     createEmptyBrandProfileForm()
@@ -166,11 +169,37 @@ export default function BrandProfilePage() {
         onEdit={() => setIsEditing(true)}
         onSave={handleSave}
         onCancel={handleCancel}
+        onAvatarUploaded={(url) =>
+          setProfile((prev) => (prev ? { ...prev, profile_image_url: url } : prev))
+        }
       />
+
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-border text-xs"
+          onClick={() => {
+            try {
+              window.localStorage.removeItem(`rhood-studio-tour:${profile.id}`);
+            } catch {
+              /* ignore */
+            }
+            window.dispatchEvent(new Event("rhood-start-tour"));
+          }}
+        >
+          Show Studio guide
+        </Button>
+      </div>
 
       <BrandContractsList
         contracts={contracts}
         brandName={brandName}
+        studioAgreement={{
+          signedAt: profile.studio_agreement_signed_at,
+          signedBy: profile.studio_agreement_signed_by,
+        }}
+        onViewStudioAgreement={() => setStudioAgreementOpen(true)}
         onViewDetails={(id: string) =>
           router.push(`/admin/booking-requests/${id}`)
         }
@@ -183,6 +212,27 @@ export default function BrandProfilePage() {
             )
           )
         }
+      />
+
+      <StudioAgreementDialog
+        userId={profile.id}
+        brandName={brandName}
+        open={studioAgreementOpen}
+        signedAt={profile.studio_agreement_signed_at}
+        signedBy={profile.studio_agreement_signed_by}
+        onSigned={(signedAt, signedBy) => {
+          setProfile((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  studio_agreement_signed_at: signedAt,
+                  studio_agreement_signed_by: signedBy,
+                }
+              : prev
+          );
+          setStudioAgreementOpen(false);
+        }}
+        onOpenChange={setStudioAgreementOpen}
       />
     </div>
   );

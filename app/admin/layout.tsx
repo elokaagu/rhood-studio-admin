@@ -63,6 +63,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { textStyles } from "@/lib/typography";
 import type { UserRole } from "@/lib/auth-utils";
+import { StudioAgreementDialog } from "@/components/admin/brand/StudioAgreementDialog";
+import { BrandOnboardingTour } from "@/components/admin/brand/BrandOnboardingTour";
+
+const SIDEBAR_TOUR_IDS: Record<string, string> = {
+  "/admin/dashboard": "nav-dashboard",
+  "/admin/brand/profile": "nav-brand-profile",
+  "/admin/book-dj": "nav-book-dj",
+  "/admin/booking-requests": "nav-booking-requests",
+  "/admin/opportunities": "nav-opportunities",
+  "/admin/applications": "nav-applications",
+};
 
 const allSidebarItems = [
   {
@@ -240,6 +251,7 @@ function AppSidebar() {
                     <SidebarMenuButton asChild>
                       <Link
                         href={item.url}
+                        data-tour={SIDEBAR_TOUR_IDS[item.url]}
                         className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
                           pathname === item.url
                             ? "bg-primary text-primary-foreground"
@@ -272,6 +284,7 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
     displayName,
     profile,
     refresh,
+    role,
     status: portalStatus,
   } = usePortalUser();
   const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
@@ -280,6 +293,7 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
     first_name: "",
     last_name: "",
   });
+  const [tourActive, setTourActive] = useState(false);
 
   useEffect(() => {
     if (!accountSettingsOpen) return;
@@ -292,6 +306,26 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
       setProfileFormData({ first_name: "", last_name: "" });
     }
   }, [accountSettingsOpen, profile]);
+
+  useEffect(() => {
+    const startTour = () => setTourActive(true);
+    window.addEventListener("rhood-start-tour", startTour);
+    return () => window.removeEventListener("rhood-start-tour", startTour);
+  }, []);
+
+  useEffect(() => {
+    if (role !== "brand" || !profile?.id) return;
+    if (!profile.studio_agreement_signed_at) return;
+    if (profile.studio_tour_completed_at) return;
+    try {
+      if (window.localStorage.getItem(`rhood-studio-tour:${profile.id}`) === "done") {
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    setTourActive(true);
+  }, [role, profile]);
 
   const handleOpenAccountSettings = () => {
     setAccountSettingsOpen(true);
@@ -410,7 +444,7 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
               </Badge>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" data-tour="account-settings">
                     <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -512,6 +546,30 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {role === "brand" && profile && !profile.studio_agreement_signed_at && (
+        <StudioAgreementDialog
+          userId={profile.id}
+          brandName={profile.brand_name || displayName}
+          open
+          required
+          onSigned={() => {
+            void refresh();
+          }}
+        />
+      )}
+
+      {role === "brand" && profile && (
+        <BrandOnboardingTour
+          userId={profile.id}
+          active={
+            tourActive &&
+            !!profile.studio_agreement_signed_at &&
+            !accountSettingsOpen
+          }
+          onFinished={() => setTourActive(false)}
+        />
+      )}
     </>
   );
 }

@@ -20,6 +20,8 @@ export type PortalProfileSnapshot = {
   dj_name: string;
   brand_name: string | null;
   credits: number;
+  studio_agreement_signed_at: string | null;
+  studio_tour_completed_at: string | null;
 };
 
 export type PortalUserStatus = "loading" | "ready" | "error";
@@ -73,6 +75,8 @@ type UserProfilesRow = {
   dj_name: string | null;
   brand_name: string | null;
   credits?: number | null;
+  studio_agreement_signed_at?: string | null;
+  studio_tour_completed_at?: string | null;
 };
 
 function rowToSnapshot(row: UserProfilesRow): PortalProfileSnapshot {
@@ -90,6 +94,8 @@ function rowToSnapshot(row: UserProfilesRow): PortalProfileSnapshot {
     dj_name: row.dj_name ?? "",
     brand_name: row.brand_name ?? null,
     credits,
+    studio_agreement_signed_at: row.studio_agreement_signed_at ?? null,
+    studio_tour_completed_at: row.studio_tour_completed_at ?? null,
   };
 }
 
@@ -120,11 +126,44 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
 
       const { data: row, error: profileError } = await supabase
         .from("user_profiles")
-        .select("id, role, first_name, last_name, dj_name, brand_name")
+        .select(
+          "id, role, first_name, last_name, dj_name, brand_name, studio_agreement_signed_at, studio_tour_completed_at"
+        )
         .eq("id", user.id)
         .maybeSingle();
 
       if (profileError) {
+        if (profileError.message?.includes("studio_")) {
+          const fallback = await supabase
+            .from("user_profiles")
+            .select("id, role, first_name, last_name, dj_name, brand_name")
+            .eq("id", user.id)
+            .maybeSingle();
+          if (fallback.error) {
+            setProfile(null);
+            setErrorMessage(fallback.error.message);
+            setStatus("error");
+            return;
+          }
+          if (!fallback.data) {
+            setProfile(null);
+            setStatus("ready");
+            return;
+          }
+          setProfile(
+            rowToSnapshot({
+              id: fallback.data.id,
+              role: fallback.data.role,
+              first_name: fallback.data.first_name,
+              last_name: fallback.data.last_name,
+              dj_name: fallback.data.dj_name,
+              brand_name: fallback.data.brand_name,
+              credits: 0,
+            })
+          );
+          setStatus("ready");
+          return;
+        }
         setProfile(null);
         setErrorMessage(profileError.message);
         setStatus("error");
@@ -171,6 +210,12 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
           dj_name: row.dj_name,
           brand_name: row.brand_name,
           credits,
+          studio_agreement_signed_at: (
+            row as { studio_agreement_signed_at?: string | null }
+          ).studio_agreement_signed_at,
+          studio_tour_completed_at: (
+            row as { studio_tour_completed_at?: string | null }
+          ).studio_tour_completed_at,
         })
       );
       setStatus("ready");

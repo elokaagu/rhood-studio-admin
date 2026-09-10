@@ -780,6 +780,9 @@ export type Database = {
           profile_image_url: string | null;
           role: string | null;
           soundcloud: string | null;
+          studio_agreement_signed_at: string | null;
+          studio_agreement_signed_by: string | null;
+          studio_tour_completed_at: string | null;
           updated_at: string | null;
           website: string | null;
         };
@@ -798,6 +801,9 @@ export type Database = {
           profile_image_url?: string | null;
           role?: string | null;
           soundcloud?: string | null;
+          studio_agreement_signed_at?: string | null;
+          studio_agreement_signed_by?: string | null;
+          studio_tour_completed_at?: string | null;
           updated_at?: string | null;
           website?: string | null;
         };
@@ -816,6 +822,9 @@ export type Database = {
           profile_image_url?: string | null;
           role?: string | null;
           soundcloud?: string | null;
+          studio_agreement_signed_at?: string | null;
+          studio_agreement_signed_by?: string | null;
+          studio_tour_completed_at?: string | null;
           updated_at?: string | null;
           website?: string | null;
         };

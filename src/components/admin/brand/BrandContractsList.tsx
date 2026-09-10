@@ -19,6 +19,11 @@ import { AgreementDialog } from "./AgreementDialog";
 type Props = {
   contracts: BrandAcceptedContract[];
   brandName: string;
+  studioAgreement?: {
+    signedAt: string | null;
+    signedBy: string | null;
+  };
+  onViewStudioAgreement?: () => void;
   onViewDetails: (contractId: string) => void;
   onAgreementSigned: (contractId: string, signedAt: string, signedBy: string) => void;
 };
@@ -32,6 +37,8 @@ function currencySymbol(code: string) {
 export function BrandContractsList({
   contracts,
   brandName,
+  studioAgreement,
+  onViewStudioAgreement,
   onViewDetails,
   onAgreementSigned,
 }: Props) {
@@ -43,16 +50,17 @@ export function BrandContractsList({
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className={textStyles.subheading.large}>Agreements</CardTitle>
-          {contracts.length > 0 && (
+          {(contracts.length > 0 || studioAgreement) && (
             <span className="text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-              {contracts.length} contract{contracts.length !== 1 ? "s" : ""}
+              {contracts.length + (studioAgreement ? 1 : 0)} contract
+              {contracts.length + (studioAgreement ? 1 : 0) !== 1 ? "s" : ""}
             </span>
           )}
         </div>
       </CardHeader>
 
       <CardContent>
-        {contracts.length === 0 ? (
+        {contracts.length === 0 && !studioAgreement ? (
           <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
             <div className="h-12 w-12 rounded-xl bg-secondary flex items-center justify-center">
               <FileText className="h-6 w-6 text-muted-foreground" />
@@ -60,12 +68,55 @@ export function BrandContractsList({
             <div>
               <p className="text-sm font-medium text-foreground">No agreements yet</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Accepted booking requests will appear here for you to sign.
+                Sign the Studio brand agreement, then accepted bookings will appear here.
               </p>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
+            {studioAgreement ? (
+              <div className="relative rounded-xl border border-border bg-secondary/30 p-4 sm:p-5">
+                <div
+                  className={`absolute left-0 top-3 bottom-3 w-0.5 rounded-full ${
+                    studioAgreement.signedAt ? "bg-brand-green" : "bg-yellow-500"
+                  }`}
+                />
+                <div className="pl-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-base text-foreground">
+                        R/HOOD Studio Brand Agreement
+                      </h3>
+                      <Badge
+                        variant="outline"
+                        className={
+                          studioAgreement.signedAt
+                            ? "border-brand-green/50 text-brand-green text-[10px] px-1.5 py-0"
+                            : "border-yellow-500/50 text-yellow-400 text-[10px] px-1.5 py-0"
+                        }
+                      >
+                        {studioAgreement.signedAt ? "Signed" : "Awaiting signature"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {studioAgreement.signedAt && studioAgreement.signedBy
+                        ? `Signed by ${studioAgreement.signedBy} on ${new Date(
+                            studioAgreement.signedAt
+                          ).toLocaleDateString("en-GB")}`
+                        : "Platform terms for using R/HOOD Studio."}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={onViewStudioAgreement}
+                    className="text-xs h-8 bg-brand-green text-brand-black hover:bg-brand-green/90 font-semibold"
+                  >
+                    <FileSignature className="h-3.5 w-3.5 mr-1.5" />
+                    {studioAgreement.signedAt ? "View agreement" : "Sign"}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             {contracts.map((contract) => {
               const isSigned = !!contract.agreement_signed_at;
               return (

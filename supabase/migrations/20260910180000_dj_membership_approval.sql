@@ -17,9 +17,20 @@ BEGIN
   END LOOP;
 END $$;
 
-ALTER TABLE public.user_profiles
-  ADD CONSTRAINT user_profiles_role_check
-  CHECK (role IS NULL OR role IN ('admin', 'brand', 'dj'));
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.user_profiles
+    WHERE role IS NOT NULL AND role NOT IN ('admin', 'brand', 'dj')
+  ) THEN
+    ALTER TABLE public.user_profiles
+      ADD CONSTRAINT user_profiles_role_check
+      CHECK (role IS NULL OR role IN ('admin', 'brand', 'dj'));
+  END IF;
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL;
+END $$;
 
 ALTER TABLE public.user_profiles
   ADD COLUMN IF NOT EXISTS membership_status TEXT,
@@ -115,12 +126,84 @@ CREATE POLICY "Admins can manage dj invites"
     )
   );
 
--- Invite codes can be brand or DJ
+-- Invite codes can be brand or DJ. Create the table when this database
+-- never received the Studio brand-invite migrations (e.g. the DJ app DB).
+CREATE TABLE IF NOT EXISTS public.invite_codes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  brand_name TEXT,
+  invite_type TEXT NOT NULL DEFAULT 'brand',
+  created_by UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL,
+  used_by UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL,
+  used_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 ALTER TABLE public.invite_codes
   ALTER COLUMN brand_name DROP NOT NULL;
 
 ALTER TABLE public.invite_codes
   ADD COLUMN IF NOT EXISTS invite_type TEXT NOT NULL DEFAULT 'brand';
+
+ALTER TABLE public.invite_codes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can view all invite codes" ON public.invite_codes;
+CREATE POLICY "Admins can view all invite codes"
+  ON public.invite_codes
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.user_profiles
+      WHERE user_profiles.id = auth.uid()
+        AND user_profiles.role = 'admin'
+    )
+  );
+
+DROP POLICY IF EXISTS "Admins can create invite codes" ON public.invite_codes;
+CREATE POLICY "Admins can create invite codes"
+  ON public.invite_codes
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.user_profiles
+      WHERE user_profiles.id = auth.uid()
+        AND user_profiles.role = 'admin'
+    )
+    AND created_by = auth.uid()
+  );
+
+DROP POLICY IF EXISTS "Admins can update invite codes" ON public.invite_codes;
+CREATE POLICY "Admins can update invite codes"
+  ON public.invite_codes
+  FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.user_profiles
+      WHERE user_profiles.id = auth.uid()
+        AND user_profiles.role = 'admin'
+    )
+  );
+
+DROP POLICY IF EXISTS "Anyone can check invite code validity" ON public.invite_codes;
+CREATE POLICY "Anyone can check invite code validity"
+  ON public.invite_codes
+  FOR SELECT
+  USING (
+    is_active = true
+    AND (expires_at IS NULL OR expires_at > now())
+    AND used_by IS NULL
+  );
+
+CREATE INDEX IF NOT EXISTS idx_invite_codes_code ON public.invite_codes(code);
+CREATE INDEX IF NOT EXISTS idx_invite_codes_created_by ON public.invite_codes(created_by);
+CREATE INDEX IF NOT EXISTS idx_invite_codes_used_by ON public.invite_codes(used_by);
+CREATE INDEX IF NOT EXISTS idx_invite_codes_is_active ON public.invite_codes(is_active);
 
 UPDATE public.invite_codes
 SET invite_type = 'brand'

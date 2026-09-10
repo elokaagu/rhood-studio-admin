@@ -2,7 +2,7 @@
 
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -462,9 +462,11 @@ function ApplicationsContent() {
           </div>
           </div>
         ) : filteredApplications.length === 0 ? (
-          <div className="text-center py-8">
-            <p className={textStyles.body.regular}>No applications found.</p>
-          </div>
+          <Card className="bg-card border-border mx-auto max-w-lg">
+            <CardContent className="py-16 px-6 text-center">
+              <p className={textStyles.body.regular}>No applications found.</p>
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-4">
             {filteredApplications.map((application: ApplicationListItem) => (

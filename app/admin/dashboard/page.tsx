@@ -5,13 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { textStyles } from "@/lib/typography";
-import Link from "next/link";
-import {
-  Briefcase,
-  FileText,
-  Users,
-  Music,
-} from "lucide-react";
 import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
 import {
   getDashboardData,
@@ -54,13 +47,6 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, []);
-
-  const statIcon = (title: string) => {
-    if (title.includes("Opportunit")) return Briefcase;
-    if (title.includes("Application")) return FileText;
-    if (title.includes("Member")) return Users;
-    return Music;
-  };
 
   const StatsSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -135,40 +121,17 @@ export default function DashboardPage() {
         </>
       ) : (
         <div className="space-y-4 sm:space-y-6 md:space-y-8 animate-blur-in">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {stats.map((stat: DashboardStat) => {
-              const Icon = statIcon(stat.title);
-              const inner = (
-                <Card className="bg-card border-border h-full transition-colors hover:border-brand-green/40">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className={`${textStyles.body.small} text-muted-foreground`}>
-                          {stat.title}
-                        </p>
-                        <p className={`${textStyles.headline.section} text-foreground mt-1 text-left`}>
-                          {stat.value}
-                        </p>
-                        {stat.hint ? (
-                          <p className="text-xs text-muted-foreground mt-1">{stat.hint}</p>
-                        ) : null}
-                      </div>
-                      <div className="h-8 w-8 bg-brand-green/20 rounded-full flex items-center justify-center shrink-0">
-                        <Icon className="h-4 w-4 text-brand-green" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-
-              return stat.href ? (
-                <Link key={stat.title} href={stat.href} className="block">
-                  {inner}
-                </Link>
-              ) : (
-                <div key={stat.title}>{inner}</div>
-              );
-            })}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+            {stats.map((stat: DashboardStat) => (
+              <Card key={stat.title} className="bg-card border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className={textStyles.subheading.small}>{stat.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className={`${textStyles.subheading.large} leading-none`}>{stat.value}</div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">

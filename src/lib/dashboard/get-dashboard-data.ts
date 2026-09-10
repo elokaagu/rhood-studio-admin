@@ -9,8 +9,6 @@ export type ViewerContext = {
 export type DashboardStat = {
   title: string;
   value: string;
-  hint?: string;
-  href?: string;
 };
 
 export type ActivityItem = {
@@ -152,14 +150,10 @@ export async function getDashboardData(viewer: ViewerContext): Promise<Dashboard
     {
       title: "Active Opportunities",
       value: String(activeOppCountRes.count ?? 0),
-      hint: "Live listings",
-      href: "/admin/opportunities",
     },
     {
       title: "Pending Applications",
       value: String(pendingAppsCountRes.count ?? 0),
-      hint: "Needs review",
-      href: "/admin/applications",
     },
   ];
 
@@ -168,14 +162,10 @@ export async function getDashboardData(viewer: ViewerContext): Promise<Dashboard
       {
         title: "Total Members",
         value: String(memberCountRes.count ?? 0),
-        hint: "All profiles",
-        href: "/admin/members",
       },
       {
         title: "New Mixes",
         value: String(mixesCountRes.count ?? 0),
-        hint: "This month",
-        href: "/admin/mixes",
       }
     );
   }

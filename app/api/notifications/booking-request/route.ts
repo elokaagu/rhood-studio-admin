@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { emailLogoBlock } from "@/lib/email/branding";
+import { getPortalBaseUrl } from "@/lib/portal-url";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFromAddress = "R/HOOD <hello@rhood.io>";
@@ -112,10 +114,7 @@ export async function POST(request: Request) {
       ? formatTime(body.eventEndTime)
       : "";
 
-    const portalUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      "https://portal.rhood.co";
+    const portalUrl = getPortalBaseUrl();
 
     const bookingUrl = body.bookingRequestId
       ? `${portalUrl}/admin/booking-requests/${body.bookingRequestId}`
@@ -130,9 +129,7 @@ export async function POST(request: Request) {
         <tr>
           <td align="center">
             <table style="width:560px;background-color:#1a1a1a;border-radius:16px;padding:40px;">
-              <tr>
-                <td style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#c2cc06;font-weight:700;">R/HOOD Portal</td>
-              </tr>
+              ${emailLogoBlock("R/HOOD")}
               <tr>
                 <td style="padding-top:24px;font-size:28px;font-weight:700;line-height:1.3;">🎵 New Booking Request</td>
               </tr>

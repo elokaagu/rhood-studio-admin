@@ -65,14 +65,14 @@ A comprehensive music community management platform for DJs and producers, built
    
    # Resend Email Service (for application decision emails)
    RESEND_API_KEY=re_your_resend_api_key_here
-   RESEND_FROM_EMAIL="R/HOOD Portal <info@rhood.io>"
+   RESEND_FROM_EMAIL="R/HOOD <hello@rhood.io>"
    
    # OpenAI API (for AI text refinement in opportunity descriptions)
    OPENAI_API_KEY=sk-your_openai_api_key_here
    
    # Application URLs
-   NEXT_PUBLIC_APP_URL=https://portal.rhood.co
-   NEXT_PUBLIC_SITE_URL=https://portal.rhood.co
+   NEXT_PUBLIC_APP_URL=https://portal.rhood.io
+   NEXT_PUBLIC_SITE_URL=https://portal.rhood.io
    ```
    
    **Resend Setup:**

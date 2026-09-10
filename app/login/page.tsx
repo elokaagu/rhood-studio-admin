@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
 import { textStyles } from "@/lib/typography";
+import { PORTAL_BASE_URL } from "@/lib/portal-url";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -25,6 +26,26 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isBrandSignup, setIsBrandSignup] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const signup = params.get("signup");
+    const code = params.get("code");
+    const email = params.get("email");
+
+    if (signup === "brand") {
+      setIsSignUp(true);
+      setIsBrandSignup(true);
+    }
+
+    if (code || email) {
+      setFormData((prev) => ({
+        ...prev,
+        ...(email ? { email } : {}),
+        ...(code ? { inviteCode: code.toUpperCase() } : {}),
+      }));
+    }
+  }, []);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -97,10 +118,13 @@ export default function AdminLoginPage() {
         const getCallbackUrl = () => {
           if (typeof window !== "undefined") {
             // Get the base URL from environment variables or use current origin
-            const baseUrl =
+            const rawBaseUrl =
               process.env.NEXT_PUBLIC_APP_URL ||
               process.env.NEXT_PUBLIC_SITE_URL ||
               window.location.origin;
+            const baseUrl = /portal\.rhood\.co/i.test(rawBaseUrl)
+              ? PORTAL_BASE_URL
+              : rawBaseUrl.replace(/\/$/, "");
             return `${baseUrl}/auth/callback`;
           }
           // Fallback for SSR (shouldn't happen in this client component)
@@ -236,7 +260,9 @@ export default function AdminLoginPage() {
             priority={true}
           />
         </div>
-        <p className={textStyles.headline.section}>PORTAL MANAGEMENT</p>
+        <p className={textStyles.headline.section}>
+          {isSignUp && isBrandSignup ? "R/HOOD FOR BRANDS" : "PORTAL MANAGEMENT"}
+        </p>
       </div>
 
       <Card className="bg-card border-border">
@@ -273,7 +299,7 @@ export default function AdminLoginPage() {
                 variant="outline"
                 className={`border-primary ${textStyles.headline.badge}`}
               >
-                BRAND PORTAL
+                R/HOOD FOR BRANDS
               </Badge>
             </div>
           )}

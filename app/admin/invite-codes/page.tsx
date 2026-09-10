@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/date-utils";
+import { PORTAL_BASE_URL } from "@/lib/portal-url";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function InviteCodesPage() {
@@ -83,17 +84,13 @@ export default function InviteCodesPage() {
     copyTimeoutRef.current = setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const buildInviteShareText = (code: InviteCodeItem) => `You've been invited to create a brand account on R/HOOD Portal!
+  const buildInviteShareText = (code: InviteCodeItem) => `You've been invited to create a brand account on R/HOOD For Brands.
 
 Brand: ${code.brand_name}
 Invite Code: ${code.code}
 
-To create your account:
-1. Go to the login page
-2. Click "Create Account"
-3. Toggle to "Sign up as Brand instead"
-4. Enter your details and the invite code above
-5. Complete your registration
+Create your account:
+${PORTAL_BASE_URL}/login?signup=brand&code=${encodeURIComponent(code.code)}
 
 The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "the expiration date set by the admin"}.`;
 
@@ -348,7 +345,7 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
             <strong>2. Share with the brand:</strong> Send the invite code to the brand contact (via email, Slack, etc.). You can use the &quot;Share&quot; button to copy ready-to-send instructions.
           </p>
           <p>
-            <strong>3. Brand creates account:</strong> The brand goes to the login page, clicks &quot;Create Account&quot;, toggles to &quot;Sign up as Brand instead&quot;, and enters the invite code along with their details.
+            <strong>3. Brand creates account:</strong> They open the invite email and press &quot;Create your account&quot;, which goes to portal.rhood.io with the invite code already filled in.
           </p>
           <p>
             <strong>4. Automatic setup:</strong> Once the brand signs up, their account is automatically configured with the brand role and brand name from the invite code.

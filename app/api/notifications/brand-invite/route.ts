@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { emailLogoBlock } from "@/lib/email/branding";
+import { getPortalBaseUrl } from "@/lib/portal-url";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFromAddress =
@@ -63,11 +65,13 @@ export async function POST(request: Request) {
     }
 
     const resend = new Resend(resendApiKey);
-    const portalUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      "https://portal.rhood.co";
-    const signupUrl = `${portalUrl.replace(/\/$/, "")}/login`;
+    const portalUrl = getPortalBaseUrl();
+    const signupParams = new URLSearchParams({
+      signup: "brand",
+      code: inviteCode,
+      email: sanitizedEmail,
+    });
+    const signupUrl = `${portalUrl}/login?${signupParams.toString()}`;
     const expiryLabel = body.expiresAt
       ? new Date(body.expiresAt).toLocaleDateString("en-GB", {
           day: "numeric",
@@ -87,9 +91,7 @@ export async function POST(request: Request) {
         <tr>
           <td align="center">
             <table style="width:560px;background-color:#1a1a1a;border-radius:16px;padding:40px;">
-              <tr>
-                <td style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#c2cc06;font-weight:700;">R/HOOD Portal</td>
-              </tr>
+              ${emailLogoBlock("R/HOOD For Brands")}
               <tr>
                 <td style="padding-top:24px;font-size:28px;font-weight:700;line-height:1.3;">You're invited to join as a brand</td>
               </tr>
@@ -112,7 +114,7 @@ export async function POST(request: Request) {
               </tr>
               <tr>
                 <td style="padding-top:28px;font-size:13px;line-height:1.6;color:#9e9e9e;">
-                  On the login page, choose Create Account, then Sign up as Brand, and enter this invite code. It expires on ${escapeHtml(expiryLabel)}.
+                  This link opens brand signup with your invite code already filled in. It expires on ${escapeHtml(expiryLabel)}.
                 </td>
               </tr>
             </table>
@@ -131,7 +133,7 @@ export async function POST(request: Request) {
       personalMessage ? `\n${personalMessage}\n` : "",
       `Invite code: ${inviteCode}`,
       `Create your account: ${signupUrl}`,
-      `On the login page choose Create Account, then Sign up as Brand, and enter the invite code. It expires on ${expiryLabel}.`,
+      `This link opens brand signup with your invite code already filled in. It expires on ${expiryLabel}.`,
     ]
       .filter(Boolean)
       .join("\n");
@@ -139,7 +141,7 @@ export async function POST(request: Request) {
     const emailResponse = await resend.emails.send({
       from: defaultFromAddress,
       to: sanitizedEmail,
-      subject: `You're invited to R/HOOD — ${brandName}`,
+      subject: `You're invited to R/HOOD ${brandName}`,
       html,
       text,
     });

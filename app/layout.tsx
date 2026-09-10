@@ -13,9 +13,12 @@ export const metadata: Metadata = {
   title: "R/HOOD Portal",
   description: "Music community platform for DJs and producers",
   icons: {
-    icon: "/rhood_logo.webp",
-    shortcut: "/rhood_logo.webp",
-    apple: "/rhood_logo.webp",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/rhood_logo.webp", type: "image/webp" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
   },
 };
 

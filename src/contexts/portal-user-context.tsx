@@ -11,6 +11,7 @@ import React, {
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserRole } from "@/lib/auth-utils";
+import { loadStudioOnboardingStore } from "@/lib/brand/studio-onboarding-store";
 
 export type PortalProfileSnapshot = {
   id: string;
@@ -154,6 +155,7 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
             setStatus("ready");
             return;
           }
+          const stored = await loadStudioOnboardingStore(user.id);
           setProfile(
             rowToSnapshot({
               id: fallback.data.id,
@@ -163,6 +165,8 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
               dj_name: fallback.data.dj_name,
               brand_name: fallback.data.brand_name,
               credits: 0,
+              studio_agreement_signed_at: stored?.signed_at ?? null,
+              studio_tour_completed_at: stored?.tour_completed_at ?? null,
               studioOnboardingReady: false,
             })
           );
@@ -182,6 +186,19 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
       }
 
       let credits = 0;
+      let signedAt = (
+        row as { studio_agreement_signed_at?: string | null }
+      ).studio_agreement_signed_at ?? null;
+      let tourCompletedAt = (
+        row as { studio_tour_completed_at?: string | null }
+      ).studio_tour_completed_at ?? null;
+
+      if (!signedAt || !tourCompletedAt) {
+        const stored = await loadStudioOnboardingStore(user.id);
+        signedAt = signedAt ?? stored?.signed_at ?? null;
+        tourCompletedAt = tourCompletedAt ?? stored?.tour_completed_at ?? null;
+      }
+
       try {
         const { data: creditsRow } = await (supabase.from as unknown as {
           from: (table: string) => {
@@ -215,12 +232,8 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
           dj_name: row.dj_name,
           brand_name: row.brand_name,
           credits,
-          studio_agreement_signed_at: (
-            row as { studio_agreement_signed_at?: string | null }
-          ).studio_agreement_signed_at,
-          studio_tour_completed_at: (
-            row as { studio_tour_completed_at?: string | null }
-          ).studio_tour_completed_at,
+          studio_agreement_signed_at: signedAt,
+          studio_tour_completed_at: tourCompletedAt,
           studioOnboardingReady: true,
         })
       );

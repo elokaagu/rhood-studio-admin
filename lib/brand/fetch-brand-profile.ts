@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { BrandProfile } from "./types";
+import { loadStudioOnboardingStore } from "./studio-onboarding-store";
 
 const CORE_COLUMNS =
   "id, brand_name, bio, website, profile_image_url, first_name, last_name, email, created_at";
@@ -60,11 +61,33 @@ export async function fetchBrandProfileForUser(
         message: error.message || fallback.error?.message || "Failed to load profile.",
       };
     }
-    return { ok: true, profile: rowToBrandProfile(fallback.data) };
+    const stored = await loadStudioOnboardingStore(userId);
+    return {
+      ok: true,
+      profile: rowToBrandProfile({
+        ...fallback.data,
+        studio_agreement_signed_at: stored?.signed_at ?? null,
+        studio_agreement_signed_by: stored?.signed_by ?? null,
+      }),
+    };
   }
 
   if (!data) {
     return { ok: false, message: "Failed to load profile." };
+  }
+
+  if (!data.studio_agreement_signed_at) {
+    const stored = await loadStudioOnboardingStore(userId);
+    if (stored?.signed_at) {
+      return {
+        ok: true,
+        profile: rowToBrandProfile({
+          ...data,
+          studio_agreement_signed_at: stored.signed_at,
+          studio_agreement_signed_by: stored.signed_by,
+        }),
+      };
+    }
   }
 
   return {

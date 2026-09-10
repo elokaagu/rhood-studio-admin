@@ -1,4 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  isMissingStudioColumnError,
+  saveStudioOnboardingStore,
+} from "./studio-onboarding-store";
 
 export type SignStudioAgreementResult =
   | { ok: true; signed_at: string; signed_by: string }
@@ -22,11 +26,23 @@ export async function signStudioAgreement(
     })
     .eq("id", userId);
 
-  if (error) {
+  if (!error) {
+    return { ok: true, signed_at: signedAt, signed_by: trimmedName };
+  }
+
+  if (!isMissingStudioColumnError(error.message)) {
     return {
       ok: false,
       message: error.message || "Failed to save the signed agreement.",
     };
+  }
+
+  const stored = await saveStudioOnboardingStore(userId, {
+    signed_at: signedAt,
+    signed_by: trimmedName,
+  });
+  if (!stored.ok) {
+    return { ok: false, message: stored.message };
   }
 
   return { ok: true, signed_at: signedAt, signed_by: trimmedName };
@@ -35,15 +51,21 @@ export async function signStudioAgreement(
 export async function markStudioTourComplete(
   userId: string
 ): Promise<{ ok: true } | { ok: false; message: string }> {
+  const completedAt = new Date().toISOString();
   const { error } = await supabase
     .from("user_profiles")
     .update({
-      studio_tour_completed_at: new Date().toISOString(),
+      studio_tour_completed_at: completedAt,
     })
     .eq("id", userId);
 
-  if (error) {
+  if (!error) {
+    return { ok: true };
+  }
+
+  if (!isMissingStudioColumnError(error.message)) {
     return { ok: false, message: error.message || "Failed to save tour progress." };
   }
-  return { ok: true };
+
+  return saveStudioOnboardingStore(userId, { tour_completed_at: completedAt });
 }

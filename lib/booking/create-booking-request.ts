@@ -140,7 +140,7 @@ export async function createBookingRequestWithNotifications(params: {
   // In-app notification for DJ (non-fatal)
   try {
     await createNotification({
-      title: "🎵 New Booking Request",
+      title: "New Booking Request",
       message: `${brandLabel} wants to book you for "${formData.event_title}"`,
       type: "booking_request",
       user_id: djId,

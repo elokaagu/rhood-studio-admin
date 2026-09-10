@@ -131,7 +131,7 @@ export async function POST(request: Request) {
             <table style="width:560px;background-color:#1a1a1a;border-radius:16px;padding:40px;">
               ${emailLogoBlock("R/HOOD")}
               <tr>
-                <td style="padding-top:24px;font-size:28px;font-weight:700;line-height:1.3;">🎵 New Booking Request</td>
+                <td style="padding-top:24px;font-size:28px;font-weight:700;line-height:1.3;">New Booking Request</td>
               </tr>
               <tr>
                 <td style="padding-top:16px;font-size:16px;line-height:1.6;color:#dddddd;">
@@ -199,7 +199,7 @@ export async function POST(request: Request) {
     const emailResponse = await resend.emails.send({
       from: defaultFromAddress,
       to: sanitizedEmail,
-      subject: `🎵 Booking Request: ${body.eventTitle}`,
+      subject: `Booking Request: ${body.eventTitle}`,
       html,
       text,
       headers: {

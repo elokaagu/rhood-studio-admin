@@ -22,6 +22,8 @@ export type PortalProfileSnapshot = {
   credits: number;
   studio_agreement_signed_at: string | null;
   studio_tour_completed_at: string | null;
+  /** False when the onboarding columns are not in the live schema yet. */
+  studioOnboardingReady: boolean;
 };
 
 export type PortalUserStatus = "loading" | "ready" | "error";
@@ -77,6 +79,7 @@ type UserProfilesRow = {
   credits?: number | null;
   studio_agreement_signed_at?: string | null;
   studio_tour_completed_at?: string | null;
+  studioOnboardingReady?: boolean;
 };
 
 function rowToSnapshot(row: UserProfilesRow): PortalProfileSnapshot {
@@ -96,6 +99,7 @@ function rowToSnapshot(row: UserProfilesRow): PortalProfileSnapshot {
     credits,
     studio_agreement_signed_at: row.studio_agreement_signed_at ?? null,
     studio_tour_completed_at: row.studio_tour_completed_at ?? null,
+    studioOnboardingReady: row.studioOnboardingReady ?? false,
   };
 }
 
@@ -159,6 +163,7 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
               dj_name: fallback.data.dj_name,
               brand_name: fallback.data.brand_name,
               credits: 0,
+              studioOnboardingReady: false,
             })
           );
           setStatus("ready");
@@ -216,6 +221,7 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
           studio_tour_completed_at: (
             row as { studio_tour_completed_at?: string | null }
           ).studio_tour_completed_at,
+          studioOnboardingReady: true,
         })
       );
       setStatus("ready");

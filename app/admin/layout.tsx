@@ -314,7 +314,7 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (role !== "brand" || !profile?.id) return;
+    if (role !== "brand" || !profile?.id || !profile.studioOnboardingReady) return;
     if (!profile.studio_agreement_signed_at) return;
     if (profile.studio_tour_completed_at) return;
     try {
@@ -547,19 +547,21 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
         </DialogContent>
       </Dialog>
 
-      {role === "brand" && profile && !profile.studio_agreement_signed_at && (
-        <StudioAgreementDialog
-          userId={profile.id}
-          brandName={profile.brand_name || displayName}
-          open
-          required
-          onSigned={() => {
-            void refresh();
-          }}
-        />
-      )}
+      {role === "brand" &&
+        profile?.studioOnboardingReady &&
+        !profile.studio_agreement_signed_at && (
+          <StudioAgreementDialog
+            userId={profile.id}
+            brandName={profile.brand_name || displayName}
+            open
+            required
+            onSigned={() => {
+              void refresh();
+            }}
+          />
+        )}
 
-      {role === "brand" && profile && (
+      {role === "brand" && profile?.studioOnboardingReady && (
         <BrandOnboardingTour
           userId={profile.id}
           active={

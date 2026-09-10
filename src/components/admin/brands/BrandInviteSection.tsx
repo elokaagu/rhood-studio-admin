@@ -119,7 +119,7 @@ export function BrandInviteSection() {
             Invite New Brand
           </DialogTitle>
           <DialogDescription className={textStyles.body.regular}>
-            Send an invitation to join R/HOOD For Brands. They'll also appear in Launch CRM as Contacted.
+            Send an invitation to join R/HOOD For Brands. They will also appear in Launch CRM as Contacted.
           </DialogDescription>
         </DialogHeader>
 

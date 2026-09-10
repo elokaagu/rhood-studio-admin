@@ -88,10 +88,6 @@ export async function POST(request: Request) {
       membership_status: status,
       membership_source: source,
     };
-    // Studio defaults new profiles to admin, including DJ app signups.
-    if (target.role !== "dj") {
-      payload.role = "dj";
-    }
 
     const withReview = {
       ...payload,
@@ -100,8 +96,15 @@ export async function POST(request: Request) {
     };
 
     let update = await admin.from("user_profiles").update(withReview).eq("id", userId);
-    if (update.error && String(update.error.message || "").includes("membership_reviewed")) {
+    const message = String(update.error?.message || "");
+    if (update.error && message.includes("membership_reviewed")) {
       update = await admin.from("user_profiles").update(payload).eq("id", userId);
+    }
+    if (update.error && String(update.error.message || "").includes("membership_source")) {
+      update = await admin
+        .from("user_profiles")
+        .update({ membership_status: status })
+        .eq("id", userId);
     }
 
     if (update.error) {

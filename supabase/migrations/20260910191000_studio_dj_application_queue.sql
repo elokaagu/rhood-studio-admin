@@ -55,10 +55,6 @@ BEGIN
       WHEN p_status = 'pending' THEN 'application'
       ELSE COALESCE(membership_source, 'application')
     END,
-    role = CASE
-      WHEN role IS DISTINCT FROM 'brand' THEN 'dj'
-      ELSE role
-    END,
     membership_reviewed_at = now(),
     membership_reviewed_by = auth.uid()
   WHERE id = p_user_id

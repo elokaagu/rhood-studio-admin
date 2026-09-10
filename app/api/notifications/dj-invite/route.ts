@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { emailLogoBlock } from "@/lib/email/branding";
-import { DJ_APP_URL } from "@/lib/portal-url";
+import { emailLogoBlock, emailAppStoreButtons, emailAppStorePlainText } from "@/lib/email/branding";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFromAddress =
@@ -62,7 +61,6 @@ export async function POST(request: Request) {
     }
 
     const resend = new Resend(resendApiKey);
-    const joinUrl = DJ_APP_URL.replace(/\/$/, "") + "/";
     const safeName = escapeHtml(name);
     const safeMessage = personalMessage
       ? `<tr><td style="padding-top:20px;font-size:15px;line-height:1.6;color:#dddddd;">${escapeHtml(personalMessage).replace(/\n/g, "<br/>")}</td></tr>`
@@ -79,18 +77,19 @@ export async function POST(request: Request) {
               </tr>
               <tr>
                 <td style="padding-top:16px;font-size:16px;line-height:1.6;color:#dddddd;">
-                  ${safeName}, you've been invited to create a DJ account on R/HOOD.
+                  ${safeName}, you've been invited to create a DJ account on R/HOOD.<br/><br/>
+                  Open this email on your mobile phone, then download the R/HOOD app from the App Store or Google Play.
                 </td>
               </tr>
               ${safeMessage}
               <tr>
                 <td style="padding-top:32px;">
-                  <a href="${joinUrl}" style="display:inline-block;padding:14px 28px;background-color:#c2cc06;color:#1d1d1b;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;">Create your account</a>
+                  ${emailAppStoreButtons()}
                 </td>
               </tr>
               <tr>
                 <td style="padding-top:28px;font-size:13px;line-height:1.6;color:#9e9e9e;">
-                  Open R/HOOD, create your DJ account with this email, and start applying to opportunities.
+                  R/HOOD for DJs is a mobile app. Open this invite on your phone, install the app, create your account with this email, and start applying to opportunities.
                 </td>
               </tr>
             </table>
@@ -106,9 +105,10 @@ export async function POST(request: Request) {
 
     const text = [
       `You're invited to join R/HOOD as a DJ (${name}).`,
+      "Open this email on your mobile phone, then download the R/HOOD app from the App Store or Google Play.",
       personalMessage ? `\n${personalMessage}\n` : "",
-      `Create your account: ${joinUrl}`,
-      "Open R/HOOD, create your DJ account with this email, and start applying to opportunities.",
+      emailAppStorePlainText(),
+      "R/HOOD for DJs is a mobile app. Open this invite on your phone, install the app, create your account with this email, and start applying to opportunities.",
     ]
       .filter(Boolean)
       .join("\n");

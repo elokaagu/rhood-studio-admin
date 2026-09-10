@@ -1,3 +1,19 @@
+/** Prefer DJ name, then full name, then email. */
+export function bookableDjDisplayName(dj: {
+  dj_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+}): string {
+  const djName = dj.dj_name?.trim();
+  if (djName) return djName;
+  const full = `${dj.first_name?.trim() ?? ""} ${dj.last_name?.trim() ?? ""}`.trim();
+  if (full) return full;
+  const email = dj.email?.trim();
+  if (email) return email;
+  return "DJ";
+}
+
 /**
  * DJ row shaped for the brand "Book a DJ" discovery page.
  * Enrichment (ratings, mixes, availability) is computed in fetchBookableDjs.

@@ -208,7 +208,7 @@ export function ImageUpload({
           dragActive
             ? "border-primary bg-primary/5"
             : "border-border hover:border-primary/50"
-        } ${aspect === "square" ? "max-w-sm" : ""}`}
+        }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}

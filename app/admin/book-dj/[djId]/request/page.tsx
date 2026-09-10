@@ -26,6 +26,7 @@ import {
   getDefaultBookingRequestForm,
 } from "@/lib/booking/create-booking-request";
 import type { BookingRequestFormData, DjProfileForBooking } from "@/lib/booking/types";
+import { bookableDjDisplayName } from "@/lib/booking/bookable-dj";
 import LocationAutocomplete from "@/components/location-autocomplete";
 import { GenrePicker } from "@/components/admin/GenrePicker";
 import { serializeGenres } from "@/lib/opportunities/genres";
@@ -163,6 +164,9 @@ export default function BookingRequestPage() {
     return null;
   }
 
+  const displayName = bookableDjDisplayName(djProfile);
+  const displayInitial = displayName.charAt(0).toUpperCase() || "D";
+
   return (
     <div className="space-y-4 sm:space-y-6 animate-blur-in">
       {/* Header */}
@@ -178,7 +182,7 @@ export default function BookingRequestPage() {
           </Button>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-              Book {djProfile.dj_name || "DJ"}
+              Book {displayName}
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
               Fill in the event details to send a booking request
@@ -199,15 +203,15 @@ export default function BookingRequestPage() {
                 <Avatar className="h-16 w-16">
                   <AvatarImage
                     src={djProfile.profile_image_url || "/person1.jpg"}
-                    alt={djProfile.dj_name ?? "DJ"}
+                    alt={displayName}
                   />
                   <AvatarFallback>
-                    {djProfile.dj_name?.charAt(0).toUpperCase() || "D"}
+                    {displayInitial}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h3 className="font-semibold text-lg text-foreground">
-                    {djProfile.dj_name}
+                    {displayName}
                   </h3>
                   <div className="flex items-center gap-2 mt-1">
                     <MapPin className="h-3 w-3 text-muted-foreground" />

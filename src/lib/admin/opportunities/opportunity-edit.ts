@@ -1,5 +1,6 @@
 import { getDisplayText } from "@/lib/text-utils";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -21,6 +22,7 @@ export type OpportunityFormState = {
   imageUrl: string;
   archived: boolean;
   noEndDate: boolean;
+  website: string;
 };
 
 export type OpportunitySaveMode = "publish" | "draft";
@@ -154,6 +156,7 @@ export function buildOpportunityUpdatePayload(
     is_active: isActive,
     is_archived: form.archived,
     image_url: form.imageUrl || null,
+    website: normalizeWebsiteUrl(form.website),
   };
 }
 
@@ -177,12 +180,14 @@ export async function saveOpportunity(
     const isMissingColumn =
       error.message?.includes("listing_status") ||
       error.message?.includes("additional_info") ||
+      error.message?.includes("website") ||
       (error.message?.includes("column") && error.message?.includes("does not exist"));
 
     if (isMissingColumn) {
       const corePayload = { ...(payload as any) };
       delete corePayload.listing_status;
       delete corePayload.additional_info;
+      delete corePayload.website;
       const { error: retryError } = await supabase
         .from("opportunities")
         .update(corePayload)
@@ -212,6 +217,7 @@ type OpportunityRow = {
   is_archived: boolean | null;
   additional_info?: string | null;
   listing_status?: string | null;
+  website?: string | null;
 };
 
 /** Map DB row → form state for the edit screen (no demo fallback). */
@@ -268,5 +274,6 @@ export function opportunityRowToFormState(
     imageUrl: data.image_url || "",
     archived: data.is_archived ?? false,
     noEndDate,
+    website: data.website?.trim() ?? "",
   };
 }

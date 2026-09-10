@@ -34,6 +34,7 @@ import {
   Sparkles,
   Loader2,
   Building2,
+  Globe,
 } from "lucide-react";
 import LocationAutocomplete from "@/components/location-autocomplete";
 import { GoogleMapsLink } from "@/components/google-maps-link";
@@ -83,6 +84,7 @@ export default function CreateOpportunityPage() {
     status: "pending",
     imageUrl: "",
     noEndDate: false,
+    website: "",
   });
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -437,75 +439,99 @@ export default function CreateOpportunityPage() {
               </p>
             </div>
 
-            <ImageUpload
-              label="Event Image"
-              value={formData.imageUrl}
-              onChange={(url) =>
-                setFormData({ ...formData, imageUrl: url || "" })
-              }
-              required={false}
-              maxSize={5}
-              acceptedFormats={["image/jpeg", "image/png", "image/webp"]}
-              bucketName="opportunities"
-              folder="images"
-              aspect="square"
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              <ImageUpload
+                label="Event Image"
+                value={formData.imageUrl}
+                onChange={(url) =>
+                  setFormData({ ...formData, imageUrl: url || "" })
+                }
+                required={false}
+                maxSize={5}
+                acceptedFormats={["image/jpeg", "image/png", "image/webp"]}
+                bucketName="opportunities"
+                folder="images"
+                aspect="square"
+                className="w-full"
+              />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="location"
-                  className="text-foreground flex items-center justify-between gap-2"
-                >
-                  <span className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    Location
-                  </span>
-                  <GoogleMapsLink
-                    address={formData.location}
-                    placeId={formData.locationPlaceId}
-                    className="text-xs"
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="location"
+                    className="text-foreground flex items-center justify-between gap-2"
                   >
-                    Open in Maps
-                  </GoogleMapsLink>
-                </Label>
-              <LocationAutocomplete
-                  id="location"
-                placeholder="Search for a venue or address"
-                  value={formData.location}
-                onValueChange={(locationValue) =>
-                  setFormData((previous) => ({
-                    ...previous,
-                    location: locationValue,
-                    locationPlaceId: "",
-                  }))
-                }
-                onLocationSelect={(selection) =>
-                  setFormData((previous) => ({
-                    ...previous,
-                    location: selection.formattedAddress ?? selection.description,
-                    locationPlaceId: selection.placeId,
-                  }))
-                }
-                  className="bg-secondary border-border text-foreground"
-                country="gb"
-                  required
-                />
-              </div>
+                    <span className="flex items-center">
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Location
+                    </span>
+                    <GoogleMapsLink
+                      address={formData.location}
+                      placeId={formData.locationPlaceId}
+                      className="text-xs"
+                    >
+                      Open in Maps
+                    </GoogleMapsLink>
+                  </Label>
+                  <LocationAutocomplete
+                    id="location"
+                    placeholder="Search for a venue or address"
+                    value={formData.location}
+                    onValueChange={(locationValue) =>
+                      setFormData((previous) => ({
+                        ...previous,
+                        location: locationValue,
+                        locationPlaceId: "",
+                      }))
+                    }
+                    onLocationSelect={(selection) =>
+                      setFormData((previous) => ({
+                        ...previous,
+                        location:
+                          selection.formattedAddress ?? selection.description,
+                        locationPlaceId: selection.placeId,
+                      }))
+                    }
+                    className="bg-secondary border-border text-foreground"
+                    country="gb"
+                    required
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="pay" className="text-foreground flex items-center">
-                  Pay Range
-                </Label>
-                <Input
-                  id="pay"
-                  placeholder="e.g., £200-400"
-                  value={formData.pay}
-                  onChange={(e) =>
-                    setFormData({ ...formData, pay: e.target.value })
-                  }
-                  className="bg-secondary border-border text-foreground"
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="pay" className="text-foreground flex items-center">
+                    Pay Range
+                  </Label>
+                  <Input
+                    id="pay"
+                    placeholder="e.g., £200-400"
+                    value={formData.pay}
+                    onChange={(e) =>
+                      setFormData({ ...formData, pay: e.target.value })
+                    }
+                    className="bg-secondary border-border text-foreground"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="website"
+                    className="text-foreground flex items-center"
+                  >
+                    <Globe className="h-4 w-4 mr-2" />
+                    Website
+                  </Label>
+                  <Input
+                    id="website"
+                    type="url"
+                    placeholder="https://your-event.com"
+                    value={formData.website}
+                    onChange={(e) =>
+                      setFormData({ ...formData, website: e.target.value })
+                    }
+                    className="bg-secondary border-border text-foreground"
+                  />
+                </div>
               </div>
             </div>
           </CardContent>

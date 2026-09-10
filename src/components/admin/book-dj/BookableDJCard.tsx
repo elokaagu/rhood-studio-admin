@@ -6,7 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, User, Calendar, Play, Trophy, Music } from "lucide-react";
-import type { BookableDJ } from "@/lib/booking/bookable-dj";
+import {
+  bookableDjDisplayName,
+  type BookableDJ,
+} from "@/lib/booking/bookable-dj";
 import { getMixPublicUrl } from "@/lib/booking/fetch-bookable-djs";
 
 type Props = {
@@ -37,6 +40,8 @@ function AvailabilityPill({ status }: { status: string }) {
 
 export function BookableDJCard({ dj, variant, onBook }: Props) {
   const router = useRouter();
+  const displayName = bookableDjDisplayName(dj);
+  const initial = displayName.charAt(0).toUpperCase() || "D";
 
   const openMix = () => {
     if (!dj.latestMix?.file_url) return;
@@ -53,16 +58,16 @@ export function BookableDJCard({ dj, variant, onBook }: Props) {
             <Avatar className="h-16 w-16 flex-shrink-0 ring-2 ring-brand-green/20">
               <AvatarImage
                 src={dj.profile_image_url || "/person1.jpg"}
-                alt={dj.dj_name}
+                alt={displayName}
               />
               <AvatarFallback className="bg-brand-green/10 text-brand-green font-bold text-lg">
-                {dj.dj_name.charAt(0).toUpperCase()}
+                {initial}
               </AvatarFallback>
             </Avatar>
 
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-base text-foreground leading-tight truncate">
-                {dj.dj_name}
+                {displayName}
               </h3>
               {dj.city && (
                 <div className="flex items-center gap-1 mt-1">
@@ -149,7 +154,7 @@ export function BookableDJCard({ dj, variant, onBook }: Props) {
               className="flex-1 h-8 text-xs bg-brand-green hover:bg-brand-green/90 text-brand-black font-semibold"
             >
               <Calendar className="h-3 w-3 mr-1.5" />
-              Book DJ
+              Book now
             </Button>
             {dj.latestMix && (
               <Button
@@ -176,10 +181,10 @@ export function BookableDJCard({ dj, variant, onBook }: Props) {
           <Avatar className="h-14 w-14 flex-shrink-0 ring-2 ring-brand-green/20">
             <AvatarImage
               src={dj.profile_image_url || "/person1.jpg"}
-              alt={dj.dj_name}
+              alt={displayName}
             />
             <AvatarFallback className="bg-brand-green/10 text-brand-green font-bold">
-              {dj.dj_name.charAt(0).toUpperCase()}
+              {initial}
             </AvatarFallback>
           </Avatar>
 
@@ -187,7 +192,7 @@ export function BookableDJCard({ dj, variant, onBook }: Props) {
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-base text-foreground truncate">
-                  {dj.dj_name}
+                  {displayName}
                 </h3>
                 <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                   {dj.city && (
@@ -243,7 +248,7 @@ export function BookableDJCard({ dj, variant, onBook }: Props) {
                   className="h-8 text-xs bg-brand-green hover:bg-brand-green/90 text-brand-black font-semibold"
                 >
                   <Calendar className="h-3 w-3 mr-1.5" />
-                  Book DJ
+                  Book now
                 </Button>
                 {dj.latestMix && (
                   <Button

@@ -133,6 +133,7 @@ export function LocationAutocomplete({
 
       setLoading(true);
       setError(null);
+      setIsOpen(true);
 
       try {
         const params = new URLSearchParams({

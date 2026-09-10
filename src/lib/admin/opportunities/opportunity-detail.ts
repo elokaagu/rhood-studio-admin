@@ -20,6 +20,7 @@ export type OpportunityDetailView = {
   short_summary: string;
   requirements: string | null;
   additionalInfo: string;
+  website: string | null;
   image_url: string | null;
   /** Event window ended (by end time) but row not archived — UI only, no DB write */
   eventPastDue: boolean;
@@ -64,6 +65,7 @@ type OpportunityRow = {
   organizer_id: string | null;
   additional_info?: string | null;
   short_summary?: string | null;
+  website?: string | null;
 };
 
 /**
@@ -181,6 +183,7 @@ export async function fetchOpportunityDetails(
     short_summary: shortSummary,
     requirements: row.skill_level,
     additionalInfo: row.additional_info?.trim() ?? "",
+    website: row.website?.trim() || null,
     image_url: row.image_url,
     eventPastDue,
     hasAcceptedApplication,

@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { getDisplayText } from "@/lib/text-utils";
+import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -22,6 +23,8 @@ export type OpportunityCreateFormInput = {
   status: string;
   imageUrl: string;
   noEndDate?: boolean;
+  website?: string;
+  additionalInfo?: string;
 };
 
 export type CreateOpportunityParams = {
@@ -244,6 +247,8 @@ export async function createOpportunity(
     is_archived: false,
     listing_status: listingStatus,
     image_url: form.imageUrl || null,
+    additional_info: form.additionalInfo?.trim() || null,
+    website: normalizeWebsiteUrl(form.website),
   };
 
   let { data: inserted, error } = await supabase
@@ -252,13 +257,23 @@ export async function createOpportunity(
     .select("id")
     .single();
 
-  if (
-    error &&
-    (error.message?.includes("listing_status") ||
-      (error.message?.includes("column") &&
-        error.message?.includes("does not exist")))
-  ) {
-    delete insertPayload.listing_status;
+  const isMissingColumn = (message?: string) =>
+    !!message &&
+    (message.includes("does not exist") ||
+      message.includes("listing_status") ||
+      message.includes("website") ||
+      message.includes("additional_info"));
+
+  if (error && isMissingColumn(error.message)) {
+    if (error.message?.includes("website")) {
+      delete insertPayload.website;
+    }
+    if (error.message?.includes("additional_info")) {
+      delete insertPayload.additional_info;
+    }
+    if (error.message?.includes("listing_status")) {
+      delete insertPayload.listing_status;
+    }
     const retry = await supabase
       .from("opportunities")
       .insert(insertPayload)

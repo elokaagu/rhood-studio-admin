@@ -1,4 +1,4 @@
-import { PORTAL_BASE_URL } from "@/lib/portal-url";
+import { PORTAL_BASE_URL, getDjAndroidPlayStoreUrl, getDjIosAppStoreUrl } from "@/lib/portal-url";
 
 export function emailLogoBlock(eyebrow: string): string {
   return `
@@ -13,3 +13,33 @@ export function emailLogoBlock(eyebrow: string): string {
               </tr>
   `;
 }
+
+const buttonStyle =
+  "display:inline-block;padding:14px 28px;background-color:#c2cc06;color:#1d1d1b;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;";
+
+const secondaryButtonStyle =
+  "display:inline-block;padding:14px 28px;background-color:#252525;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;border:1px solid #3a3a3a;";
+
+/** App Store / Play Store buttons for DJ emails. */
+export function emailAppStoreButtons(): string {
+  const ios = getDjIosAppStoreUrl();
+  const android = getDjAndroidPlayStoreUrl();
+  if (ios === android) {
+    return `<a href="${ios}" style="${buttonStyle}">Get the R/HOOD app</a>`;
+  }
+  return `
+                  <a href="${ios}" style="${buttonStyle}">Download on the App Store</a>
+                  <span style="display:inline-block;width:10px;"></span>
+                  <a href="${android}" style="${secondaryButtonStyle}">Get it on Google Play</a>
+  `;
+}
+
+export function emailAppStorePlainText(): string {
+  const ios = getDjIosAppStoreUrl();
+  const android = getDjAndroidPlayStoreUrl();
+  if (ios === android) {
+    return `Get the R/HOOD app: ${ios}`;
+  }
+  return `Download on the App Store: ${ios}\nGet it on Google Play: ${android}`;
+}
+

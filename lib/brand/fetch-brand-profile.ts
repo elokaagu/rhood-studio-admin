@@ -5,6 +5,7 @@ function rowToBrandProfile(row: {
   id: string;
   brand_name: string | null;
   bio: string | null;
+  website?: string | null;
   first_name: string;
   last_name: string;
   email: string;
@@ -14,7 +15,7 @@ function rowToBrandProfile(row: {
     id: row.id,
     brand_name: row.brand_name,
     brand_description: row.bio,
-    website: null,
+    website: row.website?.trim() || null,
     first_name: row.first_name,
     last_name: row.last_name,
     email: row.email,
@@ -32,15 +33,33 @@ export async function fetchBrandProfileForUser(
 > {
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("id, brand_name, bio, first_name, last_name, email, created_at")
+    .select("id, brand_name, bio, website, first_name, last_name, email, created_at")
     .eq("id", userId)
     .single();
 
-  if (error || !data) {
+  if (error) {
+    if (error.message?.includes("website")) {
+      const fallback = await supabase
+        .from("user_profiles")
+        .select("id, brand_name, bio, first_name, last_name, email, created_at")
+        .eq("id", userId)
+        .single();
+      if (fallback.error || !fallback.data) {
+        return {
+          ok: false,
+          message: fallback.error?.message || "Failed to load profile.",
+        };
+      }
+      return { ok: true, profile: rowToBrandProfile(fallback.data) };
+    }
     return {
       ok: false,
-      message: error?.message || "Failed to load profile.",
+      message: error.message || "Failed to load profile.",
     };
+  }
+
+  if (!data) {
+    return { ok: false, message: "Failed to load profile." };
   }
 
   return {

@@ -48,8 +48,10 @@ import {
   Loader2,
   Banknote,
   ImageOff,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
+import { websiteDisplayLabel } from "@/lib/opportunities/website";
 
 function MetaCell({
   icon: Icon,
@@ -450,6 +452,18 @@ export default function OpportunityDetailsPage() {
                       {feeLabel}
                     </span>
                   </MetaCell>
+                  {opportunity.website ? (
+                    <MetaCell icon={Globe} label="Website">
+                      <a
+                        href={opportunity.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-foreground hover:text-brand-green"
+                      >
+                        {websiteDisplayLabel(opportunity.website)}
+                      </a>
+                    </MetaCell>
+                  ) : null}
                 </div>
               </div>
             </div>

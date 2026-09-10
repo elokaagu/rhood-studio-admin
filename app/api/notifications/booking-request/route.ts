@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { emailLogoBlock } from "@/lib/email/branding";
-import { getPortalBaseUrl } from "@/lib/portal-url";
+import { emailLogoBlock, emailAppStoreButtons, emailAppStorePlainText } from "@/lib/email/branding";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFromAddress = "R/HOOD <hello@rhood.io>";
@@ -114,12 +113,6 @@ export async function POST(request: Request) {
       ? formatTime(body.eventEndTime)
       : "";
 
-    const portalUrl = getPortalBaseUrl();
-
-    const bookingUrl = body.bookingRequestId
-      ? `${portalUrl}/admin/booking-requests/${body.bookingRequestId}`
-      : `${portalUrl}/admin/booking-requests`;
-
     const paymentInfo = body.paymentAmount
       ? `${body.paymentCurrency === "GBP" ? "£" : body.paymentCurrency === "USD" ? "$" : "€"}${body.paymentAmount.toLocaleString()}`
       : "To be discussed";
@@ -171,13 +164,13 @@ export async function POST(request: Request) {
               </tr>
               <tr>
                 <td style="padding-top:32px;">
-                  <a href="${bookingUrl}" style="display:inline-block;padding:14px 28px;background-color:#c2cc06;color:#1d1d1b;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;">View Booking Request</a>
+                  ${emailAppStoreButtons()}
                 </td>
               </tr>
               <tr>
                 <td style="padding-top:28px;font-size:13px;line-height:1.6;color:#9e9e9e;">
-                  Log in to the Portal to accept or decline this booking request.<br/>
-                  Need help? Reply to this email or contact the R/HOOD team in the Portal.
+                  Open the R/HOOD app on your phone to view and respond to this booking request.<br/>
+                  If you do not have the app yet, download it from the App Store or Google Play, then sign in with this email.
                 </td>
               </tr>
             </table>
@@ -193,7 +186,7 @@ export async function POST(request: Request) {
       </table>
     `;
 
-    const text = `Hey ${firstName},\n\n${body.brandName} wants to book you for their event: "${body.eventTitle}"\n\nDate: ${eventDateFormatted}\n${eventTimeFormatted ? `Time: ${eventTimeFormatted}${eventEndTimeFormatted ? ` - ${eventEndTimeFormatted}` : ""}\n` : ""}${body.location ? `Location: ${body.location}\n` : ""}Payment: ${paymentInfo}\n\nView the booking request: ${bookingUrl}`;
+    const text = `Hey ${firstName},\n\n${body.brandName} wants to book you for their event: "${body.eventTitle}"\n\nDate: ${eventDateFormatted}\n${eventTimeFormatted ? `Time: ${eventTimeFormatted}${eventEndTimeFormatted ? ` - ${eventEndTimeFormatted}` : ""}\n` : ""}${body.location ? `Location: ${body.location}\n` : ""}Payment: ${paymentInfo}\n\nOpen the R/HOOD app on your phone to view this booking request.\n${emailAppStorePlainText()}`;
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({

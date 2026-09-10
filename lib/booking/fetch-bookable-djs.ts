@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { BookableDJ } from "@/lib/booking/bookable-dj";
+import {
+  bookableDjDisplayName,
+  type BookableDJ,
+} from "@/lib/booking/bookable-dj";
 
 type RawProfile = Record<string, unknown> & {
   id: string;
@@ -138,7 +141,7 @@ export async function fetchBookableDjs(): Promise<BookableDJ[]> {
 
     return {
       id: profile.id,
-      dj_name: profile.dj_name || "",
+      dj_name: bookableDjDisplayName(profile),
       first_name: profile.first_name || "",
       last_name: profile.last_name || "",
       email: profile.email || "",

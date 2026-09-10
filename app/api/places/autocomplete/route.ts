@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const input = searchParams.get("input");
     const sessionToken = searchParams.get("sessionToken") ?? undefined;
     const components = searchParams.get("components") ?? undefined;
-    const types = searchParams.get("types") ?? "geocode";
+    const types = searchParams.get("types");
 
     if (!input || input.trim().length === 0) {
       return NextResponse.json({ predictions: [] }, { status: 200 });
@@ -24,11 +24,14 @@ export async function GET(request: Request) {
     const params = new URLSearchParams({
       input: input.trim(),
       key: GOOGLE_PLACES_API_KEY,
-      types,
     });
 
     if (sessionToken) {
       params.set("sessiontoken", sessionToken);
+    }
+
+    if (types) {
+      params.set("types", types);
     }
 
     if (components) {

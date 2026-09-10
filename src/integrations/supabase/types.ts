@@ -640,6 +640,7 @@ export type Database = {
           skill_level: string | null;
           title: string;
           updated_at: string | null;
+          website: string | null;
         };
         Insert: {
           additional_info?: string | null;
@@ -661,6 +662,7 @@ export type Database = {
           skill_level?: string | null;
           title: string;
           updated_at?: string | null;
+          website?: string | null;
         };
         Update: {
           additional_info?: string | null;
@@ -682,6 +684,7 @@ export type Database = {
           skill_level?: string | null;
           title?: string;
           updated_at?: string | null;
+          website?: string | null;
         };
         Relationships: [
           {
@@ -778,6 +781,7 @@ export type Database = {
           role: string | null;
           soundcloud: string | null;
           updated_at: string | null;
+          website: string | null;
         };
         Insert: {
           bio?: string | null;
@@ -795,6 +799,7 @@ export type Database = {
           role?: string | null;
           soundcloud?: string | null;
           updated_at?: string | null;
+          website?: string | null;
         };
         Update: {
           bio?: string | null;
@@ -812,6 +817,7 @@ export type Database = {
           role?: string | null;
           soundcloud?: string | null;
           updated_at?: string | null;
+          website?: string | null;
         };
         Relationships: [];
       };

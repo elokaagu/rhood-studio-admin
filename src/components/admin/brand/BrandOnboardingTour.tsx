@@ -94,6 +94,7 @@ export function BrandOnboardingTour({ userId, active, onFinished }: Props) {
 
   useEffect(() => {
     if (!active) return;
+    setStepIndex(0);
     setOpen(true);
     if (isMobile) setOpenMobile(true);
   }, [active, isMobile, setOpen, setOpenMobile]);

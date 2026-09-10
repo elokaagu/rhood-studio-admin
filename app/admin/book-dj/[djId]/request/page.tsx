@@ -385,10 +385,13 @@ export default function BookingRequestPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="payment_amount" className="text-foreground flex items-center">
-                      <Coins className="h-4 w-4 mr-2" />
+                <div className="grid grid-cols-2 gap-4 items-end">
+                  <div className="min-w-0 space-y-2">
+                    <Label
+                      htmlFor="payment_amount"
+                      className="text-foreground flex h-5 items-center"
+                    >
+                      <Coins className="h-4 w-4 mr-2 shrink-0" />
                       Payment Amount
                     </Label>
                     <Input
@@ -401,12 +404,15 @@ export default function BookingRequestPage() {
                           payment_amount: e.target.value,
                         })
                       }
-                      className="bg-secondary border-border text-foreground"
+                      className="h-10 bg-secondary border-border text-foreground"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="payment_currency" className="text-foreground">
+                  <div className="min-w-0 space-y-2">
+                    <Label
+                      htmlFor="payment_currency"
+                      className="text-foreground flex h-5 items-center"
+                    >
                       Currency
                     </Label>
                     <Select
@@ -415,7 +421,10 @@ export default function BookingRequestPage() {
                         setFormData({ ...formData, payment_currency: value })
                       }
                     >
-                      <SelectTrigger className="bg-secondary border-border text-foreground">
+                      <SelectTrigger
+                        id="payment_currency"
+                        className="h-10 bg-secondary border-border text-foreground"
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border-border">

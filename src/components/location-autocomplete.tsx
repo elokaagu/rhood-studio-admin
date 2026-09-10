@@ -155,12 +155,22 @@ export function LocationAutocomplete({
 
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
+          const message = String(data?.message || "");
+          if (message.toLowerCase().includes("not configured")) {
+            closeDropdown();
+            return;
+          }
           throw new Error(
             data?.message || `Failed to fetch location suggestions (${response.status})`
           );
         }
 
         const data = await response.json();
+        if (data?.autocomplete === false) {
+          closeDropdown();
+          return;
+        }
+
         const fetchedPredictions =
           (data?.predictions as AutocompletePrediction[]) ?? [];
 

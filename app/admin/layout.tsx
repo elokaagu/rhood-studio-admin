@@ -568,14 +568,10 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
           />
         )}
 
-      {role === "brand" && profile?.studioOnboardingReady && (
+      {role === "brand" && profile?.id && (
         <BrandOnboardingTour
           userId={profile.id}
-          active={
-            tourActive &&
-            !!profile.studio_agreement_signed_at &&
-            !accountSettingsOpen
-          }
+          active={tourActive && !accountSettingsOpen}
           onFinished={() => setTourActive(false)}
         />
       )}

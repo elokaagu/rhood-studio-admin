@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 
-const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
+const GOOGLE_PLACES_API_KEY =
+  process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
 
 export async function GET(request: Request) {
   try {
     if (!GOOGLE_PLACES_API_KEY) {
-      return NextResponse.json(
-        { message: "Google Places API key is not configured." },
-        { status: 500 }
-      );
+      return NextResponse.json({ autocomplete: false }, { status: 200 });
     }
 
     const { searchParams } = new URL(request.url);

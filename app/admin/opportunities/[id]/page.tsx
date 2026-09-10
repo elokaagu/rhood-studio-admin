@@ -5,12 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { LinkText } from "@/components/ui/link-text";
 import { BriefRenderer } from "@/components/ui/brief-renderer";
 import Image from "next/image";
 import { GoogleMapsLink } from "@/components/google-maps-link";
+import { parseGenres } from "@/lib/opportunities/genres";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,7 +46,30 @@ import {
   Archive,
   RotateCcw,
   Loader2,
+  Banknote,
+  ImageOff,
+  type LucideIcon,
 } from "lucide-react";
+
+function MetaCell({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-secondary/50 px-3 py-3 min-w-0">
+      <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        {label}
+      </p>
+      <div className="mt-1.5 text-sm text-foreground break-words">{children}</div>
+    </div>
+  );
+}
 
 export default function OpportunityDetailsPage() {
   const params = useParams();
@@ -188,11 +213,21 @@ export default function OpportunityDetailsPage() {
             Archived
           </Badge>
         );
+      case "pending":
+        return (
+          <Badge
+            variant="outline"
+            className="border-amber-400/70 text-amber-400 bg-amber-400/10 text-xs"
+          >
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
       case "active":
         return (
           <Badge
             variant="outline"
-            className="border-gray-400 text-gray-400 bg-transparent text-xs"
+            className="border-brand-green text-brand-green bg-brand-green/10 text-xs"
           >
             <Clock className="h-3 w-3 mr-1" />
             Active
@@ -286,28 +321,36 @@ export default function OpportunityDetailsPage() {
   const badgeStatus = opportunity.is_archived
     ? "archived"
     : opportunity.displayStatus;
+  const genres = parseGenres(opportunity.genre);
+  const feeLabel =
+    !opportunity.pay || opportunity.pay === "N/A" ? "TBC" : opportunity.pay;
 
   return (
     <div className="space-y-6 animate-blur-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3 min-w-0">
           <Button
             variant="outline"
+            size="sm"
+            className="shrink-0 mt-0.5"
             onClick={() => router.push("/admin/opportunities")}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <div>
-            <h1 className={textStyles.headline.section}>OPPORTUNITY DETAILS</h1>
-            <p className={textStyles.body.regular}>
-              View and manage opportunity information
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Opportunity
             </p>
+            <h1 className={`${textStyles.headline.section} text-left text-lg sm:text-xl md:text-2xl mt-0.5`}>
+              {opportunity.title}
+            </h1>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2 sm:pt-1">
           <Button
             variant="outline"
+            size="sm"
             onClick={() =>
               router.push(`/admin/opportunities/${opportunityId}/edit`)
             }
@@ -317,7 +360,8 @@ export default function OpportunityDetailsPage() {
           </Button>
           <Button
             variant="outline"
-            className="text-red-600 hover:text-red-700"
+            size="sm"
+            className="text-red-500 hover:text-red-400"
             onClick={handleDelete}
           >
             <Trash2 className="h-4 w-4 mr-2" />
@@ -339,99 +383,113 @@ export default function OpportunityDetailsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className={textStyles.subheading.large}>
-                    {opportunity.title}
-                  </CardTitle>
-                  <div className="flex items-center space-x-2 mt-2">
-                    {getStatusBadge(badgeStatus)}
-                    {opportunity.genre && (
-                      <Badge
-                        variant="outline"
-                        className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
-                      >
-                        {opportunity.genre}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {opportunity.image_url && (
-                <div className="relative w-full max-w-sm aspect-square rounded-lg overflow-hidden mb-4 bg-muted">
+          <Card className="bg-card border-border overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,280px)_1fr]">
+              <div className="relative aspect-square bg-muted">
+                {opportunity.image_url ? (
                   <Image
                     src={opportunity.image_url}
                     alt={opportunity.title}
                     fill
-                    className="object-cover transition-all duration-300 ease-in-out"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 280px"
                     placeholder="blur"
                     blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWESEyMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
-                    loading="lazy"
-                    priority={false}
                     unoptimized={true}
                   />
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  {opportunity.date}
-                </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4 mr-2" />
-                  {opportunity.timeRange || "TBC"}
-                </div>
-                <div className="flex items-center text-sm text-muted-foreground min-w-0">
-                  <MapPin className="h-4 w-4 mr-2 shrink-0" />
-                  {opportunity.location ? (
-                    <GoogleMapsLink
-                      address={opportunity.location}
-                      className="text-sm text-muted-foreground hover:text-brand-green"
-                    />
-                  ) : (
-                    "—"
-                  )}
-                </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  {opportunity.pay}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className={textStyles.subheading.small}>Brief</h3>
-                {opportunity.description?.includes("**") ? (
-                  <BriefRenderer text={opportunity.description} />
                 ) : (
-                  <p className={textStyles.body.regular}>
-                    <LinkText text={opportunity.description} />
-                  </p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                    <ImageOff className="h-8 w-8 mb-2" />
+                    <p className="text-xs">No artwork</p>
+                  </div>
                 )}
               </div>
 
+              <div className="p-5 sm:p-6 flex flex-col justify-between gap-5">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {getStatusBadge(badgeStatus)}
+                    {genres.map((genre) => (
+                      <Badge
+                        key={genre}
+                        variant="outline"
+                        className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase"
+                      >
+                        {genre}
+                      </Badge>
+                    ))}
+                  </div>
+                  <h2 className={`${textStyles.subheading.large} mt-3 text-left`}>
+                    {opportunity.title}
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <MetaCell icon={Calendar} label="Date">
+                    {opportunity.date}
+                  </MetaCell>
+                  <MetaCell icon={Clock} label="Time">
+                    {opportunity.timeRange || "TBC"}
+                  </MetaCell>
+                  <MetaCell icon={MapPin} label="Location">
+                    {opportunity.location ? (
+                      <GoogleMapsLink
+                        address={opportunity.location}
+                        className="text-sm text-foreground hover:text-brand-green"
+                      />
+                    ) : (
+                      "—"
+                    )}
+                  </MetaCell>
+                  <MetaCell icon={Banknote} label="Fee">
+                    <span
+                      className={
+                        feeLabel === "TBC" ? "text-muted-foreground" : undefined
+                      }
+                    >
+                      {feeLabel}
+                    </span>
+                  </MetaCell>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <CardContent className="p-5 sm:p-6 space-y-6">
+              <section className="space-y-2">
+                <h3 className={`${textStyles.subheading.small} text-muted-foreground uppercase tracking-wide text-xs`}>
+                  Brief
+                </h3>
+                {opportunity.description?.includes("**") ? (
+                  <BriefRenderer text={opportunity.description} />
+                ) : (
+                  <p className={`${textStyles.body.regular} leading-relaxed`}>
+                    <LinkText text={opportunity.description} />
+                  </p>
+                )}
+              </section>
+
               {opportunity.requirements && (
-                <div className="space-y-2">
-                  <h3 className={textStyles.subheading.small}>Requirements</h3>
+                <section className="space-y-2">
+                  <h3 className={`${textStyles.subheading.small} text-muted-foreground uppercase tracking-wide text-xs`}>
+                    Requirements
+                  </h3>
                   <p className={textStyles.body.regular}>
                     <LinkText text={opportunity.requirements} />
                   </p>
-                </div>
+                </section>
               )}
 
               {opportunity.additionalInfo ? (
-                <div className="space-y-2">
-                  <h3 className={textStyles.subheading.small}>
+                <section className="space-y-2">
+                  <h3 className={`${textStyles.subheading.small} text-muted-foreground uppercase tracking-wide text-xs`}>
                     Additional information
                   </h3>
                   <p className={textStyles.body.regular}>
                     {opportunity.additionalInfo}
                   </p>
-                </div>
+                </section>
               ) : null}
             </CardContent>
           </Card>
@@ -439,36 +497,33 @@ export default function OpportunityDetailsPage() {
 
         <div className="space-y-6">
           <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className={textStyles.subheading.small}>
-                Statistics
+            <CardHeader className="pb-3">
+              <CardTitle className={`${textStyles.subheading.small} uppercase tracking-wide text-xs text-muted-foreground`}>
+                Applicants
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className={textStyles.body.regular}>
-                    Total applicants
-                  </span>
-                </div>
-                <span className={textStyles.subheading.small}>
+            <CardContent>
+              <div className="flex items-end justify-between gap-3">
+                <p className={`${textStyles.headline.section} text-left leading-none`}>
                   {opportunity.applicants}
-                </span>
+                </p>
+                <Users className="h-5 w-5 text-brand-green mb-1" />
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {opportunity.applicants === 1 ? "application" : "applications"} received
+              </p>
             </CardContent>
           </Card>
 
           <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className={textStyles.subheading.small}>
-                Quick actions
+            <CardHeader className="pb-3">
+              <CardTitle className={`${textStyles.subheading.small} uppercase tracking-wide text-xs text-muted-foreground`}>
+                Actions
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <Button
-                variant="outline"
-                className="w-full justify-start"
+                className="w-full justify-start bg-brand-green text-brand-black hover:bg-brand-green/90"
                 onClick={() =>
                   router.push(
                     `/admin/applications?opportunity=${opportunity.id}`

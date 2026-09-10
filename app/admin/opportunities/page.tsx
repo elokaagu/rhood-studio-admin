@@ -18,6 +18,8 @@ import {
 import {
   deleteOpportunityById,
   updateOpportunityArchiveState,
+  updateOpportunityListingStatus,
+  type OpportunityWorkflowStatus,
 } from "@/lib/admin/opportunities/opportunity-detail";
 import {
   DropdownMenu,
@@ -54,6 +56,9 @@ import {
   RotateCcw,
   Rocket,
   Coins,
+  Edit,
+  Check,
+  ChevronDown,
 } from "lucide-react";
 
 type ListSortKey =
@@ -79,7 +84,9 @@ export default function OpportunitiesPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [boostingOpportunityId, setBoostingOpportunityId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft" | "completed" | "closed" | "archived">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "active" | "draft" | "completed" | "closed" | "archived"
+  >("all");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "pay_high" | "pay_low" | "applicants_high" | "applicants_low">("newest");
 
   const loadOpportunitiesList = useCallback(async (showLoading = true) => {
@@ -219,7 +226,59 @@ export default function OpportunitiesPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const changeStatus = async (
+    opportunity: OpportunityListItem,
+    status: OpportunityWorkflowStatus
+  ) => {
+    const alreadyArchived = status === "archived" && opportunity.is_archived;
+    const alreadySet = status !== "archived" && opportunity.status === status;
+    if (alreadyArchived || alreadySet) return;
+
+    setActionLoadingId(opportunity.id);
+    const result = await updateOpportunityListingStatus(opportunity.id, status);
+    if (!result.ok) {
+      toast({
+        title: "Update failed",
+        description: result.message,
+        variant: "destructive",
+      });
+      setActionLoadingId(null);
+      return;
+    }
+
+    setOpportunities((prev) =>
+      prev.map((opp) => {
+        if (opp.id !== opportunity.id) return opp;
+        if (status === "archived") {
+          return {
+            ...opp,
+            is_archived: true,
+            is_active: false,
+            status: "archived",
+          };
+        }
+        return {
+          ...opp,
+          is_archived: false,
+          is_active: status === "active",
+          listing_status: status,
+          status,
+        };
+      })
+    );
+
+    toast({
+      title: "Status updated",
+      description: `"${opportunity.title}" is now ${status}.`,
+    });
+    setActionLoadingId(null);
+  };
+
+  const getStatusBadge = (status: string, interactive = false) => {
+    const chevron = interactive ? (
+      <ChevronDown className="h-3 w-3 ml-1 opacity-70" />
+    ) : null;
+
     switch (status) {
       case "archived":
         return (
@@ -229,16 +288,39 @@ export default function OpportunitiesPage() {
           >
             <Archive className="h-3 w-3 mr-1" />
             Archived
+            {chevron}
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge
+            variant="outline"
+            className="border-amber-400/70 text-amber-400 bg-amber-400/10 text-xs"
+          >
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+            {chevron}
+          </Badge>
+        );
+      case "draft":
+        return (
+          <Badge
+            variant="outline"
+            className="border-muted-foreground/40 text-muted-foreground bg-transparent text-xs"
+          >
+            Draft
+            {chevron}
           </Badge>
         );
       case "active":
         return (
           <Badge
             variant="outline"
-            className="border-gray-400 text-gray-400 bg-transparent text-xs"
+            className="border-brand-green text-brand-green bg-brand-green/10 text-xs"
           >
             <Clock className="h-3 w-3 mr-1" />
             Active
+            {chevron}
           </Badge>
         );
       case "completed":
@@ -249,6 +331,7 @@ export default function OpportunitiesPage() {
           >
             <CheckCircle className="h-3 w-3 mr-1" />
             Completed
+            {chevron}
           </Badge>
         );
       case "closed":
@@ -259,19 +342,110 @@ export default function OpportunitiesPage() {
           >
             <Clock className="h-3 w-3 mr-1" />
             Closed
+            {chevron}
           </Badge>
         );
       default:
         return (
           <Badge
             variant="outline"
-            className="border-gray-400 text-gray-400 bg-transparent text-xs"
+            className="border-gray-400 text-gray-400 bg-transparent text-xs capitalize"
           >
             {status}
+            {chevron}
           </Badge>
         );
     }
   };
+
+  const renderStatusControl = (opportunity: OpportunityListItem) => {
+    const current = opportunity.is_archived ? "archived" : opportunity.status;
+    const options: { value: OpportunityWorkflowStatus; label: string }[] = [
+      { value: "pending", label: "Pending" },
+      { value: "active", label: "Active" },
+      { value: "closed", label: "Closed" },
+      { value: "archived", label: "Archive" },
+    ];
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            disabled={actionLoadingId === opportunity.id}
+            className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/50"
+            aria-label="Change opportunity status"
+          >
+            {getStatusBadge(current, true)}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="bg-card border-border">
+          {options.map((option) => (
+            <DropdownMenuItem
+              key={option.value}
+              disabled={actionLoadingId === opportunity.id}
+              onClick={() => changeStatus(opportunity, option.value)}
+            >
+              {current === option.value ? (
+                <Check className="h-4 w-4 mr-2 text-brand-green" />
+              ) : (
+                <span className="w-4 mr-2" />
+              )}
+              {option.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
+  const renderOverflowMenu = (opportunity: OpportunityListItem) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          disabled={actionLoadingId === opportunity.id}
+        >
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="bg-card border-border">
+        <DropdownMenuItem asChild>
+          <Link href={`/admin/opportunities/${opportunity.id}/edit`}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() =>
+            toggleArchive(
+              opportunity.id,
+              opportunity.title,
+              !opportunity.is_archived
+            )
+          }
+          disabled={actionLoadingId === opportunity.id}
+        >
+          {opportunity.is_archived ? (
+            <RotateCcw className="h-4 w-4 mr-2" />
+          ) : (
+            <Archive className="h-4 w-4 mr-2" />
+          )}
+          {opportunity.is_archived ? "Reopen" : "Archive"}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => handleDelete(opportunity.id, opportunity.title)}
+          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+          disabled={actionLoadingId === opportunity.id}
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   const filteredOpportunities = useMemo(() => {
     let list = opportunities.filter((opp: OpportunityListItem) =>
@@ -374,6 +548,7 @@ export default function OpportunitiesPage() {
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
@@ -583,7 +758,7 @@ export default function OpportunitiesPage() {
 
                     {/* Mobile: Action buttons below content */}
                     <div className="flex flex-wrap items-center gap-2 sm:hidden mt-3">
-                      {getStatusBadge(opportunity.status)}
+                      {renderStatusControl(opportunity)}
                       {opportunity.genre && (
                         <Badge
                           variant="outline"
@@ -635,56 +810,13 @@ export default function OpportunitiesPage() {
                           View
                         </Link>
                       </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            disabled={actionLoadingId === opportunity.id}
-                          >
-                            <MoreVertical className="h-3 w-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="bg-card border-border"
-                        >
-                          <DropdownMenuItem
-                            onClick={() =>
-                              toggleArchive(
-                                opportunity.id,
-                                opportunity.title,
-                                !opportunity.is_archived
-                              )
-                            }
-                            disabled={actionLoadingId === opportunity.id}
-                          >
-                            {opportunity.is_archived ? (
-                              <RotateCcw className="h-4 w-4 mr-2" />
-                            ) : (
-                              <Archive className="h-4 w-4 mr-2" />
-                            )}
-                            {opportunity.is_archived ? "Reopen" : "Archive"}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleDelete(opportunity.id, opportunity.title)
-                            }
-                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                            disabled={actionLoadingId === opportunity.id}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {renderOverflowMenu(opportunity)}
                     </div>
                   </div>
 
                   {/* Desktop: Action buttons on the right */}
                   <div className="hidden sm:flex items-center space-x-2">
-                    {getStatusBadge(opportunity.status)}
+                    {renderStatusControl(opportunity)}
                     {opportunity.genre && (
                       <Badge
                         variant="outline"
@@ -736,50 +868,7 @@ export default function OpportunitiesPage() {
                         View Details
                       </Link>
                     </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          disabled={actionLoadingId === opportunity.id}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="bg-card border-border"
-                      >
-                        <DropdownMenuItem
-                          onClick={() =>
-                            toggleArchive(
-                              opportunity.id,
-                              opportunity.title,
-                              !opportunity.is_archived
-                            )
-                          }
-                          disabled={actionLoadingId === opportunity.id}
-                        >
-                          {opportunity.is_archived ? (
-                            <RotateCcw className="h-4 w-4 mr-2" />
-                          ) : (
-                            <Archive className="h-4 w-4 mr-2" />
-                          )}
-                          {opportunity.is_archived ? "Reopen" : "Archive"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handleDelete(opportunity.id, opportunity.title)
-                          }
-                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                          disabled={actionLoadingId === opportunity.id}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {renderOverflowMenu(opportunity)}
                   </div>
                 </div>
               </CardContent>

@@ -45,8 +45,9 @@ function deriveStatus(row: {
   if (ls === "completed") return "completed";
   if (ls === "closed") return "closed";
   if (ls === "draft") return "draft";
+  if (ls === "pending") return "pending";
   if (ls === "active") return "active";
-  return row.is_active ? "active" : "draft";
+  return row.is_active ? "active" : "pending";
 }
 
 function normalizeId(id: unknown): string {

@@ -42,8 +42,9 @@ function displayStatusFromRow(row: {
   if (ls === "completed") return "completed";
   if (ls === "closed") return "closed";
   if (ls === "draft") return "draft";
+  if (ls === "pending") return "pending";
   if (ls === "active") return "active";
-  return row.is_active ? "active" : "draft";
+  return row.is_active ? "active" : "pending";
 }
 
 type OpportunityRow = {
@@ -186,6 +187,38 @@ export async function fetchOpportunityDetails(
   };
 
   return { ok: true, detail };
+}
+
+export type OpportunityWorkflowStatus =
+  | "pending"
+  | "active"
+  | "closed"
+  | "completed"
+  | "draft"
+  | "archived";
+
+/** Sets listing_status / archive from the list or detail UI. */
+export async function updateOpportunityListingStatus(
+  opportunityId: string,
+  status: OpportunityWorkflowStatus
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (status === "archived") {
+    return updateOpportunityArchiveState(opportunityId, true);
+  }
+
+  const { error } = await supabase
+    .from("opportunities")
+    .update({
+      listing_status: status,
+      is_active: status === "active",
+      is_archived: false,
+    })
+    .eq("id", opportunityId);
+
+  if (error) {
+    return { ok: false, message: error.message || "Failed to update status." };
+  }
+  return { ok: true };
 }
 
 /** Explicit user action — not called during read/load. */

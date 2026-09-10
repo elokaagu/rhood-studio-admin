@@ -769,6 +769,12 @@ export default function EditOpportunityPage() {
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
                   <SelectItem
+                    value="pending"
+                    className="text-foreground hover:bg-accent"
+                  >
+                    Pending
+                  </SelectItem>
+                  <SelectItem
                     value="draft"
                     className="text-foreground hover:bg-accent"
                   >

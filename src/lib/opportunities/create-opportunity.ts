@@ -17,7 +17,7 @@ export type OpportunityCreateFormInput = {
   pay: string;
   genre: string;
   requirements: string;
-  /** Form status: draft | active | closed — affects `is_active` when mode is publish */
+  /** Form status: pending | active | closed | draft */
   status: string;
   imageUrl: string;
   noEndDate?: boolean;
@@ -223,30 +223,49 @@ export async function createOpportunity(
     OPPORTUNITY_DESCRIPTION_MAX_LENGTH
   );
 
-  // Clicking "Create Opportunity" (publish) always makes the listing live.
-  // "Save Draft" always keeps it hidden. The status dropdown controls listing_status
-  // workflow state but does not block visibility when publishing.
-  const isActive = mode === "publish";
+  // "Save Draft" stays hidden as draft. Creating an opportunity defaults to
+  // pending (not live) unless the form status is explicitly Active.
+  const listingStatus = mode === "draft" ? "draft" : form.status || "pending";
+  const isActive = mode === "publish" && listingStatus === "active";
 
-  const { data: inserted, error } = await supabase
+  const insertPayload: Record<string, unknown> = {
+    title: form.title.trim(),
+    description: processedDescription,
+    location: form.location.trim(),
+    event_date: eventStart.toISOString(),
+    event_end_time: eventEnd ? eventEnd.toISOString() : null,
+    payment: paymentAmount,
+    genre: genreValue,
+    skill_level: form.requirements || null,
+    organizer_id: brandOverride ? brandOverride.id : user.id,
+    organizer_name: brandOverride ? brandOverride.name : organizerName,
+    is_active: isActive,
+    is_archived: false,
+    listing_status: listingStatus,
+    image_url: form.imageUrl || null,
+  };
+
+  let { data: inserted, error } = await supabase
     .from("opportunities")
-    .insert({
-      title: form.title.trim(),
-      description: processedDescription,
-      location: form.location.trim(),
-      event_date: eventStart.toISOString(),
-      event_end_time: eventEnd ? eventEnd.toISOString() : null,
-      payment: paymentAmount,
-      genre: genreValue,
-      skill_level: form.requirements || null,
-      organizer_id: brandOverride ? brandOverride.id : user.id,
-      organizer_name: brandOverride ? brandOverride.name : organizerName,
-      is_active: isActive,
-      is_archived: false,
-      image_url: form.imageUrl || null,
-    })
+    .insert(insertPayload)
     .select("id")
     .single();
+
+  if (
+    error &&
+    (error.message?.includes("listing_status") ||
+      (error.message?.includes("column") &&
+        error.message?.includes("does not exist")))
+  ) {
+    delete insertPayload.listing_status;
+    const retry = await supabase
+      .from("opportunities")
+      .insert(insertPayload)
+      .select("id")
+      .single();
+    inserted = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     return fail(

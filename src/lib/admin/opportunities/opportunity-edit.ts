@@ -241,13 +241,14 @@ export function opportunityRowToFormState(
 
   const listing = data.listing_status?.trim();
   const statusUi =
-    listing && ["draft", "active", "closed", "completed"].includes(listing)
+    listing &&
+    ["pending", "draft", "active", "closed", "completed"].includes(listing)
       ? listing
       : data.is_archived
         ? "draft"
         : data.is_active
           ? "active"
-          : "closed";
+          : "pending";
 
   return {
     title: data.title || "",

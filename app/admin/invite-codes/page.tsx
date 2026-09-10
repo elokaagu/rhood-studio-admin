@@ -42,7 +42,8 @@ export default function InviteCodesPage() {
   type InviteCodeItem = {
     id: string;
     code: string;
-    brand_name: string;
+    brand_name: string | null;
+    invite_type?: string | null;
     created_at: string;
     expires_at: string | null;
     is_active: boolean;
@@ -60,6 +61,7 @@ export default function InviteCodesPage() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formData, setFormData] = useState({
+    inviteType: "brand" as "brand" | "dj",
     brandName: "",
     expiresInDays: "30",
   });
@@ -84,7 +86,21 @@ export default function InviteCodesPage() {
     copyTimeoutRef.current = setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const buildInviteShareText = (code: InviteCodeItem) => `You've been invited to create a brand account on R/HOOD For Brands.
+  const isDjCode = (code: InviteCodeItem) =>
+    (code.invite_type || "brand") === "dj";
+
+  const buildInviteShareText = (code: InviteCodeItem) => {
+    if (isDjCode(code)) {
+      return `You've been invited to join R/HOOD as a DJ.
+
+Invite code: ${code.code}
+
+Download the R/HOOD app, create your account, and enter this code. You'll skip the waitlist and get in immediately.
+
+The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "the expiration date set by the admin"}.`;
+    }
+
+    return `You've been invited to create a brand account on R/HOOD For Brands.
 
 Brand: ${code.brand_name}
 Invite Code: ${code.code}
@@ -93,6 +109,7 @@ Create your account:
 ${PORTAL_BASE_URL}/login?signup=brand&code=${encodeURIComponent(code.code)}
 
 The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "the expiration date set by the admin"}.`;
+  };
 
   const fetchInviteCodes = useCallback(async () => {
     try {
@@ -138,7 +155,7 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
   }, []);
 
   const handleGenerateCode = async () => {
-    if (!formData.brandName.trim()) {
+    if (formData.inviteType === "brand" && !formData.brandName.trim()) {
       toast({
         title: "Brand Name Required",
         description: "Please enter a brand name for this invite code.",
@@ -153,10 +170,16 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
       const expiresInDays = Number.isFinite(parsedDays)
         ? Math.min(365, Math.max(1, parsedDays))
         : 30;
-      const { data, error } = await rpcUntyped("create_brand_invite_code", {
-        p_brand_name: formData.brandName.trim(),
-        p_expires_in_days: expiresInDays,
-      });
+      const { data, error } =
+        formData.inviteType === "dj"
+          ? await rpcUntyped("create_dj_invite_code", {
+              p_label: formData.brandName.trim() || null,
+              p_expires_in_days: expiresInDays,
+            })
+          : await rpcUntyped("create_brand_invite_code", {
+              p_brand_name: formData.brandName.trim(),
+              p_expires_in_days: expiresInDays,
+            });
 
       if (error) {
         throw error;
@@ -164,7 +187,10 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
 
       toast({
         title: "Invite Code Generated",
-        description: `Invite code created for ${formData.brandName}`,
+        description:
+          formData.inviteType === "dj"
+            ? "DJ invite code created. Anyone who uses it skips the waitlist."
+            : `Invite code created for ${formData.brandName}`,
       });
 
       setInviteCodes((prev: InviteCodeItem[]) => [
@@ -176,7 +202,7 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
         ...prev,
       ]);
       setIsDialogOpen(false);
-      setFormData({ brandName: "", expiresInDays: "30" });
+      setFormData({ inviteType: formData.inviteType, brandName: "", expiresInDays: "30" });
 
       // Auto-copy to clipboard
       if (data?.code) {
@@ -321,7 +347,7 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
             INVITE CODES
           </h1>
           <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
-            Generate invite codes for brand accounts
+            Generate invite codes for brands and DJs
           </p>
         </div>
         <Button
@@ -339,16 +365,16 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
         <AlertTitle className="text-sm sm:text-base">How Invite Codes Work</AlertTitle>
         <AlertDescription className="mt-2 space-y-2 text-xs sm:text-sm">
           <p>
-            <strong>1. Generate a code:</strong> Click &quot;Generate Code&quot; and enter the brand name. The code will be automatically copied to your clipboard.
+            <strong>1. Generate a code:</strong> Choose Brand or DJ. Brand codes open Studio signup. DJ codes skip the waitlist in the app.
           </p>
           <p>
-            <strong>2. Share with the brand:</strong> Send the invite code to the brand contact (via email, Slack, etc.). You can use the &quot;Share&quot; button to copy ready-to-send instructions.
+            <strong>2. Share the code:</strong> Send it to the brand or DJ. Use Share to copy ready-to-send instructions.
           </p>
           <p>
-            <strong>3. Brand creates account:</strong> They open the invite email and press &quot;Create your account&quot;, which goes to portal.rhood.io with the invite code already filled in.
+            <strong>3. They sign up:</strong> Brands open portal.rhood.io with the code filled in. DJs enter the code in the R/HOOD app.
           </p>
           <p>
-            <strong>4. Automatic setup:</strong> Once the brand signs up, their account is automatically configured with the brand role and brand name from the invite code.
+            <strong>4. Automatic access:</strong> Brands get a brand account. DJs are approved immediately and skip DJ Applications.
           </p>
         </AlertDescription>
       </Alert>
@@ -377,13 +403,20 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
                       <h3 className={`${textStyles.subheading.large} font-mono text-base sm:text-lg break-all`}>
                         {code.code}
                       </h3>
+                      <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                        {isDjCode(code) ? "DJ" : "Brand"}
+                      </Badge>
                       {getStatusBadge(code)}
                     </div>
 
                     <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
                       <p>
-                        <span className="font-semibold">Brand:</span>{" "}
-                        <span className="truncate block sm:inline">{code.brand_name}</span>
+                        <span className="font-semibold">
+                          {isDjCode(code) ? "Label:" : "Brand:"}
+                        </span>{" "}
+                        <span className="truncate block sm:inline">
+                          {code.brand_name || (isDjCode(code) ? "DJ invite" : "—")}
+                        </span>
                       </p>
                       <p>
                         <span className="font-semibold">Created:</span>{" "}
@@ -480,21 +513,54 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
           <DialogHeader>
             <DialogTitle>Generate Invite Code</DialogTitle>
             <DialogDescription>
-              Create a new invite code for a brand to sign up
+              Create a code for a brand Studio account or a DJ who should skip the waitlist.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="brandName">Brand Name *</Label>
+              <Label>Invite type</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className={
+                    formData.inviteType === "brand"
+                      ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
+                      : ""
+                  }
+                  onClick={() => setFormData({ ...formData, inviteType: "brand" })}
+                >
+                  Brand
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className={
+                    formData.inviteType === "dj"
+                      ? "bg-brand-green text-brand-black hover:bg-brand-green/90"
+                      : ""
+                  }
+                  onClick={() => setFormData({ ...formData, inviteType: "dj" })}
+                >
+                  DJ
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="brandName">
+                {formData.inviteType === "dj" ? "Label (optional)" : "Brand Name *"}
+              </Label>
               <Input
                 id="brandName"
-                placeholder="e.g., Nike"
+                placeholder={formData.inviteType === "dj" ? "e.g. Warehouse sessions" : "e.g., Nike"}
                 value={formData.brandName}
                 onChange={(e) =>
                   setFormData({ ...formData, brandName: e.target.value })
                 }
                 className="bg-secondary border-border text-foreground"
-                required
+                required={formData.inviteType === "brand"}
               />
             </div>
             <div className="space-y-2">
@@ -522,7 +588,10 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
             </Button>
             <Button
               onClick={handleGenerateCode}
-              disabled={isGenerating || !formData.brandName.trim()}
+              disabled={
+                isGenerating ||
+                (formData.inviteType === "brand" && !formData.brandName.trim())
+              }
               className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
             >
               {isGenerating ? "Generating..." : "Generate Code"}

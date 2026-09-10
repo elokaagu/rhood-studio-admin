@@ -96,7 +96,11 @@ export async function fetchBookableDjs(): Promise<BookableDJ[]> {
 
   if (profilesError) throw profilesError;
 
-  const list = (profiles || []) as RawProfile[];
+  const list = ((profiles || []) as RawProfile[]).filter((profile) => {
+    const status = profile.membership_status;
+    if (typeof status !== "string" || status.length === 0) return true;
+    return status === "approved";
+  });
   if (list.length === 0) return [];
 
   const ids = list.map((p) => p.id);

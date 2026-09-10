@@ -47,13 +47,34 @@ function applicationsTable() {
 
 export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
   const sort = getSortOrder(sortBy);
-  const { data, error } = await supabase
+  const withMembership =
+    "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, updated_at, membership_status";
+  const withoutMembership =
+    "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, updated_at";
+
+  let schemaReady = true;
+  let data: unknown = null;
+  let error: { message?: string } | null = null;
+
+  const first = await supabase
     .from("user_profiles")
-    .select(
-      "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, updated_at"
-    )
+    .select(withMembership)
     .or("role.is.null,role.neq.brand")
     .order(sort.column, { ascending: sort.ascending });
+
+  if (first.error?.message?.includes("membership_")) {
+    schemaReady = false;
+    const fallback = await supabase
+      .from("user_profiles")
+      .select(withoutMembership)
+      .or("role.is.null,role.neq.brand")
+      .order(sort.column, { ascending: sort.ascending });
+    data = fallback.data;
+    error = fallback.error;
+  } else {
+    data = first.data;
+    error = first.error;
+  }
 
   if (error) {
     return { ok: false, message: error.message || "Failed to fetch DJs." };
@@ -73,9 +94,22 @@ export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
     profile_image_url: string | null;
     created_at: string | null;
     updated_at: string | null;
+    membership_status?: string | null;
   }>;
 
-  const userIds = rows.map((r) => r.id);
+  const pendingCount = schemaReady
+    ? rows.filter((row) => row.membership_status === "pending").length
+    : 0;
+
+  const visibleRows = schemaReady
+    ? rows.filter(
+        (row) =>
+          row.membership_status === "approved" ||
+          row.membership_status == null
+      )
+    : rows;
+
+  const userIds = visibleRows.map((r) => r.id);
 
   const [ratingRes, appRes] = await Promise.all([
     userIds.length
@@ -111,13 +145,20 @@ export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
     gigsMap.set(row.user_id, (gigsMap.get(row.user_id) ?? 0) + 1);
   }
 
-  const members: DjMember[] = rows.map((row) => {
+  const members: DjMember[] = visibleRows.map((row) => {
     const displayName = toDisplayName(row);
     const ratingStats = ratingMap.get(row.id);
     const avgRating =
       ratingStats && ratingStats.count > 0
         ? Math.round((ratingStats.total / ratingStats.count) * 10) / 10
         : 0;
+
+    const membership =
+      row.membership_status === "pending" ||
+      row.membership_status === "approved" ||
+      row.membership_status === "rejected"
+        ? row.membership_status
+        : null;
 
     return {
       id: row.id,
@@ -135,10 +176,11 @@ export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
       instagram: row.instagram,
       soundcloud: row.soundcloud,
       profileImageUrl: row.profile_image_url,
+      membershipStatus: membership,
     };
   });
 
-  return { ok: true, data: members };
+  return { ok: true, data: members, pendingCount, schemaReady };
 }
 
 export async function deleteDj(id: string): Promise<{ ok: true } | { ok: false; message: string }> {

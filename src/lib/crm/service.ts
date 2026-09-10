@@ -172,6 +172,42 @@ export async function updateContact(
   return { ok: true, contact: mapRow(data) };
 }
 
+export async function setContactOnboardingByEmail(
+  email: string,
+  status: OnboardingStatus,
+  note?: string | null
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return { ok: false, message: "Email is required." };
+
+  const listed = await listContacts();
+  if (!listed.ok) return listed;
+
+  const match = listed.contacts.find(
+    (contact) => contact.email?.trim().toLowerCase() === normalized
+  );
+  if (!match) return { ok: true };
+
+  const stamp = new Date().toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const extra = note?.trim() ? `${stamp}: ${note.trim()}` : null;
+  const notes = extra
+    ? match.notes?.trim()
+      ? `${match.notes.trim()}\n${extra}`
+      : extra
+    : match.notes;
+
+  const updated = await updateContact(match.id, {
+    onboarding_status: status,
+    notes,
+  });
+  if (!updated.ok) return updated;
+  return { ok: true };
+}
+
 export async function deleteContact(
   id: string
 ): Promise<{ ok: true } | { ok: false; message: string }> {

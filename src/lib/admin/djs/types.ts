@@ -22,8 +22,9 @@ export type DjMember = {
   instagram: string | null;
   soundcloud: string | null;
   profileImageUrl: string | null;
+  membershipStatus: "pending" | "approved" | "rejected" | null;
 };
 
 export type FetchDjsResult =
-  | { ok: true; data: DjMember[] }
+  | { ok: true; data: DjMember[]; pendingCount: number; schemaReady: boolean }
   | { ok: false; message: string };

@@ -58,6 +58,7 @@ import {
   Building2,
   MessageCircle,
   ContactRound,
+  UserCheck,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -122,6 +123,12 @@ const allSidebarItems = [
     title: "DJs",
     url: "/admin/djs",
     icon: Users,
+    roles: ["admin"] as UserRole[],
+  },
+  {
+    title: "DJ Applications",
+    url: "/admin/dj-applications",
+    icon: UserCheck,
     roles: ["admin"] as UserRole[],
   },
   {

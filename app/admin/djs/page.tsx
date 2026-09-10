@@ -43,8 +43,10 @@ import {
   Loader2,
 } from "lucide-react";
 import { deleteDj, fetchDjs } from "@/lib/admin/djs/service";
+import { recordDjInvite } from "@/lib/admin/djs/record-invite";
 import type { DjMember, DjSortBy } from "@/lib/admin/djs/types";
 import { upsertContactFromInvite } from "@/lib/crm/service";
+import Link from "next/link";
 
 export default function DJsPage() {
   const { toast } = useToast();
@@ -60,6 +62,7 @@ export default function DJsPage() {
   });
   const [isSendingInvite, setIsSendingInvite] = useState(false);
   const [members, setMembers] = useState<DjMember[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -81,10 +84,12 @@ export default function DJsPage() {
         variant: "destructive",
       });
       setMembers([]);
+      setPendingCount(0);
       setIsLoading(false);
       return;
     }
     setMembers(result.data);
+    setPendingCount(result.pendingCount);
     setIsLoading(false);
   }, [sortBy, toast]);
 
@@ -181,11 +186,21 @@ export default function DJsPage() {
         note: inviteFormData.message.trim() || "Invited to join R/HOOD as a DJ.",
       });
 
+      const recorded = await recordDjInvite({
+        name,
+        email,
+        message: inviteFormData.message.trim() || null,
+      });
+
       toast({
         title: "Invite sent",
-        description: crm.ok
-          ? `Emailed ${name} at ${email} and added them to Launch CRM.`
-          : `Emailed ${name} at ${email}. Launch CRM could not be updated.`,
+        description: recorded.ok
+          ? recorded.autoApproved
+            ? `Emailed ${name}. They already had a pending application, so they were approved.`
+            : `Emailed ${name} at ${email}. They will skip the waitlist when they sign up.`
+          : `Emailed ${name} at ${email}. ${
+              crm.ok ? "Launch CRM updated." : "Launch CRM could not be updated."
+            }`,
       });
 
       setInviteFormData({ name: "", email: "", message: "" });
@@ -287,7 +302,7 @@ export default function DJsPage() {
             DJs
           </h1>
           <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
-            Manage R/HOOD DJ members
+            Manage approved R/HOOD DJ members
           </p>
         </div>
         <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
@@ -307,7 +322,7 @@ export default function DJsPage() {
                 Invite New DJ
               </DialogTitle>
               <DialogDescription className={textStyles.body.regular}>
-                Send an invitation to join R/HOOD For DJs. They will also appear in Launch CRM as Contacted.
+                Send an invitation to join R/HOOD For DJs. Invited DJs skip the application queue and are approved when they sign up.
               </DialogDescription>
             </DialogHeader>
 
@@ -400,6 +415,15 @@ export default function DJsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {pendingCount > 0 && (
+        <Link
+          href="/admin/dj-applications"
+          className="block rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200 hover:bg-yellow-500/15"
+        >
+          {pendingCount} DJ application{pendingCount === 1 ? "" : "s"} waiting for review
+        </Link>
+      )}
 
       {/* Search and Filter Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:space-x-4">

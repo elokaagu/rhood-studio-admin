@@ -78,7 +78,7 @@ export async function POST(request: Request) {
               <tr>
                 <td style="padding-top:16px;font-size:16px;line-height:1.6;color:#dddddd;">
                   ${safeName}, you've been invited to create a DJ account on R/HOOD.<br/><br/>
-                  Open this email on your mobile phone, then download the R/HOOD app from the App Store or Google Play.
+                  Open this email on your mobile phone, then download the R/HOOD app from the App Store or Google Play. Because you were invited, you skip the waitlist and are approved as soon as you create your account with this email.
                 </td>
               </tr>
               ${safeMessage}
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
 
     const text = [
       `You're invited to join R/HOOD as a DJ (${name}).`,
-      "Open this email on your mobile phone, then download the R/HOOD app from the App Store or Google Play.",
+      "Open this email on your mobile phone, then download the R/HOOD app from the App Store or Google Play. Because you were invited, you skip the waitlist when you sign up with this email.",
       personalMessage ? `\n${personalMessage}\n` : "",
       emailAppStorePlainText(),
       "R/HOOD for DJs is a mobile app. Open this invite on your phone, install the app, create your account with this email, and start applying to opportunities.",

@@ -79,20 +79,61 @@ export default function AdminLoginPage() {
             return;
           }
 
-          // Validate invite code
-          const { data: inviteCodeData, error: inviteError } = await supabase
+          // Validate invite code (brand codes only; DJ codes are redeemed in the app)
+          let inviteCodeData: {
+            id: string;
+            brand_name: string | null;
+            expires_at: string | null;
+            invite_type?: string | null;
+          } | null = null;
+
+          const inviteResult = await supabase
             .from("invite_codes")
-            .select("id, brand_name, expires_at")
+            .select("id, brand_name, expires_at, invite_type")
             .eq("code", formData.inviteCode.trim().toUpperCase())
             .eq("is_active", true)
             .is("used_by", null)
             .single();
 
-          if (inviteError || !inviteCodeData) {
+          if (inviteResult.error?.message?.includes("invite_type")) {
+            const fallbackInvite = await supabase
+              .from("invite_codes")
+              .select("id, brand_name, expires_at")
+              .eq("code", formData.inviteCode.trim().toUpperCase())
+              .eq("is_active", true)
+              .is("used_by", null)
+              .single();
+            inviteCodeData = fallbackInvite.data;
+            if (fallbackInvite.error || !inviteCodeData) {
+              toast({
+                title: "Invalid Invite Code",
+                description:
+                  "The invite code is invalid, expired, or has already been used.",
+                variant: "destructive",
+              });
+              setLoading(false);
+              return;
+            }
+          } else if (inviteResult.error || !inviteResult.data) {
             toast({
               title: "Invalid Invite Code",
               description:
                 "The invite code is invalid, expired, or has already been used.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          } else {
+            inviteCodeData = inviteResult.data;
+          }
+
+          if (!inviteCodeData || inviteCodeData.invite_type === "dj") {
+            toast({
+              title: inviteCodeData?.invite_type === "dj" ? "DJ invite code" : "Invalid Invite Code",
+              description:
+                inviteCodeData?.invite_type === "dj"
+                  ? "This code is for the R/HOOD DJ app, not brand Studio signup."
+                  : "The invite code is invalid, expired, or has already been used.",
               variant: "destructive",
             });
             setLoading(false);

@@ -776,7 +776,12 @@ export type Database = {
           genres: string[] | null;
           id: string;
           instagram: string | null;
+          invite_code_used: string | null;
           last_name: string;
+          membership_reviewed_at: string | null;
+          membership_reviewed_by: string | null;
+          membership_source: string | null;
+          membership_status: string | null;
           profile_image_url: string | null;
           role: string | null;
           soundcloud: string | null;
@@ -797,7 +802,12 @@ export type Database = {
           genres?: string[] | null;
           id?: string;
           instagram?: string | null;
+          invite_code_used?: string | null;
           last_name: string;
+          membership_reviewed_at?: string | null;
+          membership_reviewed_by?: string | null;
+          membership_source?: string | null;
+          membership_status?: string | null;
           profile_image_url?: string | null;
           role?: string | null;
           soundcloud?: string | null;
@@ -818,7 +828,12 @@ export type Database = {
           genres?: string[] | null;
           id?: string;
           instagram?: string | null;
+          invite_code_used?: string | null;
           last_name?: string;
+          membership_reviewed_at?: string | null;
+          membership_reviewed_by?: string | null;
+          membership_source?: string | null;
+          membership_status?: string | null;
           profile_image_url?: string | null;
           role?: string | null;
           soundcloud?: string | null;
@@ -827,6 +842,39 @@ export type Database = {
           studio_tour_completed_at?: string | null;
           updated_at?: string | null;
           website?: string | null;
+        };
+        Relationships: [];
+      };
+      dj_invites: {
+        Row: {
+          id: string;
+          email: string;
+          name: string | null;
+          message: string | null;
+          invited_by: string | null;
+          created_at: string;
+          used_at: string | null;
+          used_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          name?: string | null;
+          message?: string | null;
+          invited_by?: string | null;
+          created_at?: string;
+          used_at?: string | null;
+          used_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          name?: string | null;
+          message?: string | null;
+          invited_by?: string | null;
+          created_at?: string;
+          used_at?: string | null;
+          used_by?: string | null;
         };
         Relationships: [];
       };
@@ -987,7 +1035,8 @@ export type Database = {
         Row: {
           id: string;
           code: string;
-          brand_name: string;
+          brand_name: string | null;
+          invite_type: string;
           created_by: string | null;
           used_by: string | null;
           used_at: string | null;
@@ -999,7 +1048,8 @@ export type Database = {
         Insert: {
           id?: string;
           code: string;
-          brand_name: string;
+          brand_name?: string | null;
+          invite_type?: string;
           created_by?: string | null;
           used_by?: string | null;
           used_at?: string | null;
@@ -1011,7 +1061,8 @@ export type Database = {
         Update: {
           id?: string;
           code?: string;
-          brand_name?: string;
+          brand_name?: string | null;
+          invite_type?: string;
           created_by?: string | null;
           used_by?: string | null;
           used_at?: string | null;
@@ -1166,6 +1217,18 @@ export type Database = {
       };
     };
     Functions: {
+      admin_set_dj_membership: {
+        Args: { p_user_id: string; p_status: string; p_source?: string | null };
+        Returns: Database["public"]["Tables"]["user_profiles"]["Row"];
+      };
+      create_dj_invite_code: {
+        Args: { p_label?: string | null; p_expires_in_days?: number };
+        Returns: Database["public"]["Tables"]["invite_codes"]["Row"];
+      };
+      redeem_dj_invite_code: {
+        Args: { p_code: string };
+        Returns: Json;
+      };
       get_ai_matching_stats: {
         Args: { p_user_id: string };
         Returns: {

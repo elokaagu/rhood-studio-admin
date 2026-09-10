@@ -16,11 +16,13 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { textStyles } from "@/lib/typography";
-import { UserPlus, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2, UserPlus, X } from "lucide-react";
 
 export function BrandInviteSection() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [inviteFormData, setInviteFormData] = useState({
     name: "",
     email: "",
@@ -29,12 +31,67 @@ export function BrandInviteSection() {
 
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Invite Sent",
-      description: `Invite sent to ${inviteFormData.name} (${inviteFormData.email})!`,
-    });
-    setInviteFormData({ name: "", email: "", message: "" });
-    setOpen(false);
+    const brandName = inviteFormData.name.trim();
+    const email = inviteFormData.email.trim();
+    if (!brandName || !email) return;
+
+    setIsSending(true);
+    try {
+      const { data, error } = await (
+        supabase as unknown as {
+          rpc: (fn: string, args?: Record<string, unknown>) => Promise<{
+            data: { code?: string; expires_at?: string | null } | null;
+            error: { message?: string } | null;
+          }>;
+        }
+      ).rpc("create_brand_invite_code", {
+        p_brand_name: brandName,
+        p_expires_in_days: 30,
+      });
+
+      if (error || !data?.code) {
+        throw new Error(error?.message || "Failed to create an invite code.");
+      }
+
+      const response = await fetch("/api/notifications/brand-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          brandName,
+          inviteCode: data.code,
+          expiresAt: data.expires_at ?? null,
+          message: inviteFormData.message.trim() || null,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          payload.message ||
+            payload.error ||
+            "Invite code was created, but the email could not be sent."
+        );
+      }
+
+      toast({
+        title: "Invite sent",
+        description: `Emailed ${brandName} at ${email} with code ${data.code}.`,
+      });
+      setInviteFormData({ name: "", email: "", message: "" });
+      setOpen(false);
+    } catch (error) {
+      toast({
+        title: "Invite failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Could not send the brand invite.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -117,6 +174,7 @@ export function BrandInviteSection() {
                 setInviteFormData({ name: "", email: "", message: "" });
                 setOpen(false);
               }}
+              disabled={isSending}
             >
               <X className="h-4 w-4 mr-2" />
               Cancel
@@ -124,10 +182,14 @@ export function BrandInviteSection() {
             <Button
               type="submit"
               className="bg-brand-green text-brand-black hover:bg-brand-green/90"
-              disabled={!inviteFormData.name || !inviteFormData.email}
+              disabled={!inviteFormData.name || !inviteFormData.email || isSending}
             >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Send Invite
+              {isSending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4 mr-2" />
+              )}
+              {isSending ? "Sending..." : "Send Invite"}
             </Button>
           </DialogFooter>
         </form>

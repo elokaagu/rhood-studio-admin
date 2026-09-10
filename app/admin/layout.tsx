@@ -54,7 +54,6 @@ import {
   BarChart3,
   Key,
   Calendar,
-  Coins,
   Trophy,
   Building2,
   MessageCircle,
@@ -145,7 +144,7 @@ const allSidebarItems = [
     roles: ["admin"] as UserRole[],
   },
   {
-    title: "Beta CRM",
+    title: "Launch CRM",
     url: "/admin/crm",
     icon: ContactRound,
     roles: ["admin"] as UserRole[],
@@ -271,8 +270,6 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const {
     displayName,
-    credits,
-    role,
     profile,
     refresh,
     status: portalStatus,
@@ -411,15 +408,6 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
               >
                 {displayName}
               </Badge>
-              {role && role !== "brand" && (
-                <Badge
-                  variant="outline"
-                  className="border-brand-green text-brand-green bg-transparent text-xs sm:text-sm px-2 sm:px-3 hidden sm:inline-flex items-center gap-1"
-                >
-                  <Coins className="h-3 w-3 sm:h-4 sm:w-4" />
-                  {credits}
-                </Badge>
-              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">

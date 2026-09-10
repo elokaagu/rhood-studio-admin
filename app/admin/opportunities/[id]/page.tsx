@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LinkText } from "@/components/ui/link-text";
 import { BriefRenderer } from "@/components/ui/brief-renderer";
 import Image from "next/image";
+import { GoogleMapsLink } from "@/components/google-maps-link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -361,7 +362,7 @@ export default function OpportunityDetailsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {opportunity.image_url && (
-                <div className="relative w-full h-64 rounded-lg overflow-hidden mb-4 bg-muted">
+                <div className="relative w-full max-w-sm aspect-square rounded-lg overflow-hidden mb-4 bg-muted">
                   <Image
                     src={opportunity.image_url}
                     alt={opportunity.title}
@@ -386,9 +387,16 @@ export default function OpportunityDetailsPage() {
                   <Clock className="h-4 w-4 mr-2" />
                   {opportunity.timeRange || "TBC"}
                 </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  {opportunity.location}
+                <div className="flex items-center text-sm text-muted-foreground min-w-0">
+                  <MapPin className="h-4 w-4 mr-2 shrink-0" />
+                  {opportunity.location ? (
+                    <GoogleMapsLink
+                      address={opportunity.location}
+                      className="text-sm text-muted-foreground hover:text-brand-green"
+                    />
+                  ) : (
+                    "—"
+                  )}
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
                   {opportunity.pay}

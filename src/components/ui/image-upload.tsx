@@ -19,6 +19,7 @@ interface ImageUploadProps {
   className?: string;
   bucketName?: string;
   folder?: string;
+  aspect?: "square" | "wide";
 }
 
 export function ImageUpload({
@@ -31,6 +32,7 @@ export function ImageUpload({
   className = "",
   bucketName = "opportunities",
   folder = "images",
+  aspect = "wide",
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -206,7 +208,7 @@ export function ImageUpload({
           dragActive
             ? "border-primary bg-primary/5"
             : "border-border hover:border-primary/50"
-        }`}
+        } ${aspect === "square" ? "max-w-sm" : ""}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -215,7 +217,11 @@ export function ImageUpload({
         <CardContent className="p-6">
           {preview ? (
             <div className="relative">
-              <div className="relative w-full h-48 rounded-lg overflow-hidden">
+              <div
+                className={`relative w-full rounded-lg overflow-hidden ${
+                  aspect === "square" ? "aspect-square" : "h-48"
+                }`}
+              >
                 <Image
                   src={preview}
                   alt="Upload preview"
@@ -251,7 +257,7 @@ export function ImageUpload({
               </Button>
             </div>
           ) : (
-            <div className="text-center">
+            <div className={`text-center ${aspect === "square" ? "aspect-square flex items-center justify-center" : ""}`}>
               <div className="flex flex-col items-center space-y-4">
                 {isUploading ? (
                   <>

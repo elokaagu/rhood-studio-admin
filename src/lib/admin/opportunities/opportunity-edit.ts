@@ -20,6 +20,7 @@ export type OpportunityFormState = {
   status: string;
   imageUrl: string;
   archived: boolean;
+  noEndDate: boolean;
 };
 
 export type OpportunitySaveMode = "publish" | "draft";
@@ -27,27 +28,37 @@ export type OpportunitySaveMode = "publish" | "draft";
 export function validateOpportunityForm(
   form: OpportunityFormState
 ):
-  | { ok: true; eventStart: Date; eventEnd: Date }
+  | { ok: true; eventStart: Date; eventEnd: Date | null }
   | { ok: false; message: string } {
   if (!form.title.trim()) {
     return { ok: false, message: "Please enter a title." };
   }
 
-  if (!form.date || !form.time || !form.endTime) {
+  if (!form.date || !form.time) {
+    return {
+      ok: false,
+      message: "Please provide a start date and start time.",
+    };
+  }
+
+  const noEndDate = form.dateType === "range" && form.noEndDate;
+
+  if (!noEndDate && !form.endTime) {
     return {
       ok: false,
       message: "Please provide a date, start time, and finish time.",
     };
   }
 
-  if (form.dateType === "range" && !form.endDate) {
+  if (form.dateType === "range" && !noEndDate && !form.endDate) {
     return {
       ok: false,
-      message: "Please provide an end date for the campaign range.",
+      message:
+        "Please provide an end date for the campaign range, or mark it as ongoing.",
     };
   }
 
-  if (form.dateType === "range" && form.endDate < form.date) {
+  if (form.dateType === "range" && !noEndDate && form.endDate < form.date) {
     return {
       ok: false,
       message: "End date must be on or after the start date.",
@@ -55,15 +66,26 @@ export function validateOpportunityForm(
   }
 
   const eventStart = new Date(`${form.date}T${form.time}`);
-  let eventEnd: Date;
-
-  if (form.dateType === "range") {
-    eventEnd = new Date(`${form.endDate}T${form.endTime}`);
-  } else {
-    eventEnd = new Date(`${form.date}T${form.endTime}`);
+  if (isNaN(eventStart.getTime())) {
+    return { ok: false, message: "Please enter a valid start date and time." };
   }
 
-  if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+  if (noEndDate) {
+    if (!form.location.trim()) {
+      return {
+        ok: false,
+        message: "Please choose a location for this opportunity.",
+      };
+    }
+    return { ok: true, eventStart, eventEnd: null };
+  }
+
+  const eventEnd =
+    form.dateType === "range"
+      ? new Date(`${form.endDate}T${form.endTime}`)
+      : new Date(`${form.date}T${form.endTime}`);
+
+  if (isNaN(eventEnd.getTime())) {
     return {
       ok: false,
       message: "Please enter a valid start and finish time.",
@@ -103,7 +125,7 @@ function parsePaymentAmount(pay: string): number | null {
  */
 export function buildOpportunityUpdatePayload(
   form: OpportunityFormState,
-  validated: { eventStart: Date; eventEnd: Date },
+  validated: { eventStart: Date; eventEnd: Date | null },
   mode: OpportunitySaveMode,
   processedDescription: string
 ) {
@@ -121,7 +143,9 @@ export function buildOpportunityUpdatePayload(
     description: processedDescription,
     location: form.location.trim(),
     event_date: validated.eventStart.toISOString(),
-    event_end_time: validated.eventEnd.toISOString(),
+    event_end_time: validated.eventEnd
+      ? validated.eventEnd.toISOString()
+      : null,
     payment: paymentAmount,
     genre: form.genre,
     skill_level: form.requirements.trim() || null,
@@ -185,12 +209,14 @@ export function opportunityRowToFormState(
     : "";
   const endDateStr = eventEnd ? eventEnd.toISOString().split("T")[0] : "";
 
+  const noEndDate = !!eventDate && !eventEnd;
   const isRange =
-    !!eventDate &&
-    !!eventEnd &&
-    dateStr !== endDateStr &&
-    !isNaN(eventDate.getTime()) &&
-    !isNaN(eventEnd.getTime());
+    noEndDate ||
+    (!!eventDate &&
+      !!eventEnd &&
+      dateStr !== endDateStr &&
+      !isNaN(eventDate.getTime()) &&
+      !isNaN(eventEnd.getTime()));
 
   const listing = data.listing_status?.trim();
   const statusUi =
@@ -219,5 +245,6 @@ export function opportunityRowToFormState(
     status: statusUi,
     imageUrl: data.image_url || "",
     archived: data.is_archived ?? false,
+    noEndDate,
   };
 }

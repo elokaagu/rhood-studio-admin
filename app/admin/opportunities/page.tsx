@@ -9,6 +9,7 @@ import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatTimeRange } from "@/lib/date-utils";
 import Image from "next/image";
+import { GoogleMapsLink } from "@/components/google-maps-link";
 import {
   fetchAdminOpportunitiesList,
   paySortValue,
@@ -503,7 +504,7 @@ export default function OpportunitiesPage() {
                   {/* Image Section */}
                   {opportunity.image_url && (
                     <div className="flex-shrink-0 w-full sm:w-auto">
-                      <div className="relative w-full sm:w-32 h-48 sm:h-32 rounded-lg overflow-hidden bg-muted">
+                      <div className="relative w-full sm:w-32 h-48 sm:h-32 rounded-lg overflow-hidden bg-muted aspect-auto sm:aspect-square">
                         <Image
                           src={opportunity.image_url}
                           alt={opportunity.title}
@@ -529,7 +530,9 @@ export default function OpportunitiesPage() {
                         <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span className="truncate">
                           {opportunity.event_date
-                            ? formatDate(opportunity.event_date)
+                            ? `${formatDate(opportunity.event_date)}${
+                                opportunity.event_end_time ? "" : " – Ongoing"
+                              }`
                             : "—"}
                         </span>
                       </div>
@@ -544,7 +547,14 @@ export default function OpportunitiesPage() {
                       </div>
                       <div className="flex items-center">
                         <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        <span className="truncate">{opportunity.location}</span>
+                        {opportunity.location ? (
+                          <GoogleMapsLink
+                            address={opportunity.location}
+                            className="text-xs sm:text-sm text-muted-foreground hover:text-brand-green max-w-[220px]"
+                          />
+                        ) : (
+                          <span className="truncate">—</span>
+                        )}
                       </div>
                       <div className="flex items-center">
                         <span className="truncate">

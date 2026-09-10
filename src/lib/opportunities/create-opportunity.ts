@@ -20,6 +20,7 @@ export type OpportunityCreateFormInput = {
   /** Form status: draft | active | closed — affects `is_active` when mode is publish */
   status: string;
   imageUrl: string;
+  noEndDate?: boolean;
 };
 
 export type CreateOpportunityParams = {
@@ -58,21 +59,30 @@ function fail(
 export function validateOpportunityCreate(
   form: OpportunityCreateFormInput
 ): CreateOpportunityFailure | null {
-  if (!form.date || !form.time || !form.endTime) {
+  if (!form.date || !form.time) {
+    return fail(
+      "Missing Schedule",
+      "Please provide a start date and start time."
+    );
+  }
+
+  const noEndDate = form.dateType === "range" && !!form.noEndDate;
+
+  if (!noEndDate && !form.endTime) {
     return fail(
       "Missing Schedule",
       "Please provide a date, start time, and finish time."
     );
   }
 
-  if (form.dateType === "range" && !form.endDate) {
+  if (form.dateType === "range" && !noEndDate && !form.endDate) {
     return fail(
       "Missing End Date",
-      "Please provide an end date for the campaign range."
+      "Please provide an end date for the campaign range, or mark it as ongoing."
     );
   }
 
-  if (form.dateType === "range" && form.endDate < form.date) {
+  if (form.dateType === "range" && !noEndDate && form.endDate < form.date) {
     return fail(
       "Invalid Date Range",
       "End date must be on or after the start date."
@@ -80,26 +90,30 @@ export function validateOpportunityCreate(
   }
 
   const eventStart = new Date(`${form.date}T${form.time}`);
-  let eventEnd: Date;
+  let eventEnd: Date | null = null;
 
-  if (form.dateType === "range") {
-    eventEnd = new Date(`${form.endDate}T${form.endTime}`);
-  } else {
-    eventEnd = new Date(`${form.date}T${form.endTime}`);
-  }
+  if (!noEndDate) {
+    if (form.dateType === "range") {
+      eventEnd = new Date(`${form.endDate}T${form.endTime}`);
+    } else {
+      eventEnd = new Date(`${form.date}T${form.endTime}`);
+    }
 
-  if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
-    return fail(
-      "Invalid Time",
-      "Please enter a valid start and finish time."
-    );
-  }
+    if (isNaN(eventStart.getTime()) || !eventEnd || isNaN(eventEnd.getTime())) {
+      return fail(
+        "Invalid Time",
+        "Please enter a valid start and finish time."
+      );
+    }
 
-  if (eventEnd <= eventStart) {
-    return fail(
-      "Invalid Schedule",
-      "Finish time must be after the start time."
-    );
+    if (eventEnd <= eventStart) {
+      return fail(
+        "Invalid Schedule",
+        "Finish time must be after the start time."
+      );
+    }
+  } else if (isNaN(eventStart.getTime())) {
+    return fail("Invalid Time", "Please enter a valid start date and time.");
   }
 
   if (!form.location.trim()) {
@@ -138,10 +152,13 @@ export async function createOpportunity(
   if (validationError) return validationError;
 
   const eventStart = new Date(`${form.date}T${form.time}`);
+  const noEndDate = form.dateType === "range" && !!form.noEndDate;
   const eventEnd =
-    form.dateType === "range"
-      ? new Date(`${form.endDate}T${form.endTime}`)
-      : new Date(`${form.date}T${form.endTime}`);
+    noEndDate
+      ? null
+      : form.dateType === "range"
+        ? new Date(`${form.endDate}T${form.endTime}`)
+        : new Date(`${form.date}T${form.endTime}`);
 
   const { error: tableCheckError } = await supabase
     .from("opportunities")
@@ -214,7 +231,7 @@ export async function createOpportunity(
       description: processedDescription,
       location: form.location.trim(),
       event_date: eventStart.toISOString(),
-      event_end_time: eventEnd.toISOString(),
+      event_end_time: eventEnd ? eventEnd.toISOString() : null,
       payment: paymentAmount,
       genre: genreValue,
       skill_level: form.requirements || null,

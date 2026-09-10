@@ -123,15 +123,10 @@ export async function fetchOpportunityDetails(
   }
 
   const now = new Date();
-  const eventEndCandidate = row.event_end_time
-    ? new Date(row.event_end_time)
-    : row.event_date
-      ? new Date(row.event_date)
-      : null;
   const eventPastDue =
-    !!eventEndCandidate &&
-    !isNaN(eventEndCandidate.getTime()) &&
-    eventEndCandidate.getTime() < now.getTime() &&
+    !!row.event_end_time &&
+    !isNaN(new Date(row.event_end_time).getTime()) &&
+    new Date(row.event_end_time).getTime() < now.getTime() &&
     !(row.is_archived ?? false);
 
   let applicantCount = 0;
@@ -170,7 +165,9 @@ export async function fetchOpportunityDetails(
     id: normalizeId(row.id, opportunityId),
     title: row.title,
     location: row.location,
-    date: row.event_date ? formatDate(row.event_date) : "Unknown",
+    date: row.event_date
+      ? `${formatDate(row.event_date)}${row.event_end_time ? "" : " – Ongoing"}`
+      : "Unknown",
     timeRange: formatTimeRange(row.event_date, row.event_end_time),
     pay: row.payment != null ? `£${row.payment}` : "N/A",
     applicants: applicantCount,

@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
@@ -36,6 +35,10 @@ import {
   Loader2,
 } from "lucide-react";
 import LocationAutocomplete from "@/components/location-autocomplete";
+import { GoogleMapsLink } from "@/components/google-maps-link";
+import { GenrePicker } from "@/components/admin/GenrePicker";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -72,29 +75,10 @@ export default function CreateOpportunityPage() {
     additionalInfo: "",
     status: "draft",
     imageUrl: "",
+    noEndDate: false,
   });
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-
-  const genres = [
-    "House",
-    "Techno",
-    "Drum & Bass",
-    "Dubstep",
-    "Trap",
-    "Hip-Hop",
-    "Electronic",
-    "Progressive",
-    "Trance",
-    "Ambient",
-    "Breakbeat",
-  ];
-
-  const handleGenreToggle = (genre: string) => {
-    setSelectedGenres((prev) =>
-      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -334,27 +318,37 @@ export default function CreateOpportunityPage() {
                   Description
                 </Label>
                 <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAiRefineDialogOpen(true)}
-                    className="h-8 px-2"
-                    title="Refine with AI"
-                    disabled={!formData.description.trim()}
-                  >
-                    <Sparkles className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleOpenLinkDialog}
-                    className="h-8 px-2"
-                    title="Insert link (Ctrl+K / Cmd+K)"
-                  >
-                    <LinkIcon className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAiRefineDialogOpen(true)}
+                        className="h-8 px-2 text-brand-green hover:text-brand-green"
+                        disabled={!formData.description.trim()}
+                        aria-label="Refine with AI"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Refine with AI</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleOpenLinkDialog}
+                        className="h-8 px-2"
+                        aria-label="Insert link"
+                      >
+                        <LinkIcon className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Insert link (Ctrl+K / Cmd+K)</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
               <Textarea
@@ -388,16 +382,26 @@ export default function CreateOpportunityPage() {
               acceptedFormats={["image/jpeg", "image/png", "image/webp"]}
               bucketName="opportunities"
               folder="images"
+              aspect="square"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label
                   htmlFor="location"
-                  className="text-foreground flex items-center"
+                  className="text-foreground flex items-center justify-between gap-2"
                 >
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Location
+                  <span className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Location
+                  </span>
+                  <GoogleMapsLink
+                    address={formData.location}
+                    placeId={formData.locationPlaceId}
+                    className="text-xs"
+                  >
+                    Open in Maps
+                  </GoogleMapsLink>
                 </Label>
               <LocationAutocomplete
                   id="location"
@@ -454,7 +458,12 @@ export default function CreateOpportunityPage() {
               <Select
                 value={formData.dateType}
                 onValueChange={(value: "single" | "range") =>
-                  setFormData({ ...formData, dateType: value, endDate: "" })
+                  setFormData({
+                    ...formData,
+                    dateType: value,
+                    endDate: "",
+                    noEndDate: false,
+                  })
                 }
               >
                 <SelectTrigger className="bg-secondary border-border text-foreground">
@@ -495,7 +504,7 @@ export default function CreateOpportunityPage() {
                   />
                 </div>
 
-                {formData.dateType === "range" && (
+                {formData.dateType === "range" && !formData.noEndDate && (
                   <div className="space-y-2">
                     <Label
                       htmlFor="endDate"
@@ -515,6 +524,23 @@ export default function CreateOpportunityPage() {
                 )}
               </div>
 
+              {formData.dateType === "range" && (
+                <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                  <Checkbox
+                    checked={formData.noEndDate}
+                    onCheckedChange={(checked) =>
+                      setFormData({
+                        ...formData,
+                        noEndDate: checked === true,
+                        endDate: checked === true ? "" : formData.endDate,
+                        endTime: checked === true ? "" : formData.endTime,
+                      })
+                    }
+                  />
+                  No end date — ongoing campaign
+                </label>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label
@@ -532,6 +558,7 @@ export default function CreateOpportunityPage() {
                   />
                 </div>
 
+                {!formData.noEndDate && (
                 <div className="space-y-2">
                   <Label
                     htmlFor="endTime"
@@ -547,6 +574,7 @@ export default function CreateOpportunityPage() {
                     }
                   />
                 </div>
+                )}
               </div>
             </div>
 
@@ -555,24 +583,7 @@ export default function CreateOpportunityPage() {
                 <Music className="h-4 w-4 mr-2" />
                 Genres
               </Label>
-              <div className="flex flex-wrap gap-2">
-                {genres.map((genre) => (
-                  <Badge
-                    key={genre}
-                    variant={
-                      selectedGenres.includes(genre) ? "default" : "outline"
-                    }
-                    className={`cursor-pointer transition-all duration-200 ${
-                      selectedGenres.includes(genre)
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "border-border text-foreground hover:bg-accent"
-                    }`}
-                    onClick={() => handleGenreToggle(genre)}
-                  >
-                    {genre}
-                  </Badge>
-                ))}
-              </div>
+              <GenrePicker value={selectedGenres} onChange={setSelectedGenres} />
             </div>
           </CardContent>
         </Card>

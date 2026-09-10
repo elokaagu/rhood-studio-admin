@@ -40,7 +40,7 @@ export const ONBOARDING_STATUS_OPTIONS: {
   { value: "Inactive",      label: "Inactive",      color: "bg-red-500/20 text-red-400 border-red-500/50" },
 ];
 
-// Contacts pre-loaded from beta tester spreadsheet — seeded via setup-crm-table.sql
+// Contacts that can be seeded as a sample set
 export const BETA_SEED: Omit<CrmContact, "id" | "created_at" | "updated_at" | "notes">[] = [
   { first_name: "Selecta",  last_name: "Suave",     category: "DJ",    phone_number: "7881831194", email: "selectauave@gmail.com",            onboarding_status: "Contacted" },
   { first_name: "Savannah", last_name: "Harriot",   category: "DJ",    phone_number: "7866507944", email: "hello@savssounds.com",             onboarding_status: "Contacted" },
@@ -182,4 +182,169 @@ export async function deleteContact(
 
   if (error) return { ok: false, message: error.message ?? "Failed to delete contact" };
   return { ok: true };
+}
+
+export type CrmImportRow = Omit<CrmContact, "id" | "created_at" | "updated_at">;
+
+export const CRM_CSV_TEMPLATE = `first_name,last_name,email,phone_number,category,onboarding_status,notes
+Amina,Okeke,amina@example.com,+447700900123,DJ,Not Contacted,House / UKG
+`;
+
+function parseCsvLine(line: string): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (line[i + 1] === '"') {
+          current += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ",") {
+      cells.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+function normalizeHeader(header: string): string {
+  return header.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+function cell(row: Record<string, string>, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = row[key];
+    if (value) return value;
+  }
+  return "";
+}
+
+export function parseCrmCsv(text: string): {
+  rows: CrmImportRow[];
+  errors: string[];
+} {
+  const lines = text
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) {
+    return { rows: [], errors: ["CSV needs a header row and at least one contact."] };
+  }
+
+  const headers = parseCsvLine(lines[0]).map(normalizeHeader);
+  const errors: string[] = [];
+  const rows: CrmImportRow[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCsvLine(lines[i]);
+    const record: Record<string, string> = {};
+    headers.forEach((header, index) => {
+      record[header] = values[index] ?? "";
+    });
+
+    let firstName = cell(record, "first_name", "firstname", "first", "given_name");
+    let lastName = cell(record, "last_name", "lastname", "last", "surname", "family_name");
+    const fullName = cell(record, "name", "dj_name", "full_name");
+
+    if (!firstName && fullName) {
+      const parts = fullName.split(/\s+/);
+      firstName = parts[0] ?? "";
+      lastName = parts.slice(1).join(" ");
+    }
+
+    if (!firstName) {
+      errors.push(`Row ${i + 1}: missing first name.`);
+      continue;
+    }
+
+    const categoryRaw = cell(record, "category", "type", "role");
+    const category: CrmCategory =
+      categoryRaw.toLowerCase() === "brand" ? "Brand" : "DJ";
+
+    rows.push({
+      first_name: firstName,
+      last_name: lastName || null,
+      category,
+      phone_number:
+        cell(record, "phone_number", "phone", "mobile", "tel") || null,
+      email: cell(record, "email", "e_mail", "email_address") || null,
+      onboarding_status: normalizeStatus(
+        cell(record, "onboarding_status", "status")
+      ),
+      notes: cell(record, "notes", "note", "comments") || null,
+    });
+  }
+
+  return { rows, errors };
+}
+
+export async function importContacts(
+  rows: CrmImportRow[]
+): Promise<
+  | { ok: true; imported: number; skipped: number }
+  | { ok: false; message: string }
+> {
+  if (rows.length === 0) {
+    return { ok: false, message: "No valid contacts found in the CSV." };
+  }
+
+  const existing = await listContacts();
+  const seenEmails = new Set(
+    (existing.ok ? existing.contacts : [])
+      .map((contact) => contact.email?.trim().toLowerCase())
+      .filter((email): email is string => Boolean(email))
+  );
+
+  const toInsert: CrmImportRow[] = [];
+  let skipped = 0;
+
+  for (const row of rows) {
+    const email = row.email?.trim().toLowerCase() || null;
+    if (email && seenEmails.has(email)) {
+      skipped += 1;
+      continue;
+    }
+    if (email) seenEmails.add(email);
+    toInsert.push({
+      ...row,
+      email: email,
+      last_name: row.last_name?.trim() || null,
+      phone_number: row.phone_number?.trim() || null,
+      notes: row.notes?.trim() || null,
+    });
+  }
+
+  if (toInsert.length === 0) {
+    return { ok: true, imported: 0, skipped };
+  }
+
+  const chunkSize = 100;
+  for (let i = 0; i < toInsert.length; i += chunkSize) {
+    const chunk = toInsert.slice(i, i + chunkSize);
+    const { error } = await (supabase as any).from("crm_contacts").insert(chunk);
+    if (error) {
+      return {
+        ok: false,
+        message: error.message ?? "Failed to import contacts.",
+      };
+    }
+  }
+
+  return { ok: true, imported: toInsert.length, skipped };
 }

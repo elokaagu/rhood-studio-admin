@@ -55,6 +55,7 @@ import {
   Building2,
   MessageCircle,
   Database,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -63,6 +64,9 @@ import {
   updateContact,
   deleteContact,
   seedContacts,
+  importContacts,
+  parseCrmCsv,
+  CRM_CSV_TEMPLATE,
   CATEGORY_OPTIONS,
   ONBOARDING_STATUS_OPTIONS,
   type CrmContact,
@@ -110,6 +114,7 @@ export default function CrmPage() {
   const [contacts, setContacts] = useState<CrmContact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<"all" | CrmCategory>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | OnboardingStatus>("all");
@@ -144,10 +149,63 @@ export default function CrmPage() {
     if (!result.ok) {
       toast({ title: "Seed failed", description: result.message, variant: "destructive" });
     } else {
-      toast({ title: "Beta testers seeded", description: "12 contacts added." });
+      toast({ title: "Contacts seeded", description: "12 contacts added." });
       fetchContacts();
     }
     setIsSeeding(false);
+  };
+
+  const handleDownloadTemplate = () => {
+    const blob = new Blob([CRM_CSV_TEMPLATE], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "launch-crm-contacts.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCsvImport = async (file: File) => {
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const { rows, errors } = parseCrmCsv(text);
+      if (rows.length === 0) {
+        toast({
+          title: "Nothing to import",
+          description: errors[0] ?? "No valid DJ rows found in that CSV.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const result = await importContacts(rows);
+      if (!result.ok) {
+        toast({
+          title: "Import failed",
+          description: result.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await fetchContacts();
+      toast({
+        title: "CSV imported",
+        description: `Added ${result.imported} contact${result.imported === 1 ? "" : "s"}${
+          result.skipped ? `, skipped ${result.skipped} duplicate email${result.skipped === 1 ? "" : "s"}` : ""
+        }.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Import failed",
+        description:
+          error instanceof Error ? error.message : "Could not read that CSV file.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const openAdd = () => {
@@ -275,25 +333,59 @@ export default function CrmPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-ts-block ts-xl uppercase text-left text-brand-green text-lg sm:text-xl md:text-2xl">
-            Beta CRM
+            Launch CRM
           </h1>
           <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
-            Track beta testers through the onboarding pipeline.
+            Track contacts through onboarding ahead of the full-scale launch.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {contacts.length === 0 && !isLoading && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleSeed}
-              disabled={isSeeding}
+              disabled={isSeeding || isImporting}
               className="border-border text-muted-foreground hover:text-foreground"
             >
               <Database className="h-4 w-4 mr-2" />
-              {isSeeding ? "Seeding..." : "Seed beta testers"}
+              {isSeeding ? "Seeding..." : "Seed sample contacts"}
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadTemplate}
+            className="border-border text-muted-foreground hover:text-foreground"
+          >
+            CSV template
+          </Button>
+          <label className="inline-flex">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              disabled={isImporting}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void handleCsvImport(file);
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isImporting}
+              className="border-border text-muted-foreground hover:text-foreground"
+              asChild
+            >
+              <span>
+                <Upload className="h-4 w-4 mr-2" />
+                {isImporting ? "Importing..." : "Import CSV"}
+              </span>
+            </Button>
+          </label>
           <Link href="/admin/feedback">
             <Button variant="outline" size="sm" className="border-border text-muted-foreground hover:text-foreground">
               <MessageCircle className="h-4 w-4 mr-2" />
@@ -415,7 +507,7 @@ export default function CrmPage() {
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground text-sm">
               {contacts.length === 0
-                ? "No contacts yet — seed beta testers or add one manually."
+                ? "No contacts yet — import a CSV or add one manually."
                 : "No contacts match your filters."}
             </div>
           ) : (
@@ -525,8 +617,8 @@ export default function CrmPage() {
             <DialogTitle>{editingContact ? "Edit contact" : "Add contact"}</DialogTitle>
             <DialogDescription>
               {editingContact
-                ? "Update this beta tester's details."
-                : "Add a new beta tester to the CRM."}
+                ? "Update this contact's details."
+                : "Add a new contact to the launch pipeline."}
             </DialogDescription>
           </DialogHeader>
 

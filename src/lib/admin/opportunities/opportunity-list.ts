@@ -202,11 +202,7 @@ export async function fetchAdminOpportunitiesList(): Promise<
 
   const items: OpportunityListItem[] = rows.map((row) => {
     const id = normalizeId(row.id);
-    const endDate = row.event_end_time
-      ? new Date(row.event_end_time)
-      : row.event_date
-        ? new Date(row.event_date)
-        : null;
+    const endDate = row.event_end_time ? new Date(row.event_end_time) : null;
     const isArchived = row.is_archived ?? false;
     const eventPastDue =
       !!endDate &&

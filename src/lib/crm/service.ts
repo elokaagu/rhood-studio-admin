@@ -348,3 +348,91 @@ export async function importContacts(
 
   return { ok: true, imported: toInsert.length, skipped };
 }
+
+function splitPersonName(fullName: string): {
+  first_name: string;
+  last_name: string | null;
+} {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) {
+    return { first_name: fullName.trim() || "Invite", last_name: null };
+  }
+  if (parts.length === 1) {
+    return { first_name: parts[0], last_name: null };
+  }
+  return {
+    first_name: parts[0],
+    last_name: parts.slice(1).join(" "),
+  };
+}
+
+/** Create or update a Launch CRM contact after sending a brand or DJ invite. */
+export async function upsertContactFromInvite(params: {
+  name: string;
+  email: string;
+  category: CrmCategory;
+  note?: string | null;
+}): Promise<
+  | { ok: true; created: boolean }
+  | { ok: false; message: string }
+> {
+  const email = params.email.trim().toLowerCase();
+  if (!email) {
+    return { ok: false, message: "Email is required to sync Launch CRM." };
+  }
+
+  const names =
+    params.category === "Brand"
+      ? { first_name: params.name.trim(), last_name: null }
+      : splitPersonName(params.name);
+
+  const stamp = new Date().toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const inviteNote = params.note?.trim()
+    ? `Invited ${stamp}: ${params.note.trim()}`
+    : `Invited ${stamp} via R/HOOD admin.`;
+
+  const existing = await listContacts();
+  if (!existing.ok) {
+    return { ok: false, message: existing.message };
+  }
+
+  const match = existing.contacts.find(
+    (contact) => contact.email?.trim().toLowerCase() === email
+  );
+
+  if (match) {
+    const keepStatus =
+      match.onboarding_status === "Not Contacted"
+        ? "Contacted"
+        : match.onboarding_status;
+    const notes = match.notes?.trim()
+      ? `${match.notes.trim()}\n${inviteNote}`
+      : inviteNote;
+
+    const updated = await updateContact(match.id, {
+      onboarding_status: keepStatus,
+      notes,
+      first_name: match.first_name || names.first_name,
+      last_name: match.last_name ?? names.last_name,
+    });
+    if (!updated.ok) return updated;
+    return { ok: true, created: false };
+  }
+
+  const created = await createContact({
+    first_name: names.first_name,
+    last_name: names.last_name,
+    category: params.category,
+    phone_number: null,
+    email,
+    onboarding_status: "Contacted",
+    notes: inviteNote,
+  });
+  if (!created.ok) return created;
+  return { ok: true, created: true };
+}
+

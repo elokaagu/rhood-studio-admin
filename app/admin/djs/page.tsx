@@ -40,9 +40,11 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Loader2,
 } from "lucide-react";
 import { deleteDj, fetchDjs } from "@/lib/admin/djs/service";
 import type { DjMember, DjSortBy } from "@/lib/admin/djs/types";
+import { upsertContactFromInvite } from "@/lib/crm/service";
 
 export default function DJsPage() {
   const { toast } = useToast();
@@ -56,6 +58,7 @@ export default function DJsPage() {
     email: "",
     message: "",
   });
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
   const [members, setMembers] = useState<DjMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -146,24 +149,59 @@ export default function DJsPage() {
 
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const name = inviteFormData.name.trim();
+    const email = inviteFormData.email.trim();
+    if (!name || !email) return;
 
+    setIsSendingInvite(true);
     try {
-      // In a real app, this would send the invite to the backend
-      toast({
-        title: "Invite Sent",
-        description: `Invite sent to ${inviteFormData.name} (${inviteFormData.email})!`,
+      const response = await fetch("/api/notifications/dj-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          message: inviteFormData.message.trim() || null,
+        }),
       });
 
-      // Reset form and close modal
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          payload.message ||
+            payload.error ||
+            "The invitation email could not be sent."
+        );
+      }
+
+      const crm = await upsertContactFromInvite({
+        name,
+        email,
+        category: "DJ",
+        note: inviteFormData.message.trim() || "Invited to join R/HOOD as a DJ.",
+      });
+
+      toast({
+        title: "Invite sent",
+        description: crm.ok
+          ? `Emailed ${name} at ${email} and added them to Launch CRM.`
+          : `Emailed ${name} at ${email}. Launch CRM could not be updated.`,
+      });
+
       setInviteFormData({ name: "", email: "", message: "" });
       setIsInviteModalOpen(false);
     } catch (error) {
       console.error("Error sending invite:", error);
       toast({
-        title: "Error",
-        description: "Failed to send invitation. Please try again.",
+        title: "Invite failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to send invitation. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSendingInvite(false);
     }
   };
 
@@ -269,7 +307,7 @@ export default function DJsPage() {
                 Invite New DJ
               </DialogTitle>
               <DialogDescription className={textStyles.body.regular}>
-                Send an invitation to join the R/HOOD community as a DJ
+                Send an invitation to join R/HOOD For DJs. They'll also appear in Launch CRM as Contacted.
               </DialogDescription>
             </DialogHeader>
 
@@ -344,10 +382,18 @@ export default function DJsPage() {
                 <Button
                   type="submit"
                   className="bg-brand-green text-brand-black hover:bg-brand-green/90"
-                  disabled={!inviteFormData.name || !inviteFormData.email}
+                  disabled={
+                    isSendingInvite ||
+                    !inviteFormData.name ||
+                    !inviteFormData.email
+                  }
                 >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Send Invite
+                  {isSendingInvite ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <UserPlus className="h-4 w-4 mr-2" />
+                  )}
+                  {isSendingInvite ? "Sending..." : "Send Invite"}
                 </Button>
               </DialogFooter>
             </form>

@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { getDisplayText } from "@/lib/text-utils";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
@@ -228,7 +229,7 @@ export async function createOpportunity(
   const listingStatus = mode === "draft" ? "draft" : form.status || "pending";
   const isActive = mode === "publish" && listingStatus === "active";
 
-  const insertPayload: Record<string, unknown> = {
+  const insertPayload: TablesInsert<"opportunities"> = {
     title: form.title.trim(),
     description: processedDescription,
     location: form.location.trim(),

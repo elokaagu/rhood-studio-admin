@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { emailLogoBlock } from "@/lib/email/branding";
-import { getPortalBaseUrl } from "@/lib/portal-url";
+import { DJ_APP_URL } from "@/lib/portal-url";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFromAddress =
   process.env.RESEND_FROM_EMAIL ?? "R/HOOD <hello@rhood.io>";
 
-interface BrandInvitePayload {
+interface DjInvitePayload {
   email?: string;
-  brandName?: string;
-  inviteCode?: string;
-  expiresAt?: string | null;
+  name?: string;
   message?: string | null;
 }
 
@@ -33,14 +31,13 @@ function escapeHtml(value: string): string {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as BrandInvitePayload;
-    const brandName = body.brandName?.trim() ?? "";
-    const inviteCode = body.inviteCode?.trim().toUpperCase() ?? "";
+    const body = (await request.json()) as DjInvitePayload;
+    const name = body.name?.trim() ?? "";
     const personalMessage = body.message?.trim() || "";
 
-    if (!body.email || !brandName || !inviteCode) {
+    if (!body.email || !name) {
       return NextResponse.json(
-        { error: "Email, brand name, and invite code are required." },
+        { error: "Name and email are required." },
         { status: 400 }
       );
     }
@@ -65,23 +62,8 @@ export async function POST(request: Request) {
     }
 
     const resend = new Resend(resendApiKey);
-    const portalUrl = getPortalBaseUrl();
-    const signupParams = new URLSearchParams({
-      signup: "brand",
-      code: inviteCode,
-      email: sanitizedEmail,
-    });
-    const signupUrl = `${portalUrl}/login?${signupParams.toString()}`;
-    const expiryLabel = body.expiresAt
-      ? new Date(body.expiresAt).toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })
-      : "the date set by the R/HOOD team";
-
-    const safeBrand = escapeHtml(brandName);
-    const safeCode = escapeHtml(inviteCode);
+    const joinUrl = DJ_APP_URL.replace(/\/$/, "") + "/";
+    const safeName = escapeHtml(name);
     const safeMessage = personalMessage
       ? `<tr><td style="padding-top:20px;font-size:15px;line-height:1.6;color:#dddddd;">${escapeHtml(personalMessage).replace(/\n/g, "<br/>")}</td></tr>`
       : "";
@@ -91,30 +73,24 @@ export async function POST(request: Request) {
         <tr>
           <td align="center">
             <table style="width:560px;background-color:#1a1a1a;border-radius:16px;padding:40px;">
-              ${emailLogoBlock("R/HOOD For Brands")}
+              ${emailLogoBlock("R/HOOD For DJs")}
               <tr>
-                <td style="padding-top:24px;font-size:28px;font-weight:700;line-height:1.3;">You're invited to join as a brand</td>
+                <td style="padding-top:24px;font-size:28px;font-weight:700;line-height:1.3;">You're invited to join as a DJ</td>
               </tr>
               <tr>
                 <td style="padding-top:16px;font-size:16px;line-height:1.6;color:#dddddd;">
-                  ${safeBrand} has been invited to create a brand account on R/HOOD.
+                  ${safeName}, you've been invited to create a DJ account on R/HOOD.
                 </td>
               </tr>
               ${safeMessage}
               <tr>
-                <td style="padding-top:24px;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:#9e9e9e;">Invite code</td>
-              </tr>
-              <tr>
-                <td style="padding-top:8px;font-size:28px;font-weight:700;letter-spacing:4px;color:#c2cc06;">${safeCode}</td>
-              </tr>
-              <tr>
                 <td style="padding-top:32px;">
-                  <a href="${signupUrl}" style="display:inline-block;padding:14px 28px;background-color:#c2cc06;color:#1d1d1b;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;">Create your account</a>
+                  <a href="${joinUrl}" style="display:inline-block;padding:14px 28px;background-color:#c2cc06;color:#1d1d1b;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;">Create your account</a>
                 </td>
               </tr>
               <tr>
                 <td style="padding-top:28px;font-size:13px;line-height:1.6;color:#9e9e9e;">
-                  This link opens brand signup with your invite code already filled in. It expires on ${escapeHtml(expiryLabel)}.
+                  Open R/HOOD, create your DJ account with this email, and start applying to opportunities.
                 </td>
               </tr>
             </table>
@@ -129,11 +105,10 @@ export async function POST(request: Request) {
     `;
 
     const text = [
-      `You're invited to join R/HOOD as a brand (${brandName}).`,
+      `You're invited to join R/HOOD as a DJ (${name}).`,
       personalMessage ? `\n${personalMessage}\n` : "",
-      `Invite code: ${inviteCode}`,
-      `Create your account: ${signupUrl}`,
-      `This link opens brand signup with your invite code already filled in. It expires on ${expiryLabel}.`,
+      `Create your account: ${joinUrl}`,
+      "Open R/HOOD, create your DJ account with this email, and start applying to opportunities.",
     ]
       .filter(Boolean)
       .join("\n");
@@ -141,13 +116,13 @@ export async function POST(request: Request) {
     const emailResponse = await resend.emails.send({
       from: defaultFromAddress,
       to: sanitizedEmail,
-      subject: `You're invited to R/HOOD - ${brandName}`,
+      subject: `You're invited to R/HOOD - ${name}`,
       html,
       text,
     });
 
     if (emailResponse.error) {
-      console.error("[Resend] Brand invite email failed:", emailResponse.error);
+      console.error("[Resend] DJ invite email failed:", emailResponse.error);
       return NextResponse.json(
         {
           error: "Failed to send email",
@@ -163,10 +138,10 @@ export async function POST(request: Request) {
       to: sanitizedEmail,
     });
   } catch (error) {
-    console.error("[Resend] Unexpected brand invite error:", error);
+    console.error("[Resend] Unexpected DJ invite error:", error);
     return NextResponse.json(
       {
-        error: "Failed to send brand invite email",
+        error: "Failed to send DJ invite email",
         message: "An unexpected error occurred",
       },
       { status: 500 }

@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { textStyles } from "@/lib/typography";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, UserPlus, X } from "lucide-react";
+import { upsertContactFromInvite } from "@/lib/crm/service";
 
 export function BrandInviteSection() {
   const { toast } = useToast();
@@ -74,9 +75,18 @@ export function BrandInviteSection() {
         );
       }
 
+      const crm = await upsertContactFromInvite({
+        name: brandName,
+        email,
+        category: "Brand",
+        note: inviteFormData.message.trim() || "Invited to create a brand account.",
+      });
+
       toast({
         title: "Invite sent",
-        description: `Emailed ${brandName} at ${email} with code ${data.code}.`,
+        description: crm.ok
+          ? `Emailed ${brandName} at ${email} with code ${data.code}, and added them to Launch CRM.`
+          : `Emailed ${brandName} at ${email} with code ${data.code}. Launch CRM could not be updated.`,
       });
       setInviteFormData({ name: "", email: "", message: "" });
       setOpen(false);
@@ -109,7 +119,7 @@ export function BrandInviteSection() {
             Invite New Brand
           </DialogTitle>
           <DialogDescription className={textStyles.body.regular}>
-            Send an invitation to join the R/HOOD community as a brand
+            Send an invitation to join R/HOOD For Brands. They'll also appear in Launch CRM as Contacted.
           </DialogDescription>
         </DialogHeader>
 

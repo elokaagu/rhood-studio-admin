@@ -353,98 +353,100 @@ export default function MemberDetailsPage() {
           </Card>
 
           {viewerIsAdmin && (
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
-                <Coins className="h-4 w-4" />
-                Credit Transactions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className={`${textStyles.body.small} text-muted-foreground`}>
-                Transaction history is not loaded on this page. Open the full list to
-                review credits for this member.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  router.push(`/admin/credits/transactions?user=${member.id}`)
-                }
-                className="w-full"
-              >
-                View All Transactions
-              </Button>
-            </CardContent>
-          </Card>
+            <>
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
+                    <Coins className="h-4 w-4" />
+                    Credit Transactions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className={`${textStyles.body.small} text-muted-foreground`}>
+                    Transaction history is not loaded on this page. Open the full list to
+                    review credits for this member.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      router.push(`/admin/credits/transactions?user=${member.id}`)
+                    }
+                    className="w-full"
+                  >
+                    View All Transactions
+                  </Button>
+                </CardContent>
+              </Card>
 
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
-                <Key className="h-4 w-4" />
-                Invite Codes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {inviteCodes.length === 0 ? (
-                <p className={`${textStyles.body.regular} text-muted-foreground`}>
-                  This member hasn&apos;t used any invite codes.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {inviteCodes.map((code: AdminMemberInviteCodeRow) => (
-                    <div
-                      key={code.id}
-                      className="p-4 bg-secondary rounded-md border border-border"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <code
-                              className={`${textStyles.body.regular} font-mono text-brand-green font-semibold`}
-                            >
-                              {code.code}
-                            </code>
-                            <Badge
-                              variant="outline"
-                              className="border-green-500 text-green-500 bg-transparent"
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Used
-                            </Badge>
-                          </div>
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            <p>
-                              <span className="font-semibold">Brand:</span>{" "}
-                              {code.brand_name}
-                            </p>
-                            {code.used_at && (
-                              <p>
-                                <span className="font-semibold">Used on:</span>{" "}
-                                {formatDate(code.used_at)}
-                              </p>
-                            )}
-                            {code.created_by_profile && (
-                              <p>
-                                <span className="font-semibold">Created by:</span>{" "}
-                                {creatorLabelFromInviteCode(code.created_by_profile)}
-                              </p>
-                            )}
-                            {code.created_at && (
-                              <p>
-                                <span className="font-semibold">Created:</span>{" "}
-                                {formatDate(code.created_at)}
-                              </p>
-                            )}
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
+                    <Key className="h-4 w-4" />
+                    Invite Codes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {inviteCodes.length === 0 ? (
+                    <p className={`${textStyles.body.regular} text-muted-foreground`}>
+                      This member hasn&apos;t used any invite codes.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {inviteCodes.map((code: AdminMemberInviteCodeRow) => (
+                        <div
+                          key={code.id}
+                          className="p-4 bg-secondary rounded-md border border-border"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <code
+                                  className={`${textStyles.body.regular} font-mono text-brand-green font-semibold`}
+                                >
+                                  {code.code}
+                                </code>
+                                <Badge
+                                  variant="outline"
+                                  className="border-green-500 text-green-500 bg-transparent"
+                                >
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Used
+                                </Badge>
+                              </div>
+                              <div className="space-y-1 text-sm text-muted-foreground">
+                                <p>
+                                  <span className="font-semibold">Brand:</span>{" "}
+                                  {code.brand_name}
+                                </p>
+                                {code.used_at && (
+                                  <p>
+                                    <span className="font-semibold">Used on:</span>{" "}
+                                    {formatDate(code.used_at)}
+                                  </p>
+                                )}
+                                {code.created_by_profile && (
+                                  <p>
+                                    <span className="font-semibold">Created by:</span>{" "}
+                                    {creatorLabelFromInviteCode(code.created_by_profile)}
+                                  </p>
+                                )}
+                                {code.created_at && (
+                                  <p>
+                                    <span className="font-semibold">Created:</span>{" "}
+                                    {formatDate(code.created_at)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  )}
+                </CardContent>
+              </Card>
+            </>
           )}
         </div>
 

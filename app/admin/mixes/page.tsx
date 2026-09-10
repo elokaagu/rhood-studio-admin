@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateShort } from "@/lib/date-utils";
+import { getMixShareUrl } from "@/lib/mixes/share-url";
 import { supabase } from "@/integrations/supabase/client";
 import { textStyles } from "@/lib/typography";
 import Image from "next/image";
@@ -42,6 +43,7 @@ import {
   XCircle,
   Upload,
   Plus,
+  Share2,
 } from "lucide-react";
 
 const formatSecondsToTimestamp = (seconds: number) => {
@@ -630,6 +632,22 @@ export default function MixesPage() {
       toast({
         title: "Download Failed",
         description: "Failed to download the mix. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyShareUrl = async (mixId: string, mixTitle: string) => {
+    try {
+      await navigator.clipboard.writeText(getMixShareUrl(mixId));
+      toast({
+        title: "Link copied",
+        description: `portal.rhood.io/${mixId} copied for ${mixTitle}.`,
+      });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Could not copy the mix link.",
         variant: "destructive",
       });
     }
@@ -1494,6 +1512,17 @@ export default function MixesPage() {
                     <div className="flex-shrink-0">
                       {getGenreBadge(mix.genre)}
                     </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs sm:text-sm flex-1 sm:flex-initial"
+                      onClick={() => handleCopyShareUrl(mix.id, mix.title)}
+                    >
+                      <Share2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Share</span>
+                      <span className="sm:hidden">Share</span>
+                    </Button>
 
                     {/* Download Button */}
                     <Button

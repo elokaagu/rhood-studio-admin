@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
+import { getMixSharePath } from "@/lib/mixes/share-url";
 import { useToast } from "@/hooks/use-toast";
 import { createApplicationStatusNotification } from "@/lib/notifications";
 import {
@@ -453,19 +454,13 @@ export default function ApplicationDetailsPage() {
                     variant="outline"
                     className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-colors"
                     onClick={() => {
-                      // Use file_url since playback_url doesn't exist in the schema
-                      const fileUrl = userMix?.file_url || null;
-                      if (fileUrl) {
-                        window.open(fileUrl, "_blank");
-                        return;
-                      }
                       if (userMix?.id) {
-                        router.push(`/admin/mixes/${userMix.id}`);
+                        window.open(getMixSharePath(userMix.id), "_blank");
                         return;
                       }
                       toast({
                         title: "Mix URL Missing",
-                        description: "This mix doesn't have a valid file URL.",
+                        description: "This mix doesn't have a shareable ID.",
                         variant: "destructive",
                       });
                     }}

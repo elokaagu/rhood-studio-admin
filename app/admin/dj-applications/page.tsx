@@ -190,7 +190,7 @@ export default function DjApplicationsPage() {
 
       {!schemaReady && (
         <p className="text-sm text-yellow-400">
-          Run the DJ membership migration in Supabase before this queue can save decisions.
+          Run supabase/migrations/20260910191000_studio_dj_application_queue.sql in the Studio SQL editor so this queue can load and save decisions.
         </p>
       )}
 

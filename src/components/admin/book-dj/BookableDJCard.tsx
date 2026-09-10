@@ -10,7 +10,7 @@ import {
   bookableDjDisplayName,
   type BookableDJ,
 } from "@/lib/booking/bookable-dj";
-import { getMixPublicUrl } from "@/lib/booking/fetch-bookable-djs";
+import { getMixSharePath } from "@/lib/mixes/share-url";
 
 type Props = {
   dj: BookableDJ;
@@ -44,8 +44,8 @@ export function BookableDJCard({ dj, variant, onBook }: Props) {
   const initial = displayName.charAt(0).toUpperCase() || "D";
 
   const openMix = () => {
-    if (!dj.latestMix?.file_url) return;
-    window.open(getMixPublicUrl(dj.latestMix.file_url), "_blank");
+    if (!dj.latestMix?.id) return;
+    window.open(getMixSharePath(dj.latestMix.id), "_blank");
   };
 
   if (variant === "grid") {

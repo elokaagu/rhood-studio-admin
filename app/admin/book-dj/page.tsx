@@ -172,11 +172,13 @@ export default function BookDJPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Genre</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div className="min-w-0 flex flex-col gap-2">
+              <label className="flex h-5 items-center text-sm font-medium text-foreground">
+                Genre
+              </label>
               <Select value={selectedGenre} onValueChange={setSelectedGenre}>
-                <SelectTrigger className="bg-secondary border-border text-foreground">
+                <SelectTrigger className="h-10 bg-secondary border-border text-foreground">
                   <SelectValue placeholder="All Genres" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
@@ -196,8 +198,10 @@ export default function BookDJPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Location</label>
+            <div className="min-w-0 flex flex-col gap-2">
+              <label className="flex h-5 items-center text-sm font-medium text-foreground">
+                Location
+              </label>
               <LocationAutocomplete
                 placeholder="Filter by location..."
                 value={selectedLocation}
@@ -205,14 +209,14 @@ export default function BookDJPage() {
                 onLocationSelect={(selection) =>
                   setSelectedLocation(selection.formattedAddress || selection.description)
                 }
-                className="bg-secondary border-border text-foreground"
+                className="h-10 bg-secondary border-border text-foreground"
                 country="gb"
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-1">
-                <Trophy className="h-3 w-3" />
+            <div className="min-w-0 flex flex-col gap-2">
+              <label className="flex h-5 items-center gap-1 text-sm font-medium text-foreground">
+                <Trophy className="h-3 w-3 shrink-0" />
                 Ranking / Credits
               </label>
               <Select
@@ -221,7 +225,7 @@ export default function BookDJPage() {
                   setCreditsFilter(v)
                 }
               >
-                <SelectTrigger className="bg-secondary border-border text-foreground">
+                <SelectTrigger className="h-10 bg-secondary border-border text-foreground">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
@@ -241,9 +245,9 @@ export default function BookDJPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" />
+            <div className="min-w-0 flex flex-col gap-2">
+              <label className="flex h-5 items-center gap-1 text-sm font-medium text-foreground">
+                <Clock className="h-3 w-3 shrink-0" />
                 Availability
               </label>
               <Select
@@ -252,7 +256,7 @@ export default function BookDJPage() {
                   setAvailabilityFilter(v)
                 }
               >
-                <SelectTrigger className="bg-secondary border-border text-foreground">
+                <SelectTrigger className="h-10 bg-secondary border-border text-foreground">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">

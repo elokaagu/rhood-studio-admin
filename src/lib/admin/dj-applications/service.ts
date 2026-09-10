@@ -9,6 +9,10 @@ import type {
 
 const PROFILE_COLUMNS =
   "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, membership_status, membership_source, membership_reviewed_at";
+const PROFILE_COLUMNS_WITHOUT_REVIEW =
+  "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, membership_status, membership_source";
+const PROFILE_COLUMNS_CORE =
+  "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at";
 
 type ProfileRow = {
   id: string;
@@ -29,12 +33,8 @@ type ProfileRow = {
   membership_reviewed_at?: string | null;
 };
 
-function rpcUntyped(fn: string, args?: Record<string, unknown>) {
-  return (
-    supabase as unknown as {
-      rpc: (fn: string, args?: Record<string, unknown>) => any;
-    }
-  ).rpc(fn, args);
+function asProfiles(data: unknown): ProfileRow[] {
+  return Array.isArray(data) ? (data as ProfileRow[]) : [];
 }
 
 function parseStatus(value: string | null | undefined): DjMembershipStatus {
@@ -84,30 +84,48 @@ function isMissingMembershipColumn(message: string | undefined): boolean {
   return !!message && message.toLowerCase().includes("membership_");
 }
 
-export async function fetchDjApplications(): Promise<FetchDjApplicationsResult> {
-  const { data, error } = await supabase
+function selectDjProfiles(columns: string) {
+  return supabase
     .from("user_profiles")
-    .select(PROFILE_COLUMNS)
+    .select(columns)
     .or("role.is.null,role.eq.dj")
     .order("created_at", { ascending: false });
+}
 
-  if (error) {
-    if (isMissingMembershipColumn(error.message)) {
-      return {
-        ok: false,
-        schemaReady: false,
-        message:
-          "DJ membership columns are not in the live database yet. Run supabase/migrations/20260910180000_dj_membership_approval.sql.",
-      };
-    }
-    return { ok: false, message: error.message || "Failed to load DJ applications." };
+export async function fetchDjApplications(): Promise<FetchDjApplicationsResult> {
+  const withStatus = await selectDjProfiles(PROFILE_COLUMNS_WITHOUT_REVIEW);
+  if (!withStatus.error) {
+    const withReview = await selectDjProfiles(PROFILE_COLUMNS);
+    const rows = asProfiles(
+      withReview.error ? withStatus.data : withReview.data
+    );
+    return {
+      ok: true,
+      schemaReady: true,
+      data: rows.map(rowToApplication),
+    };
   }
 
-  const rows = (data ?? []) as ProfileRow[];
+  if (!isMissingMembershipColumn(withStatus.error.message)) {
+    return {
+      ok: false,
+      message: withStatus.error.message || "Failed to load DJ applications.",
+    };
+  }
+
+  const core = await selectDjProfiles(PROFILE_COLUMNS_CORE);
+  if (core.error) {
+    return {
+      ok: false,
+      schemaReady: false,
+      message: core.error.message || "Failed to load DJ applications.",
+    };
+  }
+
   return {
     ok: true,
-    schemaReady: true,
-    data: rows.map(rowToApplication),
+    schemaReady: false,
+    data: asProfiles(core.data).map(rowToApplication),
   };
 }
 
@@ -127,19 +145,35 @@ export async function setDjMembershipStatus(
   status: DjMembershipStatus,
   source?: DjMembershipSource | null
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const { error } = await rpcUntyped("admin_set_dj_membership", {
-    p_user_id: userId,
-    p_status: status,
-    ...(source ? { p_source: source } : {}),
-  });
-
-  if (error) {
-    return {
-      ok: false,
-      message: error.message || "Failed to update membership status.",
-    };
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) {
+    return { ok: false, message: "Not authenticated." };
   }
-  return { ok: true };
+
+  try {
+    const response = await fetch("/api/admin/dj-membership", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        userId,
+        status,
+        source: source ?? "application",
+      }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    if (!response.ok) {
+      return { ok: false, message: payload.error || "Failed to update membership status." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, message: "Failed to update membership status." };
+  }
 }
 
 export function membershipSourceLabel(source: DjMembershipSource | null): string {

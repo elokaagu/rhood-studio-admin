@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Play,
   Star,
+  MessageSquare,
 } from "lucide-react";
 import {
   Dialog,
@@ -38,6 +39,7 @@ import {
   submitBrandRating,
   updateApplicationStatus,
 } from "@/lib/applications/service";
+import { ApplicantConversationDialog } from "@/components/admin/applications/ApplicantConversationDialog";
 import type {
   ApplicationDetails,
   BrandRating,
@@ -59,6 +61,7 @@ export default function ApplicationDetailsPage() {
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+  const [conversationOpen, setConversationOpen] = useState(false);
 
   const fetchApplication = async () => {
     setIsLoading(true);
@@ -581,6 +584,15 @@ export default function ApplicationDetailsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-start"
+                onClick={() => setConversationOpen(true)}
+                disabled={!application.userId}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Message DJ
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
                 onClick={() =>
                   (window.location.href = `mailto:${application.applicant.email}`)
                 }
@@ -678,6 +690,13 @@ export default function ApplicationDetailsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ApplicantConversationDialog
+        open={conversationOpen}
+        onOpenChange={setConversationOpen}
+        applicantUserId={application?.userId ?? null}
+        applicantName={application?.applicant?.name ?? "DJ"}
+      />
     </div>
   );
 }

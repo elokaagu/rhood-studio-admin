@@ -172,6 +172,27 @@ export async function saveOpportunity(
     .eq("id", opportunityId);
 
   if (error) {
+    // If listing_status / additional_info columns don't exist yet (migration pending),
+    // retry with only the core columns so the save still succeeds.
+    const isMissingColumn =
+      error.message?.includes("listing_status") ||
+      error.message?.includes("additional_info") ||
+      (error.message?.includes("column") && error.message?.includes("does not exist"));
+
+    if (isMissingColumn) {
+      const corePayload = { ...(payload as any) };
+      delete corePayload.listing_status;
+      delete corePayload.additional_info;
+      const { error: retryError } = await supabase
+        .from("opportunities")
+        .update(corePayload)
+        .eq("id", opportunityId);
+      if (retryError) {
+        return { ok: false, message: retryError.message || "Failed to save." };
+      }
+      return { ok: true };
+    }
+
     return { ok: false, message: error.message || "Failed to save." };
   }
   return { ok: true };

@@ -62,12 +62,22 @@ export async function checkCanPublishOpportunity(
   const result = await fetchBrandSubscription(userId);
 
   if (!result.ok) {
+    // brand_subscriptions table doesn't exist yet (Stripe not fully set up) —
+    // fail open so brands can still post opportunities.
+    const isTableMissing =
+      result.message.includes("does not exist") ||
+      result.message.includes("relation");
+    if (isTableMissing) return { canPublish: true };
     return { canPublish: false, reason: "Could not verify subscription status." };
   }
 
   const sub = result.subscription;
 
-  if (!sub || sub.status !== "active") {
+  // No subscription row yet — brand hasn't subscribed via Stripe.
+  // Allow posting until Stripe is fully wired up (table exists but row absent).
+  if (!sub) return { canPublish: true };
+
+  if (sub.status !== "active") {
     return {
       canPublish: false,
       reason: "An active subscription is required to publish opportunities.",

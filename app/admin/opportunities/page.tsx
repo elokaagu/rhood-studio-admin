@@ -727,6 +727,7 @@ export default function OpportunitiesPage() {
                         {isMappableLocation(opportunity.location) ? (
                           <GoogleMapsLink
                             address={opportunity.location}
+                            truncate
                             className="text-xs sm:text-sm text-muted-foreground hover:text-brand-green max-w-[220px]"
                           />
                         ) : (

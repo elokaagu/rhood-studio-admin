@@ -1,5 +1,5 @@
 // Client-side cascade delete helpers (browser Supabase).
-// Admin UI should prefer `deleteAdminMemberAction` from `@/actions/admin-members` (server + session).
+// Admin UI should prefer `deleteAdminMember` from `@/lib/admin/members/delete-member`.
 
 import { supabase } from "@/integrations/supabase/client";
 

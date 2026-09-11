@@ -38,7 +38,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { usePortalUser } from "@/contexts/portal-user-context";
-import { deleteAdminMemberAction } from "@/actions/admin-members";
+import { deleteAdminMember } from "@/lib/admin/members/delete-member";
 import {
   creatorLabelFromInviteCode,
   fetchAdminMemberProfile,
@@ -98,7 +98,7 @@ export default function MemberDetailsPage() {
     if (!viewerIsAdmin || !memberToDelete) return;
     setIsDeleting(true);
     try {
-      const result = await deleteAdminMemberAction(memberToDelete.id);
+      const result = await deleteAdminMember(memberToDelete.id);
       if (!result.ok) {
         toast({
           title: "Delete Failed",

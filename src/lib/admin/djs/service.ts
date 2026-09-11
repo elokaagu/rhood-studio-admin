@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate } from "@/lib/date-utils";
-import { deleteAdminMemberAction } from "@/actions/admin-members";
+import { deleteAdminMember } from "@/lib/admin/members/delete-member";
 import type { DjMember, DjSortBy, FetchDjsResult } from "./types";
 
 const ACTIVE_DAYS_THRESHOLD = 30;
@@ -190,5 +190,5 @@ export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
 }
 
 export async function deleteDj(id: string): Promise<{ ok: true } | { ok: false; message: string }> {
-  return deleteAdminMemberAction(id);
+  return deleteAdminMember(id);
 }

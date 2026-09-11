@@ -21,9 +21,19 @@ import {
   XCircle,
   Hourglass,
   ArrowRight,
+  Trash2,
 } from "lucide-react";
 import { textStyles } from "@/lib/typography";
 import { formatBookingEventDate, formatTimeRange } from "@/lib/date-utils";
+import { deleteBookingRequest } from "@/lib/booking/delete-booking-request";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function BookingRequestsPage() {
   const router = useRouter();
@@ -33,6 +43,12 @@ export default function BookingRequestsPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   async function loadProfileAndRequests() {
     try {
@@ -104,6 +120,35 @@ export default function BookingRequestsPage() {
         );
       default:
         return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const confirmDeleteRequest = async () => {
+    if (!requestToDelete) return;
+    try {
+      setIsDeleting(true);
+      const result = await deleteBookingRequest(requestToDelete.id);
+      if (!result.ok) {
+        throw new Error(result.message);
+      }
+      setBookingRequests((prev) =>
+        prev.filter((request) => request.id !== requestToDelete.id)
+      );
+      toast({
+        title: "Booking request deleted",
+        description: `"${requestToDelete.title}" has been deleted.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Delete failed",
+        description:
+          error instanceof Error ? error.message : "Failed to delete booking request.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteModalOpen(false);
+      setRequestToDelete(null);
     }
   };
 
@@ -255,6 +300,21 @@ export default function BookingRequestsPage() {
                       View Details
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-500 hover:text-red-400"
+                      onClick={() => {
+                        setRequestToDelete({
+                          id: request.id,
+                          title: request.event_title,
+                        });
+                        setDeleteModalOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Delete</span>
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -262,6 +322,40 @@ export default function BookingRequestsPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground max-w-[95vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
+              Delete booking request
+            </DialogTitle>
+            <DialogDescription className={textStyles.body.regular}>
+              Are you sure you want to delete &quot;{requestToDelete?.title}&quot;? This
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setRequestToDelete(null);
+              }}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void confirmDeleteRequest()}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

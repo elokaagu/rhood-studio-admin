@@ -51,7 +51,7 @@ export async function getBookingRequestsForUser(
 
   if (role === "brand") {
     query = query.eq("brand_id", userId);
-  } else {
+  } else if (role !== "admin") {
     query = query.eq("dj_id", userId);
   }
 

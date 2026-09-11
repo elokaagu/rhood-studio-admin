@@ -28,6 +28,7 @@ import {
   Hourglass,
   ArrowLeft,
   User,
+  Trash2,
 } from "lucide-react";
 import { textStyles } from "@/lib/typography";
 import {
@@ -38,6 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { deleteBookingRequest } from "@/lib/booking/delete-booking-request";
 
 function viewerCanAccessBooking(
   role: UserProfile["role"] | undefined,
@@ -45,6 +47,7 @@ function viewerCanAccessBooking(
   row: Pick<BookingRequestDetail, "brand_id" | "dj_id">
 ): boolean {
   if (!userId || !role) return false;
+  if (role === "admin") return true;
   if (role === "brand") return row.brand_id === userId;
   return row.dj_id === userId;
 }
@@ -64,6 +67,8 @@ export default function BookingRequestDetailPage() {
   );
   const [responseNotes, setResponseNotes] = useState("");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -206,6 +211,26 @@ export default function BookingRequestDetailPage() {
     }
   };
 
+  const confirmDelete = async () => {
+    if (!bookingRequest) return;
+    setIsDeleting(true);
+    const result = await deleteBookingRequest(bookingRequest.id);
+    if (!result.ok) {
+      toast({
+        title: "Delete failed",
+        description: result.message,
+        variant: "destructive",
+      });
+      setIsDeleting(false);
+      return;
+    }
+    toast({
+      title: "Booking request deleted",
+      description: `"${bookingRequest.event_title}" has been deleted.`,
+    });
+    router.push("/admin/booking-requests");
+  };
+
   const formatEventDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -275,8 +300,9 @@ export default function BookingRequestDetailPage() {
             </p>
           </div>
         </div>
-        {canRespond && (
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          {canRespond && (
+            <>
             <Button
               variant="outline"
               onClick={() => {
@@ -298,8 +324,17 @@ export default function BookingRequestDetailPage() {
               <CheckCircle className="h-4 w-4 mr-2" />
               Accept
             </Button>
-          </div>
-        )}
+            </>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => setDeleteModalOpen(true)}
+            className="flex-1 sm:flex-none text-red-500 hover:text-red-400"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -561,6 +596,37 @@ export default function BookingRequestDetailPage() {
                 : responseType === "accept"
                 ? "Accept Booking"
                 : "Decline Booking"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="bg-card border-border text-foreground max-w-[95vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
+              Delete booking request
+            </DialogTitle>
+            <DialogDescription className={textStyles.body.regular}>
+              Are you sure you want to delete &quot;{bookingRequest.event_title}&quot;? This
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void confirmDelete()}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

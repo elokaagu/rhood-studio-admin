@@ -235,11 +235,15 @@ export default function DjApplicationsPage() {
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green border-t-transparent" />
         </div>
       ) : filtered.length === 0 ? (
-        <p className={textStyles.body.regular}>
-          {statusFilter === "pending"
-            ? "No pending DJ applications."
-            : "No DJ applications match this filter."}
-        </p>
+        <Card className="bg-card border-border">
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">
+              {statusFilter === "pending"
+                ? "No pending DJ applications."
+                : "No DJ applications match this filter."}
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
           {filtered.map((app) => (

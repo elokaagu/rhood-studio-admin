@@ -97,6 +97,7 @@ export async function fetchBookableDjs(): Promise<BookableDJ[]> {
   if (profilesError) throw profilesError;
 
   const list = ((profiles || []) as RawProfile[]).filter((profile) => {
+    if (profile.is_verified === true) return true;
     const status = profile.membership_status;
     if (typeof status !== "string" || status.length === 0) return true;
     return status === "approved";

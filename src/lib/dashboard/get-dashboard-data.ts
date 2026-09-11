@@ -32,6 +32,25 @@ export type DashboardData = {
   upcomingEvents: UpcomingEvent[];
 };
 
+function toActivityName(user: {
+  dj_name: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+}): string {
+  const fullName = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
+  return user.dj_name || fullName || "Someone";
+}
+
+function hasJoinedPlatform(user: {
+  role?: string | null;
+  membership_status?: string | null;
+  is_verified?: boolean | null;
+}): boolean {
+  if (user.role === "brand") return true;
+  if (user.membership_status === "rejected") return false;
+  return user.membership_status === "approved" || user.is_verified === true;
+}
+
 function toEventDateLabel(iso: string): string {
   const eventDate = new Date(iso);
   const now = new Date();
@@ -126,7 +145,7 @@ export async function getDashboardData(viewer: ViewerContext): Promise<Dashboard
     isAdmin
       ? supabase
           .from("user_profiles")
-          .select("id, dj_name, created_at")
+          .select("id, dj_name, first_name, last_name, created_at, membership_status, is_verified, role")
           .order("created_at", { ascending: false })
           .limit(2)
       : Promise.resolve({ data: [], error: null }),
@@ -170,6 +189,16 @@ export async function getDashboardData(viewer: ViewerContext): Promise<Dashboard
     );
   }
 
+  let recentUsers = recentUsersRes.data;
+  if (isAdmin && recentUsersRes.error) {
+    const fallback = await supabase
+      .from("user_profiles")
+      .select("id, dj_name, first_name, last_name, created_at, role")
+      .order("created_at", { ascending: false })
+      .limit(2);
+    recentUsers = fallback.data;
+  }
+
   const activities: ActivityItem[] = [];
 
   const apps = (recentAppsRes.data ?? []) as Array<{
@@ -198,12 +227,23 @@ export async function getDashboardData(viewer: ViewerContext): Promise<Dashboard
     });
   }
 
-  const users = (recentUsersRes.data ?? []) as Array<{ created_at: string | null; dj_name: string | null }>;
+  const users = (recentUsers ?? []) as Array<{
+    created_at: string | null;
+    dj_name: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    membership_status?: string | null;
+    is_verified?: boolean | null;
+    role?: string | null;
+  }>;
   for (const user of users) {
     if (!user.created_at) continue;
+    const name = toActivityName(user);
     activities.push({
       type: "member",
-      message: `${user.dj_name || "A member"} joined the platform`,
+      message: hasJoinedPlatform(user)
+        ? `${name} joined the platform`
+        : `${name} applied to the platform`,
       createdAt: user.created_at,
       time: formatDateShort(user.created_at),
     });

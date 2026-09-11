@@ -24,6 +24,34 @@ function callerClient(accessToken: string) {
   });
 }
 
+function isMissingColumnError(message: string, column: string) {
+  return message.toLowerCase().includes(column.toLowerCase());
+}
+
+function isNotificationConstraintError(message: string) {
+  const msg = message.toLowerCase();
+  return (
+    msg.includes("notifications_type_check") ||
+    (msg.includes("notifications") && msg.includes("check constraint"))
+  );
+}
+
+type AdminClient = NonNullable<ReturnType<typeof serviceClient>>;
+
+async function insertApprovalNotification(admin: AdminClient, userId: string) {
+  const { error } = await admin.from("notifications").insert({
+    user_id: userId,
+    type: "application_approved",
+    title: "You're in",
+    message: "Your R/HOOD application was approved. Open the app to get started.",
+    related_id: userId,
+    is_read: false,
+  });
+  if (error) {
+    console.warn("[dj-membership] approval notification skipped:", error.message);
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get("authorization") || "";
@@ -96,15 +124,46 @@ export async function POST(request: Request) {
     };
 
     let update = await admin.from("user_profiles").update(withReview).eq("id", userId);
-    const message = String(update.error?.message || "");
-    if (update.error && message.includes("membership_reviewed")) {
+    let message = String(update.error?.message || "");
+    if (update.error && isMissingColumnError(message, "membership_reviewed")) {
       update = await admin.from("user_profiles").update(payload).eq("id", userId);
+      message = String(update.error?.message || "");
     }
-    if (update.error && String(update.error.message || "").includes("membership_source")) {
+    if (update.error && isMissingColumnError(message, "membership_source")) {
       update = await admin
         .from("user_profiles")
         .update({ membership_status: status })
         .eq("id", userId);
+      message = String(update.error?.message || "");
+    }
+
+    if (update.error && isNotificationConstraintError(message) && status === "approved") {
+      const verifiedPayload: Record<string, unknown> = {
+        is_verified: true,
+        membership_source: source,
+      };
+      const verifiedWithReview = {
+        ...verifiedPayload,
+        membership_reviewed_at: new Date().toISOString(),
+        membership_reviewed_by: user.id,
+      };
+      update = await admin.from("user_profiles").update(verifiedWithReview).eq("id", userId);
+      message = String(update.error?.message || "");
+      if (update.error && isMissingColumnError(message, "membership_reviewed")) {
+        update = await admin.from("user_profiles").update(verifiedPayload).eq("id", userId);
+        message = String(update.error?.message || "");
+      }
+      if (update.error && isMissingColumnError(message, "membership_source")) {
+        update = await admin.from("user_profiles").update({ is_verified: true }).eq("id", userId);
+        message = String(update.error?.message || "");
+      }
+      if (!update.error) {
+        await insertApprovalNotification(admin, userId);
+      }
+    }
+
+    if (!update.error && status === "rejected") {
+      await admin.from("user_profiles").update({ is_verified: false }).eq("id", userId);
     }
 
     if (update.error) {

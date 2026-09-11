@@ -21,11 +21,13 @@ const secondaryButtonStyle =
   "display:inline-block;padding:14px 28px;background-color:#252525;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;border:1px solid #3a3a3a;";
 
 /** App Store / Play Store buttons for DJ emails. */
-export function emailAppStoreButtons(): string {
+export function emailAppStoreButtons(label = "Get the R/HOOD app"): string {
   const ios = getDjIosAppStoreUrl();
   const android = getDjAndroidPlayStoreUrl();
-  if (ios === android) {
-    return `<a href="${ios}" style="${buttonStyle}">Get the R/HOOD app</a>`;
+  // Booking emails pass a custom label — keep a single in-app CTA even when
+  // store URLs differ, so DJs are not sent to the App Store listing.
+  if (label !== "Get the R/HOOD app" || ios === android) {
+    return `<a href="${ios}" style="${buttonStyle}">${label}</a>`;
   }
   return `
                   <a href="${ios}" style="${buttonStyle}">Download on the App Store</a>
@@ -34,11 +36,11 @@ export function emailAppStoreButtons(): string {
   `;
 }
 
-export function emailAppStorePlainText(): string {
+export function emailAppStorePlainText(label = "Get the R/HOOD app"): string {
   const ios = getDjIosAppStoreUrl();
   const android = getDjAndroidPlayStoreUrl();
-  if (ios === android) {
-    return `Get the R/HOOD app: ${ios}`;
+  if (label !== "Get the R/HOOD app" || ios === android) {
+    return `${label}: ${ios}`;
   }
   return `Download on the App Store: ${ios}\nGet it on Google Play: ${android}`;
 }

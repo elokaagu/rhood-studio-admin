@@ -48,7 +48,7 @@ function applicationsTable() {
 export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
   const sort = getSortOrder(sortBy);
   const withMembership =
-    "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, updated_at, membership_status";
+    "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, updated_at, membership_status, is_verified";
   const withoutMembership =
     "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, updated_at";
 
@@ -62,7 +62,10 @@ export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
     .or("role.is.null,role.neq.brand")
     .order(sort.column, { ascending: sort.ascending });
 
-  if (first.error?.message?.includes("membership_")) {
+  if (
+    first.error?.message?.includes("membership_") ||
+    first.error?.message?.includes("is_verified")
+  ) {
     schemaReady = false;
     const fallback = await supabase
       .from("user_profiles")
@@ -95,17 +98,19 @@ export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
     created_at: string | null;
     updated_at: string | null;
     membership_status?: string | null;
+    is_verified?: boolean | null;
   }>;
 
   const pendingCount = schemaReady
-    ? rows.filter((row) => row.membership_status === "pending").length
+    ? rows.filter((row) => row.membership_status === "pending" && !row.is_verified).length
     : 0;
 
   const visibleRows = schemaReady
     ? rows.filter(
         (row) =>
           row.membership_status === "approved" ||
-          row.membership_status == null
+          row.membership_status == null ||
+          row.is_verified === true
       )
     : rows;
 
@@ -154,11 +159,12 @@ export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
         : 0;
 
     const membership =
-      row.membership_status === "pending" ||
-      row.membership_status === "approved" ||
-      row.membership_status === "rejected"
-        ? row.membership_status
-        : null;
+      row.is_verified === true || row.membership_status === "approved"
+        ? "approved"
+        : row.membership_status === "pending" ||
+            row.membership_status === "rejected"
+          ? row.membership_status
+          : null;
 
     return {
       id: row.id,

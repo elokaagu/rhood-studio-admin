@@ -8,9 +8,9 @@ import type {
 } from "./types";
 
 const PROFILE_COLUMNS =
-  "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, membership_status, membership_source, membership_reviewed_at";
+  "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, membership_status, membership_source, membership_reviewed_at, is_verified";
 const PROFILE_COLUMNS_WITHOUT_REVIEW =
-  "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, membership_status, membership_source";
+  "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at, membership_status, membership_source, is_verified";
 const PROFILE_COLUMNS_CORE =
   "id, first_name, last_name, dj_name, email, city, genres, bio, instagram, soundcloud, profile_image_url, role, created_at";
 
@@ -31,14 +31,16 @@ type ProfileRow = {
   membership_status?: string | null;
   membership_source?: string | null;
   membership_reviewed_at?: string | null;
+  is_verified?: boolean | null;
 };
 
 function asProfiles(data: unknown): ProfileRow[] {
   return Array.isArray(data) ? (data as ProfileRow[]) : [];
 }
 
-function parseStatus(value: string | null | undefined): DjMembershipStatus {
-  if (value === "approved" || value === "rejected") return value;
+function parseStatus(row: ProfileRow): DjMembershipStatus {
+  if (row.membership_status === "rejected") return "rejected";
+  if (row.membership_status === "approved" || row.is_verified) return "approved";
   return "pending";
 }
 
@@ -74,14 +76,15 @@ function rowToApplication(row: ProfileRow): DjApplication {
     soundcloud: row.soundcloud,
     appliedAt: row.created_at ?? "",
     appliedAtLabel: row.created_at ? formatDate(row.created_at) : "Unknown",
-    membershipStatus: parseStatus(row.membership_status),
+    membershipStatus: parseStatus(row),
     membershipSource: parseSource(row.membership_source),
     reviewedAt: row.membership_reviewed_at ?? null,
   };
 }
 
 function isMissingMembershipColumn(message: string | undefined): boolean {
-  return !!message && message.toLowerCase().includes("membership_");
+  const msg = (message || "").toLowerCase();
+  return msg.includes("membership_") || msg.includes("is_verified");
 }
 
 /** Studio historically defaulted new profiles to role=admin, so DJ app
@@ -96,10 +99,11 @@ function selectApplicantProfiles(columns: string) {
 }
 
 function isQueueRow(row: ProfileRow): boolean {
-  const status = parseStatus(row.membership_status);
+  const status = parseStatus(row);
   if (status === "pending" || status === "rejected") return true;
   return (
-    status === "approved" && parseSource(row.membership_source) === "application"
+    status === "approved" &&
+    (parseSource(row.membership_source) === "application" || row.is_verified === true)
   );
 }
 
@@ -145,7 +149,8 @@ export async function countPendingDjApplications(): Promise<number> {
     .from("user_profiles")
     .select("id", { count: "exact", head: true })
     .or("role.is.null,role.neq.brand")
-    .eq("membership_status", "pending");
+    .eq("membership_status", "pending")
+    .not("is_verified", "eq", true);
 
   if (error) return 0;
   return count ?? 0;

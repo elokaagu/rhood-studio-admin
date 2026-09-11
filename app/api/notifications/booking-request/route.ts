@@ -164,7 +164,7 @@ export async function POST(request: Request) {
               </tr>
               <tr>
                 <td style="padding-top:32px;">
-                  ${emailAppStoreButtons()}
+                  ${emailAppStoreButtons("View in the R/HOOD app")}
                 </td>
               </tr>
               <tr>
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
       </table>
     `;
 
-    const text = `Hey ${firstName},\n\n${body.brandName} wants to book you for their event: "${body.eventTitle}"\n\nDate: ${eventDateFormatted}\n${eventTimeFormatted ? `Time: ${eventTimeFormatted}${eventEndTimeFormatted ? ` - ${eventEndTimeFormatted}` : ""}\n` : ""}${body.location ? `Location: ${body.location}\n` : ""}Payment: ${paymentInfo}\n\nOpen the R/HOOD app on your phone to view this booking request.\n${emailAppStorePlainText()}`;
+    const text = `Hey ${firstName},\n\n${body.brandName} wants to book you for their event: "${body.eventTitle}"\n\nDate: ${eventDateFormatted}\n${eventTimeFormatted ? `Time: ${eventTimeFormatted}${eventEndTimeFormatted ? ` - ${eventEndTimeFormatted}` : ""}\n` : ""}${body.location ? `Location: ${body.location}\n` : ""}Payment: ${paymentInfo}\n\nOpen the R/HOOD app on your phone to view this booking request.\n${emailAppStorePlainText("View in the R/HOOD app")}`;
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({

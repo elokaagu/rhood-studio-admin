@@ -85,10 +85,6 @@ export function validateScheduleForm(
     };
   }
 
-  if (!form.venue.trim()) {
-    return { ok: false, message: "Please enter a venue or address." };
-  }
-
   const eventStart = new Date(`${form.eventDate}T${form.startTime}`);
   let eventEnd = new Date(`${form.eventDate}T${form.endTime}`);
 

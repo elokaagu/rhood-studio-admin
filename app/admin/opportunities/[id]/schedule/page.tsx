@@ -255,28 +255,27 @@ export default function ScheduleEventPage() {
                   <MapPin className="h-4 w-4 mr-2 inline" />
                   Venue
                 </Label>
-                <LocationAutocomplete
-                  id="venue"
-                  placeholder="Search for a venue or address"
-                  value={formData.venue}
-                  onValueChange={(value) =>
-                    setFormData((prev: ScheduleFormState) => ({
-                      ...prev,
-                      venue: value,
-                      locationPlaceId: "",
-                    }))
-                  }
-                  onLocationSelect={(selection) =>
-                    setFormData((prev: ScheduleFormState) => ({
-                      ...prev,
-                      venue: selection.formattedAddress ?? selection.description,
-                      locationPlaceId: selection.placeId,
-                    }))
-                  }
-                  className="bg-secondary border-border text-foreground"
-                  country="gb"
-                  required
-                />
+                  <LocationAutocomplete
+                    id="venue"
+                    placeholder="Search for a venue, address, or Online"
+                    value={formData.venue}
+                    onValueChange={(value) =>
+                      setFormData((prev: ScheduleFormState) => ({
+                        ...prev,
+                        venue: value,
+                        locationPlaceId: "",
+                      }))
+                    }
+                    onLocationSelect={(selection) =>
+                      setFormData((prev: ScheduleFormState) => ({
+                        ...prev,
+                        venue: selection.formattedAddress ?? selection.description,
+                        locationPlaceId: selection.placeId,
+                      }))
+                    }
+                    className="bg-secondary border-border text-foreground"
+                    country="gb"
+                  />
               </div>
             </div>
 

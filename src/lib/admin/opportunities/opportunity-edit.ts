@@ -1,6 +1,7 @@
 import { getDisplayText } from "@/lib/text-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
+import { parseNumericCompensation } from "@/lib/opportunities/compensation";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -73,12 +74,6 @@ export function validateOpportunityForm(
   }
 
   if (noEndDate) {
-    if (!form.location.trim()) {
-      return {
-        ok: false,
-        message: "Please choose a location for this opportunity.",
-      };
-    }
     return { ok: true, eventStart, eventEnd: null };
   }
 
@@ -101,13 +96,6 @@ export function validateOpportunityForm(
     };
   }
 
-  if (!form.location.trim()) {
-    return {
-      ok: false,
-      message: "Please choose a location for this opportunity.",
-    };
-  }
-
   return { ok: true, eventStart, eventEnd };
 }
 
@@ -116,9 +104,7 @@ export function processOpportunityDescription(raw: string): string {
 }
 
 function parsePaymentAmount(pay: string): number | null {
-  if (!pay.trim()) return null;
-  const n = parseFloat(pay.replace(/[£,]/g, ""));
-  return Number.isFinite(n) ? n : null;
+  return parseNumericCompensation(pay);
 }
 
 /**
@@ -143,7 +129,8 @@ export function buildOpportunityUpdatePayload(
   return {
     title: form.title.trim(),
     description: processedDescription,
-    location: form.location.trim(),
+    location: form.location.trim() || "",
+    compensation: form.pay.trim() || null,
     event_date: validated.eventStart.toISOString(),
     event_end_time: validated.eventEnd
       ? validated.eventEnd.toISOString()
@@ -181,6 +168,7 @@ export async function saveOpportunity(
       error.message?.includes("listing_status") ||
       error.message?.includes("additional_info") ||
       error.message?.includes("website") ||
+      error.message?.includes("compensation") ||
       (error.message?.includes("column") && error.message?.includes("does not exist"));
 
     if (isMissingColumn) {
@@ -188,6 +176,7 @@ export async function saveOpportunity(
       delete corePayload.listing_status;
       delete corePayload.additional_info;
       delete corePayload.website;
+      delete corePayload.compensation;
       const { error: retryError } = await supabase
         .from("opportunities")
         .update(corePayload)
@@ -218,6 +207,7 @@ type OpportunityRow = {
   additional_info?: string | null;
   listing_status?: string | null;
   website?: string | null;
+  compensation?: string | null;
 };
 
 /** Map DB row → form state for the edit screen (no demo fallback). */
@@ -266,7 +256,7 @@ export function opportunityRowToFormState(
     endDate: isRange ? endDateStr : "",
     time: timeStr,
     endTime: endTimeStr,
-    pay: data.payment != null ? data.payment.toString() : "",
+    pay: data.compensation?.trim() || (data.payment != null ? data.payment.toString() : ""),
     genre: data.genre || "",
     requirements: data.skill_level || "",
     additionalInfo: data.additional_info?.trim() ?? "",

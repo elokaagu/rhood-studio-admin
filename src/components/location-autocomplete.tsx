@@ -9,7 +9,8 @@ import React, {
 } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Loader2, MapPin } from "lucide-react";
+import { Globe, Loader2, MapPin } from "lucide-react";
+import { ONLINE_LOCATION, isOnlineLocation } from "@/lib/opportunities/location";
 
 interface AutocompletePrediction {
   description: string;
@@ -56,6 +57,8 @@ interface LocationAutocompleteProps
    * Debounce delay before querying the API.
    */
   debounceMs?: number;
+  /** Show a built-in Online option in the suggestions list. */
+  allowOnline?: boolean;
 }
 
 const DEFAULT_DEBOUNCE = 250;
@@ -76,6 +79,7 @@ export function LocationAutocomplete({
   className,
   country,
   debounceMs = DEFAULT_DEBOUNCE,
+  allowOnline = true,
   ...inputProps
 }: LocationAutocompleteProps) {
   const [query, setQuery] = useState(value ?? "");
@@ -114,8 +118,14 @@ export function LocationAutocomplete({
     };
   }, [closeDropdown]);
 
+  const showOnlineOption =
+    allowOnline &&
+    (!query.trim() ||
+      ONLINE_LOCATION.toLowerCase().startsWith(query.trim().toLowerCase()) ||
+      query.trim().toLowerCase().includes("online"));
+
   useEffect(() => {
-    if (!query || query.trim().length < 3) {
+    if (!query || query.trim().length < 3 || isOnlineLocation(query)) {
       abortControllerRef.current?.abort();
       setPredictions([]);
       setLoading(false);
@@ -204,10 +214,28 @@ export function LocationAutocomplete({
     setError(null);
 
     if (!nextValue) {
-      closeDropdown();
+      if (allowOnline) {
+        setPredictions([]);
+        setIsOpen(true);
+      } else {
+        closeDropdown();
+      }
       sessionTokenRef.current = generateSessionToken();
     }
   };
+
+  const handleOnlineSelect = useCallback(() => {
+    setQuery(ONLINE_LOCATION);
+    onValueChange(ONLINE_LOCATION);
+    onLocationSelect?.({
+      description: ONLINE_LOCATION,
+      formattedAddress: ONLINE_LOCATION,
+      placeId: "",
+    });
+    setError(null);
+    closeDropdown();
+    sessionTokenRef.current = generateSessionToken();
+  }, [closeDropdown, onLocationSelect, onValueChange]);
 
   const handlePredictionSelect = useCallback(
     async (prediction: AutocompletePrediction) => {
@@ -275,16 +303,37 @@ export function LocationAutocomplete({
       return null;
     }
 
+    const onlineRow = showOnlineOption ? (
+      <li>
+        <button
+          type="button"
+          className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-accent focus:bg-accent focus:outline-none"
+          onClick={handleOnlineSelect}
+        >
+          <Globe className="mt-0.5 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col">
+            <span className="font-medium text-foreground">{ONLINE_LOCATION}</span>
+            <span className="text-xs text-muted-foreground">
+              Remote or virtual event
+            </span>
+          </div>
+        </button>
+      </li>
+    ) : null;
+
     if (loading) {
       return (
-        <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Searching locations…
-        </div>
+        <ul className="max-h-60 overflow-y-auto py-1">
+          {onlineRow}
+          <li className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Searching locations…
+          </li>
+        </ul>
       );
     }
 
-    if (error) {
+    if (error && predictions.length === 0 && !showOnlineOption) {
       return (
         <div className="px-3 py-2 text-sm text-destructive">
           {error}
@@ -292,7 +341,7 @@ export function LocationAutocomplete({
       );
     }
 
-    if (predictions.length === 0) {
+    if (predictions.length === 0 && !showOnlineOption) {
       return (
         <div className="px-3 py-2 text-sm text-muted-foreground">
           No locations found. Try adjusting your search.
@@ -302,6 +351,7 @@ export function LocationAutocomplete({
 
     return (
       <ul className="max-h-60 overflow-y-auto py-1">
+        {onlineRow}
         {predictions.map((prediction) => (
           <li key={prediction.place_id}>
             <button
@@ -331,7 +381,15 @@ export function LocationAutocomplete({
         ))}
       </ul>
     );
-  }, [error, handlePredictionSelect, isOpen, loading, predictions]);
+  }, [
+    error,
+    handleOnlineSelect,
+    handlePredictionSelect,
+    isOpen,
+    loading,
+    predictions,
+    showOnlineOption,
+  ]);
 
   return (
     <div className="relative" ref={containerRef}>
@@ -343,7 +401,7 @@ export function LocationAutocomplete({
         autoComplete="off"
         className={className}
         onFocus={() => {
-          if (predictions.length > 0) {
+          if (allowOnline || predictions.length > 0) {
             setIsOpen(true);
           }
         }}

@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { getDisplayText } from "@/lib/text-utils";
 import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
+import { parseNumericCompensation } from "@/lib/opportunities/compensation";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -122,13 +123,6 @@ export function validateOpportunityCreate(
     return fail("Invalid Time", "Please enter a valid start date and time.");
   }
 
-  if (!form.location.trim()) {
-    return fail(
-      "Location Required",
-      "Please choose a location for this opportunity."
-    );
-  }
-
   return null;
 }
 
@@ -213,9 +207,8 @@ export async function createOpportunity(
     user.email ?? undefined
   );
 
-  const paymentAmount = form.pay
-    ? parseFloat(form.pay.replace(/[£,]/g, ""))
-    : null;
+  const paymentAmount = parseNumericCompensation(form.pay);
+  const compensation = form.pay.trim() || null;
 
   const genreValue =
     selectedGenres.length > 0
@@ -235,7 +228,8 @@ export async function createOpportunity(
   const insertPayload: TablesInsert<"opportunities"> = {
     title: form.title.trim(),
     description: processedDescription,
-    location: form.location.trim(),
+    location: form.location.trim() || "",
+    compensation,
     event_date: eventStart.toISOString(),
     event_end_time: eventEnd ? eventEnd.toISOString() : null,
     payment: paymentAmount,
@@ -262,9 +256,13 @@ export async function createOpportunity(
     (message.includes("does not exist") ||
       message.includes("listing_status") ||
       message.includes("website") ||
-      message.includes("additional_info"));
+      message.includes("additional_info") ||
+      message.includes("compensation"));
 
   if (error && isMissingColumn(error.message)) {
+    if (error.message?.includes("compensation")) {
+      delete insertPayload.compensation;
+    }
     if (error.message?.includes("website")) {
       delete insertPayload.website;
     }

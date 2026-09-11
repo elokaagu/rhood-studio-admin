@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatTimeRange } from "@/lib/date-utils";
 import { getCurrentUserId, getCurrentUserProfile } from "@/lib/auth-utils";
+import { formatCompensationDisplay } from "@/lib/opportunities/compensation";
 
 export type OpportunityDetailView = {
   id: string;
@@ -55,6 +56,7 @@ type OpportunityRow = {
   event_date: string | null;
   event_end_time: string | null;
   payment: number | null;
+  compensation?: string | null;
   genre: string | null;
   description: string;
   skill_level: string | null;
@@ -172,7 +174,7 @@ export async function fetchOpportunityDetails(
       ? `${formatDate(row.event_date)}${row.event_end_time ? "" : " – Ongoing"}`
       : "Unknown",
     timeRange: formatTimeRange(row.event_date, row.event_end_time),
-    pay: row.payment != null ? `£${row.payment}` : "N/A",
+    pay: formatCompensationDisplay(row.compensation, row.payment) || "N/A",
     applicants: applicantCount,
     displayStatus: displayStatusFromRow(row),
     is_archived: row.is_archived ?? false,

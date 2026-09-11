@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 import { googleMapsSearchUrl } from "@/lib/maps";
+import { isMappableLocation } from "@/lib/opportunities/location";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -20,7 +21,7 @@ export function GoogleMapsLink({
   showIcon = true,
   children,
 }: Props) {
-  if (!address.trim()) return null;
+  if (!isMappableLocation(address)) return null;
 
   return (
     <a

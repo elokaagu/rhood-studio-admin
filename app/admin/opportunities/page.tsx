@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatTimeRange } from "@/lib/date-utils";
 import Image from "next/image";
 import { GoogleMapsLink } from "@/components/google-maps-link";
+import { formatCompensationDisplay } from "@/lib/opportunities/compensation";
+import { isMappableLocation } from "@/lib/opportunities/location";
 import {
   fetchAdminOpportunitiesList,
   paySortValue,
@@ -722,20 +724,23 @@ export default function OpportunitiesPage() {
                       </div>
                       <div className="flex items-center">
                         <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        {opportunity.location ? (
+                        {isMappableLocation(opportunity.location) ? (
                           <GoogleMapsLink
                             address={opportunity.location}
                             className="text-xs sm:text-sm text-muted-foreground hover:text-brand-green max-w-[220px]"
                           />
                         ) : (
-                          <span className="truncate">—</span>
+                          <span className="truncate">
+                            {opportunity.location?.trim() || "—"}
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center">
                         <span className="truncate">
-                          {opportunity.payment != null
-                            ? `£${opportunity.payment}`
-                            : "—"}
+                          {formatCompensationDisplay(
+                            opportunity.compensation,
+                            opportunity.payment
+                          ) || "—"}
                         </span>
                       </div>
                     </div>

@@ -633,6 +633,7 @@ export type Database = {
           is_archived: boolean | null;
           listing_status: string | null;
           location: string;
+          compensation: string | null;
           organizer_id: string | null;
           organizer_name: string;
           payment: number | null;
@@ -654,7 +655,8 @@ export type Database = {
           is_active?: boolean | null;
           is_archived?: boolean | null;
           listing_status?: string | null;
-          location: string;
+          location?: string | null;
+          compensation?: string | null;
           organizer_id?: string | null;
           organizer_name: string;
           payment?: number | null;
@@ -676,7 +678,8 @@ export type Database = {
           is_active?: boolean | null;
           is_archived?: boolean | null;
           listing_status?: string | null;
-          location?: string;
+          location?: string | null;
+          compensation?: string | null;
           organizer_id?: string | null;
           organizer_name?: string;
           payment?: number | null;

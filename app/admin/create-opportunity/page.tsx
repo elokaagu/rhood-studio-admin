@@ -475,7 +475,7 @@ export default function CreateOpportunityPage() {
                   </Label>
                   <LocationAutocomplete
                     id="location"
-                    placeholder="Search for a venue or address"
+                    placeholder="Search for a venue, address, or Online"
                     value={formData.location}
                     onValueChange={(locationValue) =>
                       setFormData((previous) => ({
@@ -494,17 +494,16 @@ export default function CreateOpportunityPage() {
                     }
                     className="bg-secondary border-border text-foreground"
                     country="gb"
-                    required
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="pay" className="text-foreground flex items-center">
-                    Pay Range
+                    Compensation
                   </Label>
                   <Input
                     id="pay"
-                    placeholder="e.g., £200-400"
+                    placeholder="e.g. Free, 0, £200, or drinks + travel"
                     value={formData.pay}
                     onChange={(e) =>
                       setFormData({ ...formData, pay: e.target.value })

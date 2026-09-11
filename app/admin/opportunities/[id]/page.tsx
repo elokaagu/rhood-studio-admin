@@ -13,6 +13,7 @@ import { BriefRenderer } from "@/components/ui/brief-renderer";
 import Image from "next/image";
 import { GoogleMapsLink } from "@/components/google-maps-link";
 import { parseGenres } from "@/lib/opportunities/genres";
+import { isMappableLocation } from "@/lib/opportunities/location";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -434,16 +435,16 @@ export default function OpportunityDetailsPage() {
                     {opportunity.timeRange || "TBC"}
                   </MetaCell>
                   <MetaCell icon={MapPin} label="Location">
-                    {opportunity.location ? (
+                    {isMappableLocation(opportunity.location) ? (
                       <GoogleMapsLink
                         address={opportunity.location}
                         className="text-sm text-foreground hover:text-brand-green"
                       />
                     ) : (
-                      "—"
+                      opportunity.location?.trim() || "—"
                     )}
                   </MetaCell>
-                  <MetaCell icon={Banknote} label="Fee">
+                  <MetaCell icon={Banknote} label="Compensation">
                     <span
                       className={
                         feeLabel === "TBC" ? "text-muted-foreground" : undefined

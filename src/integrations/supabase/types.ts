@@ -777,6 +777,7 @@ export type Database = {
           id: string;
           instagram: string | null;
           invite_code_used: string | null;
+          is_verified: boolean | null;
           last_name: string;
           membership_reviewed_at: string | null;
           membership_reviewed_by: string | null;
@@ -803,6 +804,7 @@ export type Database = {
           id?: string;
           instagram?: string | null;
           invite_code_used?: string | null;
+          is_verified?: boolean | null;
           last_name: string;
           membership_reviewed_at?: string | null;
           membership_reviewed_by?: string | null;
@@ -829,6 +831,7 @@ export type Database = {
           id?: string;
           instagram?: string | null;
           invite_code_used?: string | null;
+          is_verified?: boolean | null;
           last_name?: string;
           membership_reviewed_at?: string | null;
           membership_reviewed_by?: string | null;

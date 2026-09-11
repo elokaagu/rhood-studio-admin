@@ -51,6 +51,17 @@ function hasJoinedPlatform(user: {
   return user.membership_status === "approved" || user.is_verified === true;
 }
 
+type RecentUserRow = {
+  id: string;
+  dj_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  created_at: string | null;
+  membership_status?: string | null;
+  is_verified?: boolean | null;
+  role?: string | null;
+};
+
 function toEventDateLabel(iso: string): string {
   const eventDate = new Date(iso);
   const now = new Date();
@@ -189,14 +200,14 @@ export async function getDashboardData(viewer: ViewerContext): Promise<Dashboard
     );
   }
 
-  let recentUsers = recentUsersRes.data;
+  let recentUsers: RecentUserRow[] | null = (recentUsersRes.data ?? null) as RecentUserRow[] | null;
   if (isAdmin && recentUsersRes.error) {
     const fallback = await supabase
       .from("user_profiles")
       .select("id, dj_name, first_name, last_name, created_at, role")
       .order("created_at", { ascending: false })
       .limit(2);
-    recentUsers = fallback.data;
+    recentUsers = (fallback.data ?? null) as RecentUserRow[] | null;
   }
 
   const activities: ActivityItem[] = [];
@@ -227,15 +238,7 @@ export async function getDashboardData(viewer: ViewerContext): Promise<Dashboard
     });
   }
 
-  const users = (recentUsers ?? []) as Array<{
-    created_at: string | null;
-    dj_name: string | null;
-    first_name?: string | null;
-    last_name?: string | null;
-    membership_status?: string | null;
-    is_verified?: boolean | null;
-    role?: string | null;
-  }>;
+  const users = recentUsers ?? [];
   for (const user of users) {
     if (!user.created_at) continue;
     const name = toActivityName(user);

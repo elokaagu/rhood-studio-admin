@@ -30,6 +30,7 @@ type RawProfile = {
   city?: string | null;
   location?: string | null;
   genres?: string[] | null;
+  email?: string | null;
 };
 type RawOpportunity = { title?: string | null };
 type RawForm = { title?: string | null };
@@ -380,6 +381,7 @@ function mapSimpleApplication(app: RawSimpleApplication): ApplicationListItem {
       avatar: "/person1.jpg",
       location: app.user_profiles?.city || app.user_profiles?.location || "Unknown",
       genres: app.user_profiles?.genres || [],
+      email: app.user_profiles?.email || null,
     },
     opportunity: app.opportunities?.title || "Unknown Opportunity",
     opportunityId: app.opportunity_id || null,
@@ -405,6 +407,7 @@ function mapFormResponse(response: RawFormResponse): ApplicationListItem {
       avatar: "/person1.jpg",
       location: response.user_profiles?.city || response.user_profiles?.location || "Unknown",
       genres: response.user_profiles?.genres || [],
+      email: response.user_profiles?.email || null,
     },
     opportunity:
       response.opportunities?.title ||
@@ -489,6 +492,7 @@ export async function listPortalApplications(
           first_name: p.first_name,
           city: p.city,
           genres: p.genres,
+          email: p.email,
         });
       }
     }

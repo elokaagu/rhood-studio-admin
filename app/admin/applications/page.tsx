@@ -15,7 +15,10 @@ import {
 } from "@/components/ui/select";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
-import { createApplicationStatusNotification } from "@/lib/notifications";
+import {
+  createApplicationStatusNotification,
+  notifyApplicantOfApprovedApplication,
+} from "@/lib/notifications";
 import {
   completeGigAndRateDj,
   listPortalApplications,
@@ -194,6 +197,20 @@ function ApplicationsContent() {
           );
         } catch {
           // Keep status update success even if downstream effects fail.
+        }
+      }
+
+      if (status === "approved") {
+        try {
+          await notifyApplicantOfApprovedApplication({
+            email: application.applicant.email,
+            applicantName:
+              application.applicant.djName || application.applicant.name,
+            opportunityTitle: application.opportunity,
+            userId: application.userId,
+          });
+        } catch {
+          // Email is best-effort.
         }
       }
 

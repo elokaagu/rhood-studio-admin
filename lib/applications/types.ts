@@ -50,6 +50,7 @@ export interface ApplicationListApplicant {
   avatar: string;
   location: string;
   genres: string[];
+  email?: string | null;
 }
 
 export interface ApplicationListItem {

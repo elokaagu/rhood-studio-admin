@@ -1,7 +1,11 @@
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { emailLogoBlock } from "@/lib/email/branding";
-import { getPortalBaseUrl } from "@/lib/portal-url";
+import {
+  emailLogoBlock,
+  emailAppStoreButtons,
+  emailAppStorePlainText,
+} from "@/lib/email/branding";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFromAddress =
@@ -12,30 +16,80 @@ interface ApplicationDecisionPayload {
   applicantName?: string | null;
   status?: string;
   opportunityTitle?: string;
+  userId?: string | null;
 }
 
-// Email validation helper
 function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// Sanitize email address
 function sanitizeEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function serviceClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+async function resolveRecipientEmail(
+  email: string | undefined,
+  userId: string | undefined
+): Promise<string | null> {
+  const provided = email?.trim();
+  if (provided && isValidEmail(provided) && provided.toLowerCase() !== "unknown") {
+    return sanitizeEmail(provided);
+  }
+
+  if (!userId) return null;
+
+  const supabase = serviceClient();
+  if (!supabase) return null;
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("email")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const profileEmail = profile?.email?.trim();
+  if (profileEmail && isValidEmail(profileEmail)) {
+    return sanitizeEmail(profileEmail);
+  }
+
+  const { data: authUser, error } = await supabase.auth.admin.getUserById(userId);
+  if (error) {
+    console.warn("[Resend] Auth email lookup failed:", error.message);
+    return null;
+  }
+
+  const authEmail = authUser.user?.email?.trim();
+  if (authEmail && isValidEmail(authEmail)) {
+    return sanitizeEmail(authEmail);
+  }
+
+  return null;
 }
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ApplicationDecisionPayload;
 
-    // Validate required fields
-    if (!body.email || !body.status || !body.opportunityTitle) {
+    if (!body.status || !body.opportunityTitle) {
       return NextResponse.json(
         {
           error: "Missing required fields",
           details: {
-            email: !body.email ? "Email is required" : undefined,
             status: !body.status ? "Status is required" : undefined,
             opportunityTitle: !body.opportunityTitle
               ? "Opportunity title is required"
@@ -46,16 +100,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate email format
-    const sanitizedEmail = sanitizeEmail(body.email);
-    if (!isValidEmail(sanitizedEmail)) {
-      return NextResponse.json(
-        { error: "Invalid email address format" },
-        { status: 400 }
-      );
-    }
-
-    // Validate status
     if (body.status !== "approved" && body.status !== "rejected") {
       return NextResponse.json(
         { error: "Status must be either 'approved' or 'rejected'" },
@@ -63,7 +107,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check Resend API key
+    const sanitizedEmail = await resolveRecipientEmail(
+      body.email,
+      body.userId?.trim() || undefined
+    );
+    if (!sanitizedEmail) {
+      return NextResponse.json(
+        { error: "A valid applicant email or userId is required" },
+        { status: 400 }
+      );
+    }
+
     if (!resendApiKey) {
       console.error(
         "[Resend] RESEND_API_KEY is not configured in environment variables"
@@ -77,39 +131,33 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate API key format (Resend keys start with 're_')
     if (!resendApiKey.startsWith("re_")) {
       console.warn(
         "[Resend] RESEND_API_KEY format appears invalid (should start with 're_')"
       );
     }
 
-    // Initialize Resend client
     const resend = new Resend(resendApiKey);
-
-    // Prepare email content
     const firstName = body.applicantName?.trim().split(" ")[0] || "there";
-    const subject =
-      body.status === "approved"
-        ? `Congrats! You're booked for ${body.opportunityTitle}!`
-        : `Update on ${body.opportunityTitle}`;
-    const heroHeading =
-      body.status === "approved"
-        ? "You've been selected!"
-        : "Thanks for applying";
-    const bodyCopy =
-      body.status === "approved"
-        ? `Fantastic news – the team behind "${body.opportunityTitle}" would love to work with you. Log in to the Portal to review the details and confirm next steps.`
-        : `Thanks for putting yourself forward for "${body.opportunityTitle}". The organiser went in a different direction this time, but we'd love to see you pitch again.`;
-
-    const ctaLabel =
-      body.status === "approved" ? "Open the Portal" : "Find more gigs";
-    const previewText =
-      body.status === "approved"
-        ? "You've been booked – view the opportunity in the Portal"
-        : "You're still on our radar – check other live gigs.";
-
-    const portalUrl = getPortalBaseUrl();
+    const safeName = escapeHtml(firstName);
+    const safeTitle = escapeHtml(body.opportunityTitle);
+    const approved = body.status === "approved";
+    const subject = approved
+      ? `Your application for ${body.opportunityTitle} was approved`
+      : `Update on ${body.opportunityTitle}`;
+    const heroHeading = approved ? "You've been selected!" : "Thanks for applying";
+    const bodyCopy = approved
+      ? `Great news — your application for "${safeTitle}" has been approved. Open the R/HOOD app to see the opportunity and next steps.`
+      : `Thanks for putting yourself forward for "${safeTitle}". The organiser went in a different direction this time, but we'd love to see you apply again.`;
+    const plainBodyCopy = approved
+      ? `Great news — your application for "${body.opportunityTitle}" has been approved. Open the R/HOOD app to see the opportunity and next steps.`
+      : `Thanks for putting yourself forward for "${body.opportunityTitle}". The organiser went in a different direction this time, but we'd love to see you apply again.`;
+    const ctaLabel = approved
+      ? "View in the R/HOOD app"
+      : "Find more gigs in the app";
+    const previewText = approved
+      ? "Your application was approved — view it in the R/HOOD app"
+      : "You're still on our radar — check other live gigs in the app.";
 
     const html = `
       <table style="width:100%;background-color:#0f0f0f;padding:32px 0;font-family:Helvetica,Arial,sans-serif;color:#ffffff;">
@@ -122,20 +170,18 @@ export async function POST(request: Request) {
               </tr>
               <tr>
                 <td style="padding-top:16px;font-size:16px;line-height:1.6;color:#dddddd;">
-                  Hey ${firstName},<br/><br/>${bodyCopy}
+                  Hey ${safeName},<br/><br/>${bodyCopy}
                 </td>
               </tr>
               <tr>
                 <td style="padding-top:32px;">
-                  <a href="${portalUrl}" style="display:inline-block;padding:14px 28px;background-color:#c2cc06;color:#1d1d1b;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;">${ctaLabel}</a>
+                  ${emailAppStoreButtons(ctaLabel)}
                 </td>
               </tr>
               <tr>
                 <td style="padding-top:28px;font-size:13px;line-height:1.6;color:#9e9e9e;">
-                  This notification was sent because your application for <strong>${
-                    body.opportunityTitle
-                  }</strong> was marked as ${body.status}.<br/>
-                  Need help? Reply to this email or contact the R/HOOD team in the Portal.
+                  This notification was sent because your application for <strong>${safeTitle}</strong> was marked as ${body.status}.<br/>
+                  Open the R/HOOD app on your phone for the latest updates. Need help? Reply to this email.
                 </td>
               </tr>
             </table>
@@ -151,9 +197,8 @@ export async function POST(request: Request) {
       </table>
     `;
 
-    const text = `Hey ${firstName},\n\n${bodyCopy}\n\nSign in to the Portal for the latest updates: ${portalUrl}`;
+    const text = `Hey ${firstName},\n\n${plainBodyCopy}\n\n${emailAppStorePlainText(ctaLabel)}`;
 
-    // Send email via Resend
     const emailResponse = await resend.emails.send({
       from: defaultFromAddress,
       to: sanitizedEmail,
@@ -164,11 +209,10 @@ export async function POST(request: Request) {
         "X-Entity-Ref-ID": `${body.status}-${body.opportunityTitle}`
           .replace(/\s+/g, "-")
           .toLowerCase()
-          .substring(0, 50), // Limit header length
+          .substring(0, 50),
       },
     });
 
-    // Check for Resend API errors
     if (emailResponse.error) {
       console.error("[Resend] Email send failed:", emailResponse.error);
       return NextResponse.json(
@@ -181,7 +225,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Log successful send
     console.log(
       `[Resend] Application decision email sent successfully to ${sanitizedEmail} (${body.status})`
     );
@@ -193,14 +236,12 @@ export async function POST(request: Request) {
       to: sanitizedEmail,
     });
   } catch (error) {
-    // Handle different error types
     if (error instanceof Error) {
       console.error("[Resend] Error sending email:", {
         message: error.message,
         stack: error.stack,
       });
 
-      // Check for specific error patterns
       if (error.message.includes("API key")) {
         return NextResponse.json(
           {

@@ -15,10 +15,11 @@ export interface PushNotificationData {
 }
 
 export interface ApplicationDecisionEmailPayload {
-  email: string;
+  email?: string | null;
   applicantName?: string | null;
   status: "approved" | "rejected";
   opportunityTitle: string;
+  userId?: string | null;
 }
 
 /**
@@ -147,7 +148,7 @@ export async function sendPushNotification(
 export async function triggerApplicationDecisionEmail(
   payload: ApplicationDecisionEmailPayload
 ) {
-  if (!payload.email) return;
+  if (!payload.email && !payload.userId) return;
 
   try {
     if (typeof window === "undefined") {
@@ -185,6 +186,26 @@ export async function triggerApplicationDecisionEmail(
     console.error("Error triggering application decision email:", error);
     return { success: false, error };
   }
+}
+
+/** Best-effort email to the DJ after an opportunity application is approved. */
+export async function notifyApplicantOfApprovedApplication(payload: {
+  email?: string | null;
+  applicantName?: string | null;
+  opportunityTitle?: string | null;
+  userId?: string | null;
+}) {
+  const opportunityTitle = payload.opportunityTitle?.trim();
+  if (!opportunityTitle) return;
+  if (!payload.email && !payload.userId) return;
+
+  return triggerApplicationDecisionEmail({
+    email: payload.email,
+    applicantName: payload.applicantName,
+    status: "approved",
+    opportunityTitle,
+    userId: payload.userId,
+  });
 }
 
 /**

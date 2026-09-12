@@ -9,7 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { textStyles } from "@/lib/typography";
 import { getMixSharePath } from "@/lib/mixes/share-url";
 import { useToast } from "@/hooks/use-toast";
-import { createApplicationStatusNotification } from "@/lib/notifications";
+import {
+  createApplicationStatusNotification,
+  notifyApplicantOfApprovedApplication,
+} from "@/lib/notifications";
 import {
   Calendar,
   MapPin,
@@ -110,12 +113,29 @@ export default function ApplicationDetailsPage() {
       }
 
       if (application.userId && application.opportunity) {
-        await createApplicationStatusNotification(
-          application.userId,
-          applicationId,
-          nextStatus,
-          application.opportunity
-        );
+        try {
+          await createApplicationStatusNotification(
+            application.userId,
+            applicationId,
+            nextStatus,
+            application.opportunity
+          );
+        } catch {
+          // Keep status update success even if downstream effects fail.
+        }
+      }
+
+      if (nextStatus === "approved") {
+        try {
+          await notifyApplicantOfApprovedApplication({
+            email: application.applicant.email,
+            applicantName: application.applicant.name,
+            opportunityTitle: application.opportunity,
+            userId: application.userId,
+          });
+        } catch {
+          // Email is best-effort.
+        }
       }
 
       setApplication((prev: ApplicationDetails | null) =>

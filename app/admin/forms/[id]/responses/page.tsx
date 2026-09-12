@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyApplicantOfApprovedApplication } from "@/lib/notifications";
 import {
   ArrowLeft,
   CheckCircle,
@@ -204,6 +205,23 @@ export default function FormResponsesPage() {
             : response
         )
       );
+
+      if (newStatus === "approved") {
+        const response = responses.find((item) => item.id === responseId);
+        try {
+          await notifyApplicantOfApprovedApplication({
+            email: response?.user_profiles?.email,
+            applicantName:
+              response?.user_profiles?.dj_name ||
+              response?.user_profiles?.first_name,
+            opportunityTitle:
+              form?.opportunities?.title || form?.title || "this opportunity",
+            userId: response?.user_id,
+          });
+        } catch {
+          // Email is best-effort.
+        }
+      }
 
       toast({
         title: "Success",

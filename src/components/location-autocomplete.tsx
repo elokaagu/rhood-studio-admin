@@ -50,7 +50,8 @@ interface LocationAutocompleteProps
   onValueChange: (value: string) => void;
   onLocationSelect?: (selection: LocationSelection) => void;
   /**
-   * Optional ISO country code (e.g. "gb") to bias/autocomplete within a region.
+   * Optional ISO country code (e.g. "gb") to restrict results to one country.
+   * Omit for worldwide search.
    */
   country?: string;
   /**

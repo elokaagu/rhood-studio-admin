@@ -210,7 +210,6 @@ export default function BookDJPage() {
                   setSelectedLocation(selection.formattedAddress || selection.description)
                 }
                 className="h-10 bg-secondary border-border text-foreground"
-                country="gb"
               />
             </div>
 

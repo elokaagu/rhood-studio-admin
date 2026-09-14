@@ -274,7 +274,6 @@ export default function ScheduleEventPage() {
                       }))
                     }
                     className="bg-secondary border-border text-foreground"
-                    country="gb"
                   />
               </div>
             </div>

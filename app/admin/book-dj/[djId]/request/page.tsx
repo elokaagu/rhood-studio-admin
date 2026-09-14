@@ -380,7 +380,6 @@ export default function BookingRequestPage() {
                       }))
                     }
                     className="bg-secondary border-border text-foreground"
-                    country="gb"
                     required
                   />
                 </div>

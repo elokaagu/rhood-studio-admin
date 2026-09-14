@@ -545,7 +545,6 @@ export default function EditOpportunityPage() {
                       }))
                     }
                     className="bg-secondary border-border text-foreground"
-                    country="gb"
                   />
                 </div>
 

@@ -18,6 +18,10 @@ import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Save, X, Plus, ArrowLeft, FileText } from "lucide-react";
+import {
+  AutosaveStatusText,
+  useAutosaveDraft,
+} from "@/hooks/use-autosave-draft";
 
 interface FormField {
   clientId: string;
@@ -70,6 +74,19 @@ export default function CreateFormPage() {
   const [validationErrors, setValidationErrors] = useState<FormValidationError[]>(
     []
   );
+
+  const draftSnapshot = useMemo(
+    () => ({ formData, fields }),
+    [formData, fields]
+  );
+  const { status: autosaveStatus, clear: clearDraft } = useAutosaveDraft({
+    storageKey: "rhood-studio-draft:application-form-create",
+    value: draftSnapshot,
+    onRestore: (draft) => {
+      if (draft.formData) setFormData(draft.formData);
+      if (Array.isArray(draft.fields)) setFields(draft.fields);
+    },
+  });
 
   // Load opportunities on component mount
   React.useEffect(() => {
@@ -280,6 +297,7 @@ export default function CreateFormPage() {
         }
       }
 
+      clearDraft();
       toast({
         title: isActive ? "Success" : "Draft Saved",
         description: isActive
@@ -613,6 +631,7 @@ export default function CreateFormPage() {
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-4">
+          <AutosaveStatusText status={autosaveStatus} />
           <Button
             type="button"
             variant="outline"

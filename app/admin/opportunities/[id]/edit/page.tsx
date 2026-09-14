@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,10 @@ import {
   validateOpportunityForm,
   type OpportunityFormState,
 } from "@/lib/admin/opportunities/opportunity-edit";
+import {
+  AutosaveStatusText,
+  useAutosaveDraft,
+} from "@/hooks/use-autosave-draft";
 
 export default function EditOpportunityPage() {
   const params = useParams();
@@ -92,6 +96,22 @@ export default function EditOpportunityPage() {
     archived: false,
     noEndDate: false,
     website: "",
+  });
+
+  const draftSnapshot = useMemo(
+    () => ({ formData, selectedGenres }),
+    [formData, selectedGenres]
+  );
+  const { status: autosaveStatus, clear: clearDraft } = useAutosaveDraft({
+    storageKey: `rhood-studio-draft:opportunity-edit:${opportunityId}`,
+    value: draftSnapshot,
+    enabled: Boolean(opportunityId) && !isLoading && !loadError,
+    onRestore: (draft) => {
+      if (draft.formData) setFormData(draft.formData);
+      if (Array.isArray(draft.selectedGenres)) {
+        setSelectedGenres(draft.selectedGenres);
+      }
+    },
   });
 
   const fetchOpportunity = async () => {
@@ -184,6 +204,7 @@ export default function EditOpportunityPage() {
         throw new Error(saveResult.message);
       }
 
+      clearDraft();
       toast({
         title: mode === "publish" ? "Success" : "Draft Saved",
         description:
@@ -566,11 +587,13 @@ export default function EditOpportunityPage() {
                 <div className="space-y-2">
                   <Label htmlFor="website" className={`${textStyles.body.regular} flex items-center`}>
                     <Globe className="h-4 w-4 mr-2" />
-                    Website
+                    Website (optional)
                   </Label>
                   <Input
                     id="website"
-                    type="url"
+                    type="text"
+                    inputMode="url"
+                    autoComplete="url"
                     placeholder="https://your-event.com"
                     value={formData.website}
                     onChange={(e) =>
@@ -844,6 +867,7 @@ export default function EditOpportunityPage() {
 
         {/* Actions */}
         <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4 sm:space-x-4">
+          <AutosaveStatusText status={autosaveStatus} />
           <Button
             type="button"
             variant="outline"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,10 @@ import { getDisplayLength } from "@/lib/text-utils";
 import { getCurrentUserProfile } from "@/lib/auth-utils";
 import { checkCanPublishOpportunity } from "@/lib/brand/subscription";
 import { fetchBrandList, type BrandListItem } from "@/lib/brands/fetch-brand-list";
+import {
+  AutosaveStatusText,
+  useAutosaveDraft,
+} from "@/hooks/use-autosave-draft";
 
 export default function CreateOpportunityPage() {
   const router = useRouter();
@@ -88,6 +92,24 @@ export default function CreateOpportunityPage() {
   });
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+
+  const draftSnapshot = useMemo(
+    () => ({ formData, selectedGenres, selectedBrandId }),
+    [formData, selectedGenres, selectedBrandId]
+  );
+  const { status: autosaveStatus, clear: clearDraft } = useAutosaveDraft({
+    storageKey: "rhood-studio-draft:opportunity-create",
+    value: draftSnapshot,
+    onRestore: (draft) => {
+      if (draft.formData) setFormData(draft.formData);
+      if (Array.isArray(draft.selectedGenres)) {
+        setSelectedGenres(draft.selectedGenres);
+      }
+      if (typeof draft.selectedBrandId === "string") {
+        setSelectedBrandId(draft.selectedBrandId);
+      }
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,6 +295,7 @@ export default function CreateOpportunityPage() {
         return;
       }
 
+      clearDraft();
       toast({
         title: mode === "publish" ? "Success" : "Draft Saved",
         description:
@@ -517,11 +540,13 @@ export default function CreateOpportunityPage() {
                     className="text-foreground flex items-center"
                   >
                     <Globe className="h-4 w-4 mr-2" />
-                    Website
+                    Website (optional)
                   </Label>
                   <Input
                     id="website"
-                    type="url"
+                    type="text"
+                    inputMode="url"
+                    autoComplete="url"
                     placeholder="https://your-event.com"
                     value={formData.website}
                     onChange={(e) =>
@@ -762,6 +787,7 @@ export default function CreateOpportunityPage() {
 
         {/* Actions */}
         <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4 sm:space-x-4">
+          <AutosaveStatusText status={autosaveStatus} />
           <Button
             type="button"
             variant="outline"

@@ -18,6 +18,10 @@ import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Save, X, Plus, ArrowLeft, FileText } from "lucide-react";
+import {
+  AutosaveStatusText,
+  useAutosaveDraft,
+} from "@/hooks/use-autosave-draft";
 
 interface FormField {
   clientId: string;
@@ -77,6 +81,22 @@ export default function EditFormPage() {
   const [validationErrors, setValidationErrors] = useState<FormValidationError[]>(
     []
   );
+
+  const draftSnapshot = useMemo(
+    () => ({ formData, fields }),
+    [formData, fields]
+  );
+  const { status: autosaveStatus, clear: clearDraft } = useAutosaveDraft({
+    storageKey: formId
+      ? `rhood-studio-draft:application-form-edit:${formId}`
+      : "rhood-studio-draft:application-form-edit",
+    value: draftSnapshot,
+    enabled: Boolean(formId) && !isLoading && !loadError,
+    onRestore: (draft) => {
+      if (draft.formData) setFormData(draft.formData);
+      if (Array.isArray(draft.fields)) setFields(draft.fields);
+    },
+  });
 
   // Load form data and opportunities on component mount
   useEffect(() => {
@@ -381,6 +401,7 @@ export default function EditFormPage() {
         }
       }
 
+      clearDraft();
       toast({
         title: "Success",
         description: "Form updated successfully!",
@@ -750,6 +771,7 @@ export default function EditFormPage() {
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-4">
+          <AutosaveStatusText status={autosaveStatus} />
           <Button
             type="submit"
             className="bg-brand-green hover:bg-brand-green/90 text-brand-black"

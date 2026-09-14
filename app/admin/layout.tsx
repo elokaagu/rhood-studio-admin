@@ -193,7 +193,11 @@ function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border h-14">
-        <div className="flex items-center px-4 h-full">
+        <Link
+          href="/admin/dashboard"
+          className="flex items-center px-4 h-full hover:bg-accent/50 transition-colors"
+          aria-label="Go to dashboard"
+        >
           <Image
             src="/rhood_logo.webp"
             alt="R/HOOD Logo"
@@ -211,7 +215,7 @@ function AppSidebar() {
               <p className="text-xs text-muted-foreground">Portal</p>
             </div>
           )}
-        </div>
+        </Link>
       </SidebarHeader>
 
       <SidebarContent>
@@ -448,7 +452,11 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
           <header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-3 sm:px-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <SidebarTrigger className="h-8 w-8" />
-              <div className="flex items-center">
+              <Link
+                href="/admin/dashboard"
+                className="flex items-center"
+                aria-label="Go to dashboard"
+              >
                 <Image
                   src="/RHOOD_Lettering_Logo.png"
                   alt="R/HOOD"
@@ -460,7 +468,7 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
                   loading="eager"
                   priority={true}
                 />
-              </div>
+              </Link>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-3">
               <Badge

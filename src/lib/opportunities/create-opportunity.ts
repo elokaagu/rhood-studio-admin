@@ -3,6 +3,10 @@ import type { TablesInsert } from "@/integrations/supabase/types";
 import { getDisplayText } from "@/lib/text-utils";
 import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
 import { parseNumericCompensation } from "@/lib/opportunities/compensation";
+import {
+  parseLocalDateTime,
+  resolveEndAfterStart,
+} from "@/lib/opportunities/event-times";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -96,14 +100,14 @@ export function validateOpportunityCreate(
     );
   }
 
-  const eventStart = new Date(`${form.date}T${form.time}`);
+  const eventStart = parseLocalDateTime(form.date, form.time);
   let eventEnd: Date | null = null;
 
   if (!noEndDate) {
     if (form.dateType === "range") {
-      eventEnd = new Date(`${form.endDate}T${form.endTime}`);
+      eventEnd = parseLocalDateTime(form.endDate, form.endTime);
     } else {
-      eventEnd = new Date(`${form.date}T${form.endTime}`);
+      eventEnd = parseLocalDateTime(form.date, form.endTime);
     }
 
     if (isNaN(eventStart.getTime()) || !eventEnd || isNaN(eventEnd.getTime())) {
@@ -113,7 +117,9 @@ export function validateOpportunityCreate(
       );
     }
 
-    if (eventEnd <= eventStart) {
+    eventEnd = resolveEndAfterStart(eventStart, eventEnd);
+
+    if (eventEnd.getTime() <= eventStart.getTime()) {
       return fail(
         "Invalid Schedule",
         "Finish time must be after the start time."
@@ -151,14 +157,18 @@ export async function createOpportunity(
   const validationError = validateOpportunityCreate(form);
   if (validationError) return validationError;
 
-  const eventStart = new Date(`${form.date}T${form.time}`);
+  const eventStart = parseLocalDateTime(form.date, form.time);
   const noEndDate = form.dateType === "range" && !!form.noEndDate;
-  const eventEnd =
-    noEndDate
-      ? null
-      : form.dateType === "range"
-        ? new Date(`${form.endDate}T${form.endTime}`)
-        : new Date(`${form.date}T${form.endTime}`);
+  let eventEnd: Date | null = null;
+  if (!noEndDate) {
+    eventEnd =
+      form.dateType === "range"
+        ? parseLocalDateTime(form.endDate, form.endTime)
+        : parseLocalDateTime(form.date, form.endTime);
+    if (eventEnd && !isNaN(eventEnd.getTime())) {
+      eventEnd = resolveEndAfterStart(eventStart, eventEnd);
+    }
+  }
 
   const { error: tableCheckError } = await supabase
     .from("opportunities")

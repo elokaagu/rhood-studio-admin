@@ -1,5 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import {
+  parseLocalDateTime,
+  resolveEndAfterStart,
+} from "@/lib/opportunities/event-times";
 
 export type ScheduleFormState = {
   eventDate: string;
@@ -85,15 +89,14 @@ export function validateScheduleForm(
     };
   }
 
-  const eventStart = new Date(`${form.eventDate}T${form.startTime}`);
-  let eventEnd = new Date(`${form.eventDate}T${form.endTime}`);
+  const eventStart = parseLocalDateTime(form.eventDate, form.startTime);
+  const eventEnd = resolveEndAfterStart(
+    eventStart,
+    parseLocalDateTime(form.eventDate, form.endTime)
+  );
 
   if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
     return { ok: false, message: "Invalid date or time." };
-  }
-
-  if (eventEnd <= eventStart) {
-    eventEnd = new Date(eventEnd.getTime() + 24 * 60 * 60 * 1000);
   }
 
   if (form.capacity.trim()) {

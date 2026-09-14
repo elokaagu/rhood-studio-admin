@@ -66,6 +66,10 @@ import { textStyles } from "@/lib/typography";
 import type { UserRole } from "@/lib/auth-utils";
 import { StudioAgreementDialog } from "@/components/admin/brand/StudioAgreementDialog";
 import { BrandOnboardingTour } from "@/components/admin/brand/BrandOnboardingTour";
+import {
+  BrandProfilePhotoDialog,
+  photoPromptDismissKey,
+} from "@/components/admin/brand/BrandProfilePhotoDialog";
 
 const SIDEBAR_TOUR_IDS: Record<string, string> = {
   "/admin/dashboard": "nav-dashboard",
@@ -286,6 +290,7 @@ function AppSidebar() {
 
 function AdminLayoutShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
   const {
     displayName,
@@ -301,6 +306,7 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
     last_name: "",
   });
   const [tourActive, setTourActive] = useState(false);
+  const [photoPromptDismissed, setPhotoPromptDismissed] = useState(false);
 
   useEffect(() => {
     if (!accountSettingsOpen) return;
@@ -319,6 +325,20 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("rhood-start-tour", startTour);
     return () => window.removeEventListener("rhood-start-tour", startTour);
   }, []);
+
+  useEffect(() => {
+    if (role !== "brand" || !profile?.id) {
+      setPhotoPromptDismissed(false);
+      return;
+    }
+    try {
+      setPhotoPromptDismissed(
+        window.sessionStorage.getItem(photoPromptDismissKey(profile.id)) === "1"
+      );
+    } catch {
+      setPhotoPromptDismissed(false);
+    }
+  }, [role, profile?.id]);
 
   useEffect(() => {
     if (role !== "brand" || !profile?.id || !profile.studioOnboardingReady) return;
@@ -568,10 +588,45 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
           />
         )}
 
+      {role === "brand" &&
+        profile?.id &&
+        !profile.profile_image_url &&
+        !photoPromptDismissed &&
+        !(profile.studioOnboardingReady && !profile.studio_agreement_signed_at) &&
+        pathname !== "/admin/brand/profile" && (
+          <BrandProfilePhotoDialog
+            userId={profile.id}
+            brandName={profile.brand_name?.trim() || displayName}
+            open
+            onUploaded={() => {
+              void refresh();
+            }}
+            onDismiss={() => {
+              try {
+                window.sessionStorage.setItem(
+                  photoPromptDismissKey(profile.id),
+                  "1"
+                );
+              } catch {
+                /* ignore */
+              }
+              setPhotoPromptDismissed(true);
+            }}
+          />
+        )}
+
       {role === "brand" && profile?.id && (
         <BrandOnboardingTour
           userId={profile.id}
-          active={tourActive && !accountSettingsOpen}
+          active={
+            tourActive &&
+            !accountSettingsOpen &&
+            !(
+              !profile.profile_image_url &&
+              !photoPromptDismissed &&
+              pathname !== "/admin/brand/profile"
+            )
+          }
           onFinished={() => setTourActive(false)}
         />
       )}

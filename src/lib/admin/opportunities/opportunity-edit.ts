@@ -2,6 +2,11 @@ import { getDisplayText } from "@/lib/text-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
 import { parseNumericCompensation } from "@/lib/opportunities/compensation";
+import {
+  isOvernightSpan,
+  parseLocalDateTime,
+  resolveEndAfterStart,
+} from "@/lib/opportunities/event-times";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -68,7 +73,7 @@ export function validateOpportunityForm(
     };
   }
 
-  const eventStart = new Date(`${form.date}T${form.time}`);
+  const eventStart = parseLocalDateTime(form.date, form.time);
   if (isNaN(eventStart.getTime())) {
     return { ok: false, message: "Please enter a valid start date and time." };
   }
@@ -77,10 +82,10 @@ export function validateOpportunityForm(
     return { ok: true, eventStart, eventEnd: null };
   }
 
-  const eventEnd =
+  let eventEnd =
     form.dateType === "range"
-      ? new Date(`${form.endDate}T${form.endTime}`)
-      : new Date(`${form.date}T${form.endTime}`);
+      ? parseLocalDateTime(form.endDate, form.endTime)
+      : parseLocalDateTime(form.date, form.endTime);
 
   if (isNaN(eventEnd.getTime())) {
     return {
@@ -89,7 +94,9 @@ export function validateOpportunityForm(
     };
   }
 
-  if (eventEnd <= eventStart) {
+  eventEnd = resolveEndAfterStart(eventStart, eventEnd);
+
+  if (eventEnd.getTime() <= eventStart.getTime()) {
     return {
       ok: false,
       message: "Finish time must be after the start time.",
@@ -227,11 +234,18 @@ export function opportunityRowToFormState(
   const endDateStr = eventEnd ? eventEnd.toISOString().split("T")[0] : "";
 
   const noEndDate = !!eventDate && !eventEnd;
+  const overnight =
+    !!eventDate &&
+    !!eventEnd &&
+    !isNaN(eventDate.getTime()) &&
+    !isNaN(eventEnd.getTime()) &&
+    isOvernightSpan(eventDate, eventEnd);
   const isRange =
     noEndDate ||
     (!!eventDate &&
       !!eventEnd &&
       dateStr !== endDateStr &&
+      !overnight &&
       !isNaN(eventDate.getTime()) &&
       !isNaN(eventEnd.getTime()));
 

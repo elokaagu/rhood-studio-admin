@@ -1,6 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId } from "@/lib/auth-utils";
 import { createNotification } from "@/lib/notifications";
+import {
+  parseLocalDateTime,
+  resolveEndAfterStart,
+} from "@/lib/opportunities/event-times";
 import type {
   BookingRequestFormData,
   BrandContextForBooking,
@@ -64,14 +68,17 @@ export async function createBookingRequestWithNotifications(params: {
     return fail("Authentication Error", "Please log in to submit a booking request.");
   }
 
-  const eventStart = new Date(`${formData.event_date}T${formData.event_time}`);
-  const eventEnd = new Date(`${formData.event_date}T${formData.event_end_time}`);
+  const eventStart = parseLocalDateTime(formData.event_date, formData.event_time);
+  const eventEnd = resolveEndAfterStart(
+    eventStart,
+    parseLocalDateTime(formData.event_date, formData.event_end_time)
+  );
 
   if (Number.isNaN(eventStart.getTime()) || Number.isNaN(eventEnd.getTime())) {
     return fail("Invalid Time", "Please enter valid start and end times.");
   }
 
-  if (eventEnd <= eventStart) {
+  if (eventEnd.getTime() <= eventStart.getTime()) {
     return fail("Invalid Schedule", "End time must be after start time.");
   }
 

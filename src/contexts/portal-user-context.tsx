@@ -21,6 +21,7 @@ export type PortalProfileSnapshot = {
   dj_name: string;
   brand_name: string | null;
   credits: number;
+  profile_image_url: string | null;
   studio_agreement_signed_at: string | null;
   studio_tour_completed_at: string | null;
   /** False when the onboarding columns are not in the live schema yet. */
@@ -78,6 +79,7 @@ type UserProfilesRow = {
   dj_name: string | null;
   brand_name: string | null;
   credits?: number | null;
+  profile_image_url?: string | null;
   studio_agreement_signed_at?: string | null;
   studio_tour_completed_at?: string | null;
   studioOnboardingReady?: boolean;
@@ -98,6 +100,7 @@ function rowToSnapshot(row: UserProfilesRow): PortalProfileSnapshot {
     dj_name: row.dj_name ?? "",
     brand_name: row.brand_name ?? null,
     credits,
+    profile_image_url: row.profile_image_url?.trim() || null,
     studio_agreement_signed_at: row.studio_agreement_signed_at ?? null,
     studio_tour_completed_at: row.studio_tour_completed_at ?? null,
     studioOnboardingReady: row.studioOnboardingReady ?? false,
@@ -132,7 +135,7 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
       const { data: row, error: profileError } = await supabase
         .from("user_profiles")
         .select(
-          "id, role, first_name, last_name, dj_name, brand_name, studio_agreement_signed_at, studio_tour_completed_at"
+          "id, role, first_name, last_name, dj_name, brand_name, profile_image_url, studio_agreement_signed_at, studio_tour_completed_at"
         )
         .eq("id", user.id)
         .maybeSingle();
@@ -141,7 +144,7 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
         if (profileError.message?.includes("studio_")) {
           const fallback = await supabase
             .from("user_profiles")
-            .select("id, role, first_name, last_name, dj_name, brand_name")
+            .select("id, role, first_name, last_name, dj_name, brand_name, profile_image_url")
             .eq("id", user.id)
             .maybeSingle();
           if (fallback.error) {
@@ -164,6 +167,7 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
               last_name: fallback.data.last_name,
               dj_name: fallback.data.dj_name,
               brand_name: fallback.data.brand_name,
+              profile_image_url: fallback.data.profile_image_url,
               credits: 0,
               studio_agreement_signed_at: stored?.signed_at ?? null,
               studio_tour_completed_at: stored?.tour_completed_at ?? null,
@@ -231,6 +235,9 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
           last_name: row.last_name,
           dj_name: row.dj_name,
           brand_name: row.brand_name,
+          profile_image_url: (
+            row as { profile_image_url?: string | null }
+          ).profile_image_url ?? null,
           credits,
           studio_agreement_signed_at: signedAt,
           studio_tour_completed_at: tourCompletedAt,

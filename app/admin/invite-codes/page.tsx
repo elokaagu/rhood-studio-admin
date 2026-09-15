@@ -18,6 +18,7 @@ import {
   Trash2,
   Share2,
   Info,
+  Pencil,
 } from "lucide-react";
 import {
   Dialog,
@@ -58,6 +59,9 @@ export default function InviteCodesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [savingNameId, setSavingNameId] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formData, setFormData] = useState({
@@ -257,6 +261,78 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
     }
   };
 
+  const startRename = (code: InviteCodeItem) => {
+    setEditingId(code.id);
+    setEditingName(code.brand_name ?? "");
+  };
+
+  const handleSaveName = async (code: InviteCodeItem) => {
+    const nextName = editingName.trim();
+    if (!isDjCode(code) && !nextName) {
+      toast({
+        title: "Brand name required",
+        description: "Enter a brand name for this invite code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingNameId(code.id);
+    try {
+      const { error } = await supabase
+        .from("invite_codes")
+        .update({ brand_name: nextName || null })
+        .eq("id", code.id);
+
+      if (error) {
+        throw error;
+      }
+
+      if (!isDjCode(code) && code.used_by && nextName) {
+        const { error: profileError } = await supabase
+          .from("user_profiles")
+          .update({ brand_name: nextName })
+          .eq("id", code.used_by);
+
+        if (profileError) {
+          setInviteCodes((prev) =>
+            prev.map((item) =>
+              item.id === code.id ? { ...item, brand_name: nextName } : item
+            )
+          );
+          setEditingId(null);
+          toast({
+            title: "Invite name updated",
+            description:
+              "The invite code was renamed, but the brand profile name could not be changed.",
+          });
+          return;
+        }
+      }
+
+      setInviteCodes((prev) =>
+        prev.map((item) =>
+          item.id === code.id ? { ...item, brand_name: nextName || null } : item
+        )
+      );
+      setEditingId(null);
+      toast({
+        title: isDjCode(code) ? "Label updated" : "Brand name updated",
+        description: isDjCode(code)
+          ? "The DJ invite label has been saved."
+          : "The brand name on this invite code has been saved.",
+      });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update the name.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingNameId(null);
+    }
+  };
+
   const handleDeactivateCode = async (codeId: string) => {
     setDeactivatingId(codeId);
     try {
@@ -410,14 +486,69 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
                     </div>
 
                     <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
-                      <p>
-                        <span className="font-semibold">
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold pt-0.5">
                           {isDjCode(code) ? "Label:" : "Brand:"}
-                        </span>{" "}
-                        <span className="truncate block sm:inline">
-                          {code.brand_name || (isDjCode(code) ? "DJ invite" : "—")}
                         </span>
-                      </p>
+                        {editingId === code.id ? (
+                          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                            <Input
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  void handleSaveName(code);
+                                }
+                                if (e.key === "Escape") {
+                                  setEditingId(null);
+                                }
+                              }}
+                              placeholder={
+                                isDjCode(code) ? "e.g. Warehouse sessions" : "e.g. Nike"
+                              }
+                              autoFocus
+                              className="h-8 max-w-xs bg-secondary border-border text-foreground"
+                              aria-label={isDjCode(code) ? "DJ invite label" : "Brand name"}
+                            />
+                            <Button
+                              size="sm"
+                              className="h-8 bg-brand-green text-brand-black hover:bg-brand-green/90"
+                              onClick={() => void handleSaveName(code)}
+                              disabled={savingNameId === code.id}
+                            >
+                              {savingNameId === code.id ? "Saving…" : "Save"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8"
+                              onClick={() => setEditingId(null)}
+                              disabled={savingNameId === code.id}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <span className="truncate">
+                              {code.brand_name || (isDjCode(code) ? "DJ invite" : "—")}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                              onClick={() => startRename(code)}
+                              aria-label={
+                                isDjCode(code) ? "Edit DJ invite label" : "Edit brand name"
+                              }
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                       <p>
                         <span className="font-semibold">Created:</span>{" "}
                         {formatDate(code.created_at)}

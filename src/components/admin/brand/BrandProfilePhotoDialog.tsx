@@ -72,7 +72,8 @@ export function BrandProfilePhotoDialog({
           <DialogTitle>Add your brand logo</DialogTitle>
           <DialogDescription>
             {brandName} does not have a profile photo yet. DJs see this on
-            opportunities, booking requests, and your Studio profile.
+            opportunities, booking requests, and your Studio profile. Square
+            logo files are best.
           </DialogDescription>
         </DialogHeader>
 
@@ -101,7 +102,7 @@ export function BrandProfilePhotoDialog({
           }}
         />
         <p className="text-center text-xs text-muted-foreground">
-          JPEG, PNG, or WebP. Square works best.
+          JPEG, PNG, or WebP. Square logo files are best.
         </p>
 
         <DialogFooter className="sm:justify-between">

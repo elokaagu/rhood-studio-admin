@@ -105,6 +105,9 @@ function BrandAvatar({
           void handleFile(file);
         }}
       />
+      <p className="mt-2 max-w-[6.5rem] sm:max-w-[7rem] text-[11px] leading-tight text-muted-foreground">
+        Square logo files are best
+      </p>
     </div>
   );
 }

@@ -27,7 +27,7 @@ export const BRAND_TOUR_STEPS: BrandTourStep[] = [
   {
     id: "profile",
     title: "Brand Profile",
-    body: "Add your logo, description, and website so DJs know who they are working with. Click the square logo to upload an image.",
+    body: "Add your logo, description, and website so DJs know who they are working with. Click the square logo to upload an image — square logo files are best.",
     selector: '[data-tour="nav-brand-profile"]',
   },
   {

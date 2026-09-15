@@ -241,6 +241,7 @@ export async function createOpportunity(
     location: form.location.trim() || "",
     compensation,
     event_date: eventStart.toISOString(),
+    event_start_time: eventStart.toISOString(),
     event_end_time: eventEnd ? eventEnd.toISOString() : null,
     payment: paymentAmount,
     genre: genreValue,
@@ -267,7 +268,8 @@ export async function createOpportunity(
       message.includes("listing_status") ||
       message.includes("website") ||
       message.includes("additional_info") ||
-      message.includes("compensation"));
+      message.includes("compensation") ||
+      message.includes("event_start_time"));
 
   if (error && isMissingColumn(error.message)) {
     if (error.message?.includes("compensation")) {
@@ -278,6 +280,9 @@ export async function createOpportunity(
     }
     if (error.message?.includes("additional_info")) {
       delete insertPayload.additional_info;
+    }
+    if (error.message?.includes("event_start_time")) {
+      delete insertPayload.event_start_time;
     }
     if (error.message?.includes("listing_status")) {
       delete insertPayload.listing_status;

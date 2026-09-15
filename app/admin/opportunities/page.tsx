@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate, formatTimeRange } from "@/lib/date-utils";
+import { formatDate, formatOpportunityClock } from "@/lib/date-utils";
 import Image from "next/image";
 import { GoogleMapsLink } from "@/components/google-maps-link";
 import { formatCompensationDisplay } from "@/lib/opportunities/compensation";
@@ -716,7 +716,7 @@ export default function OpportunitiesPage() {
                       <div className="flex items-center">
                         <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span className="truncate">
-                          {formatTimeRange(
+                          {formatOpportunityClock(
                             opportunity.event_date,
                             opportunity.event_end_time
                           )}

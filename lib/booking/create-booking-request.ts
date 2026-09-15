@@ -177,3 +177,36 @@ export async function createBookingRequestWithNotifications(params: {
 
   return { ok: true, bookingRequestId };
 }
+
+export async function sendBookingRequestsToDjs(params: {
+  djProfiles: DjProfileForBooking[];
+  formData: BookingRequestFormData;
+  brandContext: BrandContextForBooking | null;
+}): Promise<{ sent: number; failed: number; lastError?: string }> {
+  let sent = 0;
+  let failed = 0;
+  let lastError: string | undefined;
+
+  for (const djProfile of params.djProfiles) {
+    try {
+      const result = await createBookingRequestWithNotifications({
+        djId: djProfile.id,
+        formData: params.formData,
+        djProfile,
+        brandContext: params.brandContext,
+      });
+      if (result.ok) {
+        sent += 1;
+      } else {
+        failed += 1;
+        lastError = result.message;
+      }
+    } catch (error) {
+      failed += 1;
+      lastError =
+        error instanceof Error ? error.message : "Failed to send booking request.";
+    }
+  }
+
+  return { sent, failed, lastError };
+}

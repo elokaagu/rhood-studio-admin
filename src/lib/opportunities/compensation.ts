@@ -4,10 +4,18 @@ export function parseNumericCompensation(raw: string): number | null {
   if (/^free$/i.test(trimmed)) return 0;
 
   const stripped = trimmed.replace(/^[£$€]\s*/, "").replace(/,/g, "");
-  if (!/^-?\d+(\.\d+)?$/.test(stripped)) return null;
+  if (/^-?\d+(\.\d+)?$/.test(stripped)) {
+    const value = Number(stripped);
+    return Number.isFinite(value) ? value : null;
+  }
 
-  const value = Number(stripped);
-  return Number.isFinite(value) ? value : null;
+  const embedded = trimmed.match(/(?:£|\$|€)\s*([\d,]+(?:\.\d+)?)/);
+  if (embedded) {
+    const value = Number(embedded[1].replace(/,/g, ""));
+    return Number.isFinite(value) ? value : null;
+  }
+
+  return null;
 }
 
 export function formatCompensationDisplay(

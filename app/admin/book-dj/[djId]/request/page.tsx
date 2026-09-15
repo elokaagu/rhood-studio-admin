@@ -25,12 +25,19 @@ import {
   createBookingRequestWithNotifications,
   getDefaultBookingRequestForm,
 } from "@/lib/booking/create-booking-request";
+import {
+  loadBookingTemplates,
+  saveBookingTemplate,
+  type BookingRequestTemplate,
+} from "@/lib/booking/templates";
 import type { BookingRequestFormData, DjProfileForBooking } from "@/lib/booking/types";
 import { bookableDjDisplayName } from "@/lib/booking/bookable-dj";
 import LocationAutocomplete from "@/components/location-autocomplete";
 import { GenrePicker } from "@/components/admin/GenrePicker";
-import { serializeGenres } from "@/lib/opportunities/genres";
+import { serializeGenres, parseGenres } from "@/lib/opportunities/genres";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Bookmark,
   Calendar,
   MapPin,
   Clock,
@@ -55,6 +62,10 @@ export default function BookingRequestPage() {
     getDefaultBookingRequestForm()
   );
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [templates, setTemplates] = useState<BookingRequestTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
 
   // Fetch DJ profile
   useEffect(() => {
@@ -96,6 +107,7 @@ export default function BookingRequestPage() {
         return;
       }
       setBrandProfile(profile);
+      setTemplates(loadBookingTemplates(profile.id));
     };
 
     if (djId) {
@@ -104,6 +116,24 @@ export default function BookingRequestPage() {
     }
   }, [djId, router, toast]);
 
+  const applyTemplate = (template: BookingRequestTemplate) => {
+    setFormData({ ...template.form });
+    setSelectedGenres(parseGenres(template.form.genre));
+    setSelectedTemplateId(template.id);
+    setTemplateName(template.name);
+  };
+
+  const persistTemplateIfRequested = (payload: BookingRequestFormData) => {
+    if (!saveAsTemplate || !brandProfile) return;
+    const saved = saveBookingTemplate(
+      brandProfile.id,
+      templateName || payload.event_title,
+      payload
+    );
+    setTemplates(loadBookingTemplates(brandProfile.id));
+    setSelectedTemplateId(saved.id);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!djProfile) return;
@@ -111,9 +141,12 @@ export default function BookingRequestPage() {
     setIsSubmitting(true);
 
     try {
+      const payload = { ...formData, genre: serializeGenres(selectedGenres) };
+      persistTemplateIfRequested(payload);
+
       const result = await createBookingRequestWithNotifications({
         djId,
-        formData: { ...formData, genre: serializeGenres(selectedGenres) },
+        formData: payload,
         djProfile,
         brandContext: brandProfile,
       });
@@ -257,6 +290,33 @@ export default function BookingRequestPage() {
                 <CardTitle className="text-foreground">Event Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {templates.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-foreground flex items-center">
+                      <Bookmark className="h-4 w-4 mr-2" />
+                      Use a saved request
+                    </Label>
+                    <Select
+                      value={selectedTemplateId || undefined}
+                      onValueChange={(id) => {
+                        const template = templates.find((item) => item.id === id);
+                        if (template) applyTemplate(template);
+                      }}
+                    >
+                      <SelectTrigger className="bg-secondary border-border text-foreground">
+                        <SelectValue placeholder="Start from a request you saved earlier" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border-border">
+                        {templates.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="event_title" className="text-foreground">
                     Event Title *
@@ -512,7 +572,28 @@ export default function BookingRequestPage() {
             </Card>
 
             {/* Actions */}
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4">
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <Checkbox
+                    checked={saveAsTemplate}
+                    onCheckedChange={(value) => setSaveAsTemplate(value === true)}
+                    className="mt-0.5"
+                  />
+                  <span className="text-sm text-foreground">
+                    Save this request as a template so I can send it to other DJs later
+                  </span>
+                </label>
+                {saveAsTemplate && (
+                  <Input
+                    placeholder="Template name (e.g. Warehouse Friday)"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    className="bg-secondary border-border text-foreground"
+                  />
+                )}
+              </div>
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4">
               <Button
                 type="button"
                 variant="outline"
@@ -523,6 +604,29 @@ export default function BookingRequestPage() {
                 <X className="h-4 w-4 mr-2" />
                 Cancel
               </Button>
+              {saveAsTemplate && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSubmitting || !formData.event_title.trim()}
+                  className="w-full sm:w-auto"
+                  onClick={() => {
+                    const payload = {
+                      ...formData,
+                      genre: serializeGenres(selectedGenres),
+                    };
+                    persistTemplateIfRequested(payload);
+                    toast({
+                      title: "Request saved",
+                      description:
+                        "You can send this to other DJs from Book a DJ → Send saved request.",
+                    });
+                  }}
+                >
+                  <Bookmark className="h-4 w-4 mr-2" />
+                  Save only
+                </Button>
+              )}
               <Button
                 type="submit"
                 className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
@@ -531,6 +635,7 @@ export default function BookingRequestPage() {
                 <Send className="h-4 w-4 mr-2" />
                 {isSubmitting ? "Sending..." : "Send Booking Request"}
               </Button>
+              </div>
             </div>
           </form>
         </div>

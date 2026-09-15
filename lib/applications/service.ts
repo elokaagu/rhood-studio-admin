@@ -265,34 +265,33 @@ export async function updateApplicationStatus(
   applicationId: string,
   status: "approved" | "rejected"
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const { data: rpcResult, error: rpcError } = await rpcUntyped(
-    "admin_update_application_status",
-    {
-      p_application_id: applicationId,
-      p_new_status: status,
-    }
-  );
+  const { data: simpleRow } = await fromUntyped("applications")
+    .select("id")
+    .eq("id", applicationId)
+    .maybeSingle();
 
-  if (rpcError) {
-    return {
-      ok: false,
-      message: `RPC function error: ${rpcError.message}. Please verify the migration was run and your user has role='admin' in user_profiles.`,
-    };
+  if (simpleRow?.id) {
+    return updatePortalApplicationStatus({
+      applicationId,
+      applicationType: "simple",
+      status,
+    });
   }
 
-  const result = rpcResult as RpcResult;
-  if (result && result.success !== true) {
-    const errorMsg = result.error || "RPC function returned unsuccessful result";
-    return {
-      ok: false,
-      message:
-        errorMsg === "Only admins can use this function"
-          ? "You don't have admin permissions. Please verify your user has role='admin' in user_profiles."
-          : errorMsg,
-    };
+  const { data: formRow } = await fromUntyped("application_form_responses")
+    .select("id")
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (formRow?.id) {
+    return updatePortalApplicationStatus({
+      applicationId,
+      applicationType: "form_response",
+      status,
+    });
   }
 
-  return { ok: true };
+  return { ok: false, message: "Application not found." };
 }
 
 export async function submitBrandRating(params: {

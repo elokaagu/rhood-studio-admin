@@ -163,6 +163,15 @@ export const formatTimeRange = (
   return `${startFormatted} – ${endFormatted}`;
 };
 
+/** Opportunity clock: no finish time means an ongoing campaign, not TBC. */
+export const formatOpportunityClock = (
+  start: string | Date | null,
+  end: string | Date | null
+): string => {
+  if (!end) return "Ongoing";
+  return formatTimeRange(start, end);
+};
+
 /**
  * Compact date for booking cards/lists (e.g. "Thu, 15 Jan 2026").
  */

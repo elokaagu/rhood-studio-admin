@@ -139,6 +139,7 @@ export function buildOpportunityUpdatePayload(
     location: form.location.trim() || "",
     compensation: form.pay.trim() || null,
     event_date: validated.eventStart.toISOString(),
+    event_start_time: validated.eventStart.toISOString(),
     event_end_time: validated.eventEnd
       ? validated.eventEnd.toISOString()
       : null,
@@ -176,6 +177,7 @@ export async function saveOpportunity(
       error.message?.includes("additional_info") ||
       error.message?.includes("website") ||
       error.message?.includes("compensation") ||
+      error.message?.includes("event_start_time") ||
       (error.message?.includes("column") && error.message?.includes("does not exist"));
 
     if (isMissingColumn) {
@@ -184,6 +186,7 @@ export async function saveOpportunity(
       delete corePayload.additional_info;
       delete corePayload.website;
       delete corePayload.compensation;
+      delete corePayload.event_start_time;
       const { error: retryError } = await supabase
         .from("opportunities")
         .update(corePayload)

@@ -625,6 +625,7 @@ export type Database = {
           created_at: string | null;
           description: string;
           event_date: string | null;
+          event_start_time: string | null;
           event_end_time: string | null;
           genre: string | null;
           id: string;
@@ -648,6 +649,7 @@ export type Database = {
           created_at?: string | null;
           description: string;
           event_date?: string | null;
+          event_start_time?: string | null;
           event_end_time?: string | null;
           genre?: string | null;
           id?: string;
@@ -671,6 +673,7 @@ export type Database = {
           created_at?: string | null;
           description?: string;
           event_date?: string | null;
+          event_start_time?: string | null;
           event_end_time?: string | null;
           genre?: string | null;
           id?: string;

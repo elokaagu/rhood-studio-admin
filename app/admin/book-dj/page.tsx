@@ -14,10 +14,12 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentUserProfile } from "@/lib/auth-utils";
+import type { UserProfile } from "@/lib/auth-utils";
 import { fetchBookableDjs } from "@/lib/booking/fetch-bookable-djs";
 import { filterBookableDjs } from "@/lib/booking/filter-bookable-djs";
 import type { BookableDJ } from "@/lib/booking/bookable-dj";
 import { BookableDJCard } from "@/components/admin/book-dj/BookableDJCard";
+import { SendSavedRequestDialog } from "@/components/admin/book-dj/SendSavedRequestDialog";
 import {
   Search,
   Filter,
@@ -26,6 +28,7 @@ import {
   Clock,
   LayoutGrid,
   List,
+  Bookmark,
 } from "lucide-react";
 import { textStyles } from "@/lib/typography";
 import LocationAutocomplete from "@/components/location-autocomplete";
@@ -60,6 +63,8 @@ export default function BookDJPage() {
   >("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [brandAccessOk, setBrandAccessOk] = useState(false);
+  const [brandProfile, setBrandProfile] = useState<UserProfile | null>(null);
+  const [savedRequestOpen, setSavedRequestOpen] = useState(false);
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -74,6 +79,7 @@ export default function BookDJPage() {
         return;
       }
       setBrandAccessOk(true);
+      setBrandProfile(profile);
     };
     checkUserRole();
   }, [router, toast]);
@@ -150,6 +156,14 @@ export default function BookDJPage() {
             Browse and search for DJs to book for your event
           </p>
         </div>
+        <Button
+          variant="outline"
+          className="w-full sm:w-auto"
+          onClick={() => setSavedRequestOpen(true)}
+        >
+          <Bookmark className="h-4 w-4 mr-2" />
+          Send saved request
+        </Button>
       </div>
 
       <Card className="bg-card border-border">
@@ -349,6 +363,16 @@ export default function BookDJPage() {
             />
           ))}
         </div>
+      )}
+
+      {brandProfile && (
+        <SendSavedRequestDialog
+          open={savedRequestOpen}
+          onOpenChange={setSavedRequestOpen}
+          userId={brandProfile.id}
+          brandContext={brandProfile}
+          djs={filteredDjs}
+        />
       )}
     </div>
   );

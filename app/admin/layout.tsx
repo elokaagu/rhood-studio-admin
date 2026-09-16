@@ -294,7 +294,6 @@ function AppSidebar() {
 
 function AdminLayoutShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
   const { toast } = useToast();
   const {
     displayName,
@@ -330,6 +329,15 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("rhood-start-tour", startTour);
   }, []);
 
+  const waitingForLogo =
+    role === "brand" &&
+    !!profile?.id &&
+    !profile.profile_image_url &&
+    !photoPromptDismissed;
+
+  const agreementBlocking =
+    !!profile?.studioOnboardingReady && !profile.studio_agreement_signed_at;
+
   useEffect(() => {
     if (role !== "brand" || !profile?.id) {
       setPhotoPromptDismissed(false);
@@ -355,8 +363,11 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
     } catch {
       /* ignore */
     }
+    // Agreement → logo (upload or skip) → guidelines. Don't start the tour
+    // until the logo step is finished.
+    if (waitingForLogo) return;
     setTourActive(true);
-  }, [role, profile]);
+  }, [role, profile, waitingForLogo]);
 
   const handleOpenAccountSettings = () => {
     setAccountSettingsOpen(true);
@@ -596,32 +607,28 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
           />
         )}
 
-      {role === "brand" &&
-        profile?.id &&
-        !profile.profile_image_url &&
-        !photoPromptDismissed &&
-        !(profile.studioOnboardingReady && !profile.studio_agreement_signed_at) &&
-        pathname !== "/admin/brand/profile" && (
-          <BrandProfilePhotoDialog
-            userId={profile.id}
-            brandName={profile.brand_name?.trim() || displayName}
-            open
-            onUploaded={() => {
-              void refresh();
-            }}
-            onDismiss={() => {
-              try {
-                window.sessionStorage.setItem(
-                  photoPromptDismissKey(profile.id),
-                  "1"
-                );
-              } catch {
-                /* ignore */
-              }
-              setPhotoPromptDismissed(true);
-            }}
-          />
-        )}
+      {role === "brand" && profile?.id && waitingForLogo && !agreementBlocking && (
+        <BrandProfilePhotoDialog
+          userId={profile.id}
+          brandName={profile.brand_name?.trim() || displayName}
+          open
+          onUploaded={() => {
+            setPhotoPromptDismissed(true);
+            void refresh();
+          }}
+          onDismiss={() => {
+            try {
+              window.sessionStorage.setItem(
+                photoPromptDismissKey(profile.id),
+                "1"
+              );
+            } catch {
+              /* ignore */
+            }
+            setPhotoPromptDismissed(true);
+          }}
+        />
+      )}
 
       {role === "brand" && profile?.id && (
         <BrandOnboardingTour
@@ -629,11 +636,8 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
           active={
             tourActive &&
             !accountSettingsOpen &&
-            !(
-              !profile.profile_image_url &&
-              !photoPromptDismissed &&
-              pathname !== "/admin/brand/profile"
-            )
+            !waitingForLogo &&
+            !agreementBlocking
           }
           onFinished={() => setTourActive(false)}
         />

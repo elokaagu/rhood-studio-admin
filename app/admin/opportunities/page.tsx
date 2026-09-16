@@ -707,7 +707,10 @@ export default function OpportunitiesPage() {
                         <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         <span className="truncate">
                           {opportunity.event_date
-                            ? `${formatDate(opportunity.event_date)}${
+                            ? `${formatDate(
+                                opportunity.event_date,
+                                opportunity.event_timezone
+                              )}${
                                 opportunity.event_end_time ? "" : " – Ongoing"
                               }`
                             : "—"}
@@ -718,7 +721,8 @@ export default function OpportunitiesPage() {
                         <span className="truncate">
                           {formatOpportunityClock(
                             opportunity.event_date,
-                            opportunity.event_end_time
+                            opportunity.event_end_time,
+                            opportunity.event_timezone
                           )}
                         </span>
                       </div>

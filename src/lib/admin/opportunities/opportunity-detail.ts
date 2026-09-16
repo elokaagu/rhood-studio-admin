@@ -55,6 +55,7 @@ type OpportunityRow = {
   location: string;
   event_date: string | null;
   event_end_time: string | null;
+  event_timezone?: string | null;
   payment: number | null;
   compensation?: string | null;
   genre: string | null;
@@ -171,9 +172,13 @@ export async function fetchOpportunityDetails(
     title: row.title,
     location: row.location,
     date: row.event_date
-      ? `${formatDate(row.event_date)}${row.event_end_time ? "" : " – Ongoing"}`
+      ? `${formatDate(row.event_date, row.event_timezone)}${row.event_end_time ? "" : " – Ongoing"}`
       : "Unknown",
-    timeRange: formatOpportunityClock(row.event_date, row.event_end_time),
+    timeRange: formatOpportunityClock(
+      row.event_date,
+      row.event_end_time,
+      row.event_timezone
+    ),
     pay: formatCompensationDisplay(row.compensation, row.payment) || "N/A",
     applicants: applicantCount,
     displayStatus: displayStatusFromRow(row),

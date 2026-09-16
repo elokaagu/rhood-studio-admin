@@ -17,6 +17,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
+import { TimezoneSelect } from "@/components/admin/TimezoneSelect";
+import { resolveTimeZone } from "@/lib/opportunities/timezones";
 import {
   createOpportunity,
   OPPORTUNITY_DESCRIPTION_MAX_LENGTH,
@@ -89,6 +91,7 @@ export default function CreateOpportunityPage() {
     imageUrl: "",
     noEndDate: false,
     website: "",
+    timezone: resolveTimeZone(),
   });
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -101,7 +104,12 @@ export default function CreateOpportunityPage() {
     storageKey: "rhood-studio-draft:opportunity-create",
     value: draftSnapshot,
     onRestore: (draft) => {
-      if (draft.formData) setFormData(draft.formData);
+      if (draft.formData) {
+        setFormData({
+          ...draft.formData,
+          timezone: draft.formData.timezone || resolveTimeZone(),
+        });
+      }
       if (Array.isArray(draft.selectedGenres)) {
         setSelectedGenres(draft.selectedGenres);
       }
@@ -690,6 +698,26 @@ export default function CreateOpportunityPage() {
                   />
                 </div>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="timezone"
+                  className="text-foreground flex items-center"
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  Timezone
+                </Label>
+                <TimezoneSelect
+                  value={formData.timezone}
+                  onChange={(timezone) =>
+                    setFormData({ ...formData, timezone })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Start and finish times are kept in this timezone, so 00:00
+                  stays 00:00 wherever the listing is viewed.
+                </p>
               </div>
             </div>
 

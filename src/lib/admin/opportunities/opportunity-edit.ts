@@ -4,9 +4,11 @@ import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
 import { parseNumericCompensation } from "@/lib/opportunities/compensation";
 import {
   isOvernightSpan,
-  parseLocalDateTime,
+  parseEventDateTime,
   resolveEndAfterStart,
+  wallClockInZone,
 } from "@/lib/opportunities/event-times";
+import { isValidTimeZone, resolveTimeZone } from "@/lib/opportunities/timezones";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -29,6 +31,7 @@ export type OpportunityFormState = {
   archived: boolean;
   noEndDate: boolean;
   website: string;
+  timezone: string;
 };
 
 export type OpportunitySaveMode = "publish" | "draft";
@@ -73,7 +76,8 @@ export function validateOpportunityForm(
     };
   }
 
-  const eventStart = parseLocalDateTime(form.date, form.time);
+  const timezone = form.timezone?.trim() || resolveTimeZone();
+  const eventStart = parseEventDateTime(form.date, form.time, timezone);
   if (isNaN(eventStart.getTime())) {
     return { ok: false, message: "Please enter a valid start date and time." };
   }
@@ -84,8 +88,8 @@ export function validateOpportunityForm(
 
   let eventEnd =
     form.dateType === "range"
-      ? parseLocalDateTime(form.endDate, form.endTime)
-      : parseLocalDateTime(form.date, form.endTime);
+      ? parseEventDateTime(form.endDate, form.endTime, timezone)
+      : parseEventDateTime(form.date, form.endTime, timezone);
 
   if (isNaN(eventEnd.getTime())) {
     return {
@@ -94,7 +98,7 @@ export function validateOpportunityForm(
     };
   }
 
-  eventEnd = resolveEndAfterStart(eventStart, eventEnd);
+  eventEnd = resolveEndAfterStart(eventStart, eventEnd, timezone);
 
   if (eventEnd.getTime() <= eventStart.getTime()) {
     return {
@@ -143,6 +147,7 @@ export function buildOpportunityUpdatePayload(
     event_end_time: validated.eventEnd
       ? validated.eventEnd.toISOString()
       : null,
+    event_timezone: form.timezone?.trim() || resolveTimeZone(),
     payment: paymentAmount,
     genre: form.genre,
     skill_level: form.requirements.trim() || null,
@@ -178,6 +183,7 @@ export async function saveOpportunity(
       error.message?.includes("website") ||
       error.message?.includes("compensation") ||
       error.message?.includes("event_start_time") ||
+      error.message?.includes("event_timezone") ||
       (error.message?.includes("column") && error.message?.includes("does not exist"));
 
     if (isMissingColumn) {
@@ -187,6 +193,7 @@ export async function saveOpportunity(
       delete corePayload.website;
       delete corePayload.compensation;
       delete corePayload.event_start_time;
+      delete corePayload.event_timezone;
       const { error: retryError } = await supabase
         .from("opportunities")
         .update(corePayload)
@@ -208,6 +215,7 @@ type OpportunityRow = {
   location: string;
   event_date: string | null;
   event_end_time: string | null;
+  event_timezone?: string | null;
   payment: number | null;
   genre: string | null;
   skill_level: string | null;
@@ -224,17 +232,20 @@ type OpportunityRow = {
 export function opportunityRowToFormState(
   data: OpportunityRow
 ): OpportunityFormState {
+  const storedZone = data.event_timezone?.trim() || "";
+  const timezone =
+    storedZone && isValidTimeZone(storedZone) ? storedZone : resolveTimeZone();
   const eventDate = data.event_date ? new Date(data.event_date) : null;
-  const dateStr = eventDate ? eventDate.toISOString().split("T")[0] : "";
-  const timeStr = eventDate
-    ? eventDate.toTimeString().split(" ")[0].substring(0, 5)
-    : "";
+  const startWall =
+    eventDate && !isNaN(eventDate.getTime())
+      ? wallClockInZone(eventDate, timezone)
+      : { date: "", time: "" };
 
   const eventEnd = data.event_end_time ? new Date(data.event_end_time) : null;
-  const endTimeStr = eventEnd
-    ? eventEnd.toTimeString().split(" ")[0].substring(0, 5)
-    : "";
-  const endDateStr = eventEnd ? eventEnd.toISOString().split("T")[0] : "";
+  const endWall =
+    eventEnd && !isNaN(eventEnd.getTime())
+      ? wallClockInZone(eventEnd, timezone)
+      : { date: "", time: "" };
 
   const noEndDate = !!eventDate && !eventEnd;
   const overnight =
@@ -242,12 +253,12 @@ export function opportunityRowToFormState(
     !!eventEnd &&
     !isNaN(eventDate.getTime()) &&
     !isNaN(eventEnd.getTime()) &&
-    isOvernightSpan(eventDate, eventEnd);
+    isOvernightSpan(eventDate, eventEnd, timezone);
   const isRange =
     noEndDate ||
     (!!eventDate &&
       !!eventEnd &&
-      dateStr !== endDateStr &&
+      startWall.date !== endWall.date &&
       !overnight &&
       !isNaN(eventDate.getTime()) &&
       !isNaN(eventEnd.getTime()));
@@ -269,10 +280,10 @@ export function opportunityRowToFormState(
     location: data.location || "",
     locationPlaceId: "",
     dateType: isRange ? "range" : "single",
-    date: dateStr,
-    endDate: isRange ? endDateStr : "",
-    time: timeStr,
-    endTime: endTimeStr,
+    date: startWall.date,
+    endDate: isRange ? endWall.date : "",
+    time: startWall.time,
+    endTime: endWall.time,
     pay: data.compensation?.trim() || (data.payment != null ? data.payment.toString() : ""),
     genre: data.genre || "",
     requirements: data.skill_level || "",
@@ -282,5 +293,6 @@ export function opportunityRowToFormState(
     archived: data.is_archived ?? false,
     noEndDate,
     website: data.website?.trim() ?? "",
+    timezone,
   };
 }

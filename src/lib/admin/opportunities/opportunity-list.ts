@@ -13,6 +13,7 @@ export type OpportunityListItem = {
   location: string;
   event_date: string | null;
   event_end_time: string | null;
+  event_timezone: string | null;
   payment: number | null;
   compensation: string | null;
   genre: string | null;
@@ -183,6 +184,7 @@ export async function fetchAdminOpportunitiesList(): Promise<
     location: string;
     event_date: string | null;
     event_end_time: string | null;
+    event_timezone?: string | null;
     payment: number | null;
     compensation?: string | null;
     genre: string | null;
@@ -227,6 +229,7 @@ export async function fetchAdminOpportunitiesList(): Promise<
       location: row.location,
       event_date: row.event_date,
       event_end_time: row.event_end_time,
+      event_timezone: row.event_timezone?.trim() || null,
       payment: row.payment,
       compensation: row.compensation?.trim() || null,
       genre: row.genre,

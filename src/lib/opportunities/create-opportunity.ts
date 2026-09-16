@@ -4,9 +4,10 @@ import { getDisplayText } from "@/lib/text-utils";
 import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
 import { parseNumericCompensation } from "@/lib/opportunities/compensation";
 import {
-  parseLocalDateTime,
+  parseEventDateTime,
   resolveEndAfterStart,
 } from "@/lib/opportunities/event-times";
+import { isValidTimeZone, resolveTimeZone } from "@/lib/opportunities/timezones";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -30,6 +31,8 @@ export type OpportunityCreateFormInput = {
   noEndDate?: boolean;
   website?: string;
   additionalInfo?: string;
+  /** IANA timezone for wall-clock event times. Defaults to the browser zone. */
+  timezone?: string;
 };
 
 export type CreateOpportunityParams = {
@@ -67,6 +70,11 @@ function fail(
   return { ok: false, toastTitle, message };
 }
 
+function eventTimezone(form: OpportunityCreateFormInput): string {
+  const tz = form.timezone?.trim();
+  return tz && isValidTimeZone(tz) ? tz : resolveTimeZone();
+}
+
 export function validateOpportunityCreate(
   form: OpportunityCreateFormInput
 ): CreateOpportunityFailure | null {
@@ -100,14 +108,15 @@ export function validateOpportunityCreate(
     );
   }
 
-  const eventStart = parseLocalDateTime(form.date, form.time);
+  const timezone = eventTimezone(form);
+  const eventStart = parseEventDateTime(form.date, form.time, timezone);
   let eventEnd: Date | null = null;
 
   if (!noEndDate) {
     if (form.dateType === "range") {
-      eventEnd = parseLocalDateTime(form.endDate, form.endTime);
+      eventEnd = parseEventDateTime(form.endDate, form.endTime, timezone);
     } else {
-      eventEnd = parseLocalDateTime(form.date, form.endTime);
+      eventEnd = parseEventDateTime(form.date, form.endTime, timezone);
     }
 
     if (isNaN(eventStart.getTime()) || !eventEnd || isNaN(eventEnd.getTime())) {
@@ -117,7 +126,7 @@ export function validateOpportunityCreate(
       );
     }
 
-    eventEnd = resolveEndAfterStart(eventStart, eventEnd);
+    eventEnd = resolveEndAfterStart(eventStart, eventEnd, timezone);
 
     if (eventEnd.getTime() <= eventStart.getTime()) {
       return fail(
@@ -157,16 +166,17 @@ export async function createOpportunity(
   const validationError = validateOpportunityCreate(form);
   if (validationError) return validationError;
 
-  const eventStart = parseLocalDateTime(form.date, form.time);
+  const timezone = eventTimezone(form);
+  const eventStart = parseEventDateTime(form.date, form.time, timezone);
   const noEndDate = form.dateType === "range" && !!form.noEndDate;
   let eventEnd: Date | null = null;
   if (!noEndDate) {
     eventEnd =
       form.dateType === "range"
-        ? parseLocalDateTime(form.endDate, form.endTime)
-        : parseLocalDateTime(form.date, form.endTime);
+        ? parseEventDateTime(form.endDate, form.endTime, timezone)
+        : parseEventDateTime(form.date, form.endTime, timezone);
     if (eventEnd && !isNaN(eventEnd.getTime())) {
-      eventEnd = resolveEndAfterStart(eventStart, eventEnd);
+      eventEnd = resolveEndAfterStart(eventStart, eventEnd, timezone);
     }
   }
 
@@ -243,6 +253,7 @@ export async function createOpportunity(
     event_date: eventStart.toISOString(),
     event_start_time: eventStart.toISOString(),
     event_end_time: eventEnd ? eventEnd.toISOString() : null,
+    event_timezone: timezone,
     payment: paymentAmount,
     genre: genreValue,
     skill_level: form.requirements || null,
@@ -269,7 +280,8 @@ export async function createOpportunity(
       message.includes("website") ||
       message.includes("additional_info") ||
       message.includes("compensation") ||
-      message.includes("event_start_time"));
+      message.includes("event_start_time") ||
+      message.includes("event_timezone"));
 
   if (error && isMissingColumn(error.message)) {
     if (error.message?.includes("compensation")) {
@@ -283,6 +295,9 @@ export async function createOpportunity(
     }
     if (error.message?.includes("event_start_time")) {
       delete insertPayload.event_start_time;
+    }
+    if (error.message?.includes("event_timezone")) {
+      delete insertPayload.event_timezone;
     }
     if (error.message?.includes("listing_status")) {
       delete insertPayload.listing_status;

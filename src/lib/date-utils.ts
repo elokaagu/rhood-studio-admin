@@ -1,11 +1,52 @@
 // Utility functions for consistent date formatting across the application
 
+import { shortZoneName } from "@/lib/opportunities/timezones";
+
+function getOrdinalSuffix(day: number) {
+  if (day >= 11 && day <= 13) return "th";
+  switch (day % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+}
+
+function calendarParts(
+  date: Date,
+  month: "long" | "short",
+  timeZone?: string | null
+) {
+  const options: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month,
+    year: "numeric",
+  };
+  if (timeZone) options.timeZone = timeZone;
+  const parts = new Intl.DateTimeFormat("en-US", options).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return {
+    day: Number(get("day")),
+    month: get("month"),
+    year: get("year"),
+  };
+}
+
 /**
  * Format date to "13th October 2025" format
  * @param dateString - Date string or Date object
+ * @param timeZone - Optional IANA timezone for wall-clock calendar date
  * @returns Formatted date string
  */
-export const formatDate = (dateString: string | Date | null): string => {
+export const formatDate = (
+  dateString: string | Date | null,
+  timeZone?: string | null
+): string => {
   if (!dateString || dateString === "Unknown") return "Unknown";
 
   try {
@@ -16,24 +57,14 @@ export const formatDate = (dateString: string | Date | null): string => {
       return "Invalid Date";
     }
 
-    const day = date.getDate();
-    const month = date.toLocaleString("en-US", { month: "long" });
-    const year = date.getFullYear();
-
-    // Add ordinal suffix to day
-    const getOrdinalSuffix = (day: number) => {
-      if (day >= 11 && day <= 13) return "th";
-      switch (day % 10) {
-        case 1:
-          return "st";
-        case 2:
-          return "nd";
-        case 3:
-          return "rd";
-        default:
-          return "th";
-      }
-    };
+    let day: number;
+    let month: string;
+    let year: string;
+    try {
+      ({ day, month, year } = calendarParts(date, "long", timeZone));
+    } catch {
+      ({ day, month, year } = calendarParts(date, "long"));
+    }
 
     return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
   } catch (error) {
@@ -47,7 +78,10 @@ export const formatDate = (dateString: string | Date | null): string => {
  * @param dateString - Date string or Date object
  * @returns Formatted date string
  */
-export const formatDateShort = (dateString: string | Date | null): string => {
+export const formatDateShort = (
+  dateString: string | Date | null,
+  timeZone?: string | null
+): string => {
   if (!dateString || dateString === "Unknown") return "Unknown";
 
   try {
@@ -58,24 +92,14 @@ export const formatDateShort = (dateString: string | Date | null): string => {
       return "Invalid Date";
     }
 
-    const day = date.getDate();
-    const month = date.toLocaleString("en-US", { month: "short" });
-    const year = date.getFullYear();
-
-    // Add ordinal suffix to day
-    const getOrdinalSuffix = (day: number) => {
-      if (day >= 11 && day <= 13) return "th";
-      switch (day % 10) {
-        case 1:
-          return "st";
-        case 2:
-          return "nd";
-        case 3:
-          return "rd";
-        default:
-          return "th";
-      }
-    };
+    let day: number;
+    let month: string;
+    let year: string;
+    try {
+      ({ day, month, year } = calendarParts(date, "short", timeZone));
+    } catch {
+      ({ day, month, year } = calendarParts(date, "short"));
+    }
 
     return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
   } catch (error) {
@@ -118,7 +142,10 @@ export const formatRelativeDate = (
  * @param dateString - Date string or Date object
  * @returns Formatted time string
  */
-export const formatTime = (dateString: string | Date | null): string => {
+export const formatTime = (
+  dateString: string | Date | null,
+  timeZone?: string | null
+): string => {
   if (!dateString) return "TBC";
 
   try {
@@ -133,6 +160,8 @@ export const formatTime = (dateString: string | Date | null): string => {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
+      hourCycle: "h23",
+      ...(timeZone ? { timeZone } : {}),
     });
   } catch (error) {
     console.error("Error formatting time:", error);
@@ -148,10 +177,11 @@ export const formatTime = (dateString: string | Date | null): string => {
  */
 export const formatTimeRange = (
   start: string | Date | null,
-  end: string | Date | null
+  end: string | Date | null,
+  timeZone?: string | null
 ): string => {
-  const startFormatted = formatTime(start);
-  const endFormatted = end ? formatTime(end) : null;
+  const startFormatted = formatTime(start, timeZone);
+  const endFormatted = end ? formatTime(end, timeZone) : null;
 
   const startIsTbc = startFormatted === "TBC";
   const endIsTbc = !endFormatted || endFormatted === "TBC";
@@ -166,10 +196,19 @@ export const formatTimeRange = (
 /** Opportunity clock: no finish time means an ongoing campaign, not TBC. */
 export const formatOpportunityClock = (
   start: string | Date | null,
-  end: string | Date | null
+  end: string | Date | null,
+  timeZone?: string | null
 ): string => {
   if (!end) return "Ongoing";
-  return formatTimeRange(start, end);
+  const clock = formatTimeRange(start, end, timeZone);
+  if (!timeZone || clock === "TBC") return clock;
+  try {
+    const at = start ? new Date(start) : new Date();
+    const zone = shortZoneName(timeZone, isNaN(at.getTime()) ? new Date() : at);
+    return `${clock} ${zone}`;
+  } catch {
+    return clock;
+  }
 };
 
 /**

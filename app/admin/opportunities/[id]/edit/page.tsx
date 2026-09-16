@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
+import { TimezoneSelect } from "@/components/admin/TimezoneSelect";
+import { resolveTimeZone } from "@/lib/opportunities/timezones";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -96,6 +98,7 @@ export default function EditOpportunityPage() {
     archived: false,
     noEndDate: false,
     website: "",
+    timezone: resolveTimeZone(),
   });
 
   const draftSnapshot = useMemo(
@@ -107,7 +110,12 @@ export default function EditOpportunityPage() {
     value: draftSnapshot,
     enabled: Boolean(opportunityId) && !isLoading && !loadError,
     onRestore: (draft) => {
-      if (draft.formData) setFormData(draft.formData);
+      if (draft.formData) {
+        setFormData({
+          ...draft.formData,
+          timezone: draft.formData.timezone || resolveTimeZone(),
+        });
+      }
       if (Array.isArray(draft.selectedGenres)) {
         setSelectedGenres(draft.selectedGenres);
       }
@@ -739,6 +747,26 @@ export default function EditOpportunityPage() {
                   />
                 </div>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="timezone"
+                  className={`${textStyles.body.regular} flex items-center`}
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  Timezone
+                </Label>
+                <TimezoneSelect
+                  value={formData.timezone}
+                  onChange={(timezone) =>
+                    setFormData({ ...formData, timezone })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Start and finish times are kept in this timezone, so 00:00
+                  stays 00:00 wherever the listing is viewed.
+                </p>
               </div>
             </div>
 

@@ -25,6 +25,8 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   applicantUserId: string | null;
   applicantName: string;
+  opportunityId?: string | null;
+  organizerId?: string | null;
 };
 
 export function ApplicantConversationDialog({
@@ -32,6 +34,8 @@ export function ApplicantConversationDialog({
   onOpenChange,
   applicantUserId,
   applicantName,
+  opportunityId = null,
+  organizerId = null,
 }: Props) {
   const [myId, setMyId] = useState<string | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -63,7 +67,10 @@ export function ApplicantConversationDialog({
       }
       if (!cancelled) setMyId(uid);
 
-      const allowed = await hasApplicationConversationAccess(applicantUserId);
+      const allowed = await hasApplicationConversationAccess(applicantUserId, {
+        opportunityId,
+        organizerId,
+      });
       if (!allowed) {
         if (!cancelled) {
           setError(
@@ -95,7 +102,7 @@ export function ApplicantConversationDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, applicantUserId]);
+  }, [open, applicantUserId, opportunityId, organizerId]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });

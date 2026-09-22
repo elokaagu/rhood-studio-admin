@@ -21,17 +21,46 @@ function sortedPair(a: string, b: string): [string, string] {
 }
 
 export async function hasApplicationConversationAccess(
-  otherUserId: string
+  otherUserId: string,
+  options?: { opportunityId?: string | null; organizerId?: string | null }
 ): Promise<boolean> {
+  const { data: sessionData } = await supabase.auth.getUser();
+  const me = sessionData.user?.id ?? null;
+  if (!me || !otherUserId) return false;
+
+  if (options?.organizerId && options.organizerId === me) {
+    return true;
+  }
+
+  if (options?.opportunityId) {
+    const { data: opp } = await supabase
+      .from("opportunities")
+      .select("organizer_id")
+      .eq("id", options.opportunityId)
+      .maybeSingle();
+    if (opp?.organizer_id === me) return true;
+  }
+
   const { data, error } = await rpcUntyped(
     "has_application_conversation_access",
     { other_user_id: otherUserId }
   );
+  if (!error && data === true) return true;
   if (error) {
     console.warn("has_application_conversation_access", error.message);
-    return false;
   }
-  return data === true;
+
+  const { data: ownedApps, error: ownedError } = await fromUntyped("applications")
+    .select("id, opportunities!inner(organizer_id)")
+    .eq("user_id", otherUserId)
+    .eq("opportunities.organizer_id", me)
+    .limit(1);
+
+  if (!ownedError && Array.isArray(ownedApps) && ownedApps.length > 0) {
+    return true;
+  }
+
+  return false;
 }
 
 export async function findOrCreateApplicationThread(

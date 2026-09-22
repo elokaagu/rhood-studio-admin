@@ -208,6 +208,19 @@ export default function CreateOpportunityPage() {
         body: JSON.stringify({
           text: formData.description,
           maxLength: OPPORTUNITY_DESCRIPTION_MAX_LENGTH,
+          context: {
+            title: formData.title,
+            location: formData.location,
+            compensation: formData.pay,
+            genres: selectedGenres,
+            dateType: formData.dateType,
+            date: formData.date,
+            endDate: formData.endDate,
+            time: formData.time,
+            endTime: formData.endTime,
+            requirements: formData.requirements,
+            website: formData.website,
+          },
         }),
       });
 
@@ -232,8 +245,8 @@ export default function CreateOpportunityPage() {
       setFormData({ ...formData, description: refinedText });
       setAiRefineDialogOpen(false);
       toast({
-        title: "Text refined",
-        description: "Your description has been refined by AI.",
+        title: "Brief expanded",
+        description: "AI added context so DJs get a clearer, more standardised brief.",
       });
 
       // Focus the textarea after refinement
@@ -431,12 +444,12 @@ export default function CreateOpportunityPage() {
                         onClick={() => setAiRefineDialogOpen(true)}
                         className="h-8 px-2 text-brand-green hover:text-brand-green"
                         disabled={!formData.description.trim()}
-                        aria-label="Refine with AI"
+                        aria-label="Expand into a brief with AI"
                       >
                         <Sparkles className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Refine with AI</TooltipContent>
+                    <TooltipContent>Expand into a brief</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -608,7 +621,7 @@ export default function CreateOpportunityPage() {
                     value="range"
                     className="text-foreground hover:bg-accent"
                   >
-                    Date Range Campaign
+                    Multi Date Campaign
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -917,12 +930,12 @@ export default function CreateOpportunityPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
-              Refine with AI
+              Expand into a brief
             </DialogTitle>
             <DialogDescription>
-              AI will refine your description to be clearer and more concise
-              while preserving all key information. The text will stay within
-              the {OPPORTUNITY_DESCRIPTION_MAX_LENGTH} character limit.
+              AI will add context around your notes to build a standardised DJ
+              brief — what the gig is, who it is for, and the vibe. It stays
+              within {OPPORTUNITY_DESCRIPTION_MAX_LENGTH} characters.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -957,7 +970,7 @@ export default function CreateOpportunityPage() {
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Refine Text
+                  Expand brief
                 </>
               )}
             </Button>

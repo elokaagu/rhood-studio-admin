@@ -711,6 +711,8 @@ export default function ApplicationDetailsPage() {
         onOpenChange={setConversationOpen}
         applicantUserId={application?.userId ?? null}
         applicantName={application?.applicant?.name ?? "DJ"}
+        opportunityId={application?.opportunityId ?? null}
+        organizerId={application?.organizerId ?? null}
       />
     </div>
   );

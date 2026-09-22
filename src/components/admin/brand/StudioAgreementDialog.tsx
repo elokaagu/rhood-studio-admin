@@ -14,11 +14,12 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { FileSignature } from "lucide-react";
+import { FileSignature, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { textStyles } from "@/lib/typography";
 import { buildStudioAgreementClauses } from "@/lib/brand/studio-agreement";
 import { signStudioAgreement } from "@/lib/brand/sign-studio-agreement";
+import { downloadAgreementPdf } from "@/lib/brand/export-agreement-pdf";
 
 type Props = {
   userId: string;
@@ -68,6 +69,26 @@ export function StudioAgreementDialog({
       onSigned(result.signed_at, result.signed_by);
     } finally {
       setIsSigning(false);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    try {
+      downloadAgreementPdf({
+        title: "R/HOOD Studio Brand Agreement",
+        subtitle: `Platform terms for ${brandName.trim() || "the Brand"} on R/HOOD Studio.`,
+        clauses,
+        signedBy,
+        signedAt,
+        fileName: "R-HOOD_Studio_Brand_Agreement.pdf",
+      });
+    } catch (error) {
+      toast({
+        title: "Couldn't download PDF",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -138,6 +159,14 @@ export function StudioAgreementDialog({
               Close
             </Button>
           )}
+          <Button
+            variant="outline"
+            onClick={handleDownloadPdf}
+            className="border-brand-green/50 text-brand-green hover:bg-brand-green/10"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download PDF
+          </Button>
           {!alreadySigned && (
             <Button
               onClick={handleSign}

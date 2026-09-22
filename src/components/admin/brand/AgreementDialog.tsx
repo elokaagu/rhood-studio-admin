@@ -14,12 +14,12 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle, FileSignature } from "lucide-react";
+import { CheckCircle, FileSignature, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { textStyles } from "@/lib/typography";
 import { buildAgreementClauses } from "@/lib/brand/agreement-template";
 import { signBrandAgreement } from "@/lib/brand/sign-agreement";
+import { downloadAgreementPdf } from "@/lib/brand/export-agreement-pdf";
 import type { BrandAcceptedContract } from "@/lib/brand/types";
 
 type Props = {
@@ -64,6 +64,28 @@ export function AgreementDialog({
       setSignerName("");
     } finally {
       setIsSigning(false);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    try {
+      downloadAgreementPdf({
+        title: "Performance Agreement",
+        subtitle: `${contract.event_title} — ${brandName.trim() || "the Brand"} and ${
+          contract.dj_profile?.dj_name || "the DJ"
+        }.`,
+        clauses,
+        signedBy: contract.agreement_signed_by,
+        signedAt: contract.agreement_signed_at,
+        fileName: `R-HOOD_Performance_Agreement_${contract.event_title.replace(/[^\w]+/g, "_")}.pdf`,
+      });
+    } catch (error) {
+      toast({
+        title: "Couldn't download PDF",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -125,6 +147,14 @@ export function AgreementDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
+          <Button
+            variant="outline"
+            onClick={handleDownloadPdf}
+            className="border-brand-green/50 text-brand-green hover:bg-brand-green/10"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download PDF
+          </Button>
           {!isSigned && (
             <Button
               onClick={handleSign}
@@ -134,12 +164,6 @@ export function AgreementDialog({
               <FileSignature className="h-4 w-4 mr-2" />
               {isSigning ? "Signing..." : "Sign Agreement"}
             </Button>
-          )}
-          {isSigned && (
-            <Badge variant="outline" className="border-green-500 text-green-500">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Signed
-            </Badge>
           )}
         </DialogFooter>
       </DialogContent>

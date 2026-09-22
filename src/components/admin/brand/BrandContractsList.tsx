@@ -10,11 +10,14 @@ import {
   Coins,
   FileSignature,
   FileText,
+  Download,
 } from "lucide-react";
 import { textStyles } from "@/lib/typography";
 import { formatBookingEventDate } from "@/lib/date-utils";
 import type { BrandAcceptedContract } from "@/lib/brand/types";
 import { AgreementDialog } from "./AgreementDialog";
+import { buildStudioAgreementClauses } from "@/lib/brand/studio-agreement";
+import { downloadAgreementPdf } from "@/lib/brand/export-agreement-pdf";
 
 type Props = {
   contracts: BrandAcceptedContract[];
@@ -106,14 +109,36 @@ export function BrandContractsList({
                         : "Platform terms for using R/HOOD Studio."}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={onViewStudioAgreement}
-                    className="text-xs h-8 bg-brand-green text-brand-black hover:bg-brand-green/90 font-semibold"
-                  >
-                    <FileSignature className="h-3.5 w-3.5 mr-1.5" />
-                    {studioAgreement.signedAt ? "View agreement" : "Sign"}
-                  </Button>
+                  <div className="flex items-center gap-2 sm:flex-col sm:items-end">
+                    {studioAgreement.signedAt ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          downloadAgreementPdf({
+                            title: "R/HOOD Studio Brand Agreement",
+                            subtitle: `Platform terms for ${brandName.trim() || "the Brand"} on R/HOOD Studio.`,
+                            clauses: buildStudioAgreementClauses(brandName),
+                            signedBy: studioAgreement.signedBy,
+                            signedAt: studioAgreement.signedAt,
+                            fileName: "R-HOOD_Studio_Brand_Agreement.pdf",
+                          })
+                        }
+                        className="text-xs h-8 border-brand-green/50 text-brand-green hover:bg-brand-green/10"
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1.5" />
+                        Download PDF
+                      </Button>
+                    ) : null}
+                    <Button
+                      size="sm"
+                      onClick={onViewStudioAgreement}
+                      className="text-xs h-8 bg-brand-green text-brand-black hover:bg-brand-green/90 font-semibold"
+                    >
+                      <FileSignature className="h-3.5 w-3.5 mr-1.5" />
+                      {studioAgreement.signedAt ? "View agreement" : "Sign"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : null}

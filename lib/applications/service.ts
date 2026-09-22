@@ -624,9 +624,21 @@ export async function updatePortalApplicationStatus(params: {
       if (!retry.error) {
         return { ok: true };
       }
-    }
-
-    if (!isAdmin) {
+      if (
+        !isAdmin &&
+        !retry.error.message?.includes("gigs") &&
+        !retry.error.message?.includes("row-level security")
+      ) {
+        return {
+          ok: false,
+          message: retry.error.message || "Failed to update application.",
+        };
+      }
+    } else if (
+      !isAdmin &&
+      !error.message?.includes("gigs") &&
+      !error.message?.includes("row-level security")
+    ) {
       return { ok: false, message: error.message || "Failed to update application." };
     }
   }

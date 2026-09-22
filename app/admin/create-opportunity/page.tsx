@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
 import { TimezoneSelect } from "@/components/admin/TimezoneSelect";
+import { DjApprovalsField } from "@/components/admin/DjApprovalsField";
 import { resolveTimeZone } from "@/lib/opportunities/timezones";
 import {
   createOpportunity,
@@ -92,6 +93,8 @@ export default function CreateOpportunityPage() {
     noEndDate: false,
     website: "",
     timezone: resolveTimeZone(),
+    approvalLimit: "unlimited" as const,
+    approvalLimitCount: 2,
   });
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -108,6 +111,8 @@ export default function CreateOpportunityPage() {
         setFormData({
           ...draft.formData,
           timezone: draft.formData.timezone || resolveTimeZone(),
+          approvalLimit: draft.formData.approvalLimit || "unlimited",
+          approvalLimitCount: draft.formData.approvalLimitCount || 2,
         });
       }
       if (Array.isArray(draft.selectedGenres)) {
@@ -728,6 +733,17 @@ export default function CreateOpportunityPage() {
               </Label>
               <GenrePicker value={selectedGenres} onChange={setSelectedGenres} />
             </div>
+
+            <DjApprovalsField
+              mode={formData.approvalLimit}
+              count={formData.approvalLimitCount}
+              onModeChange={(approvalLimit) =>
+                setFormData({ ...formData, approvalLimit })
+              }
+              onCountChange={(approvalLimitCount) =>
+                setFormData({ ...formData, approvalLimitCount })
+              }
+            />
           </CardContent>
         </Card>
 

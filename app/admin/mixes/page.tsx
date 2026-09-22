@@ -717,11 +717,13 @@ export default function MixesPage() {
         return;
       }
       setSelectedFile(file);
+      const isWav = file.name.toLowerCase().endsWith(".wav") || file.type === "audio/wav";
       toast({
-        title: "File Selected",
-        description: `${file.name} (${(file.size / 1024 / 1024).toFixed(
-          2
-        )} MB)`,
+        title: isWav ? "WAV selected — convert before upload" : "File Selected",
+        description: isWav
+          ? `${file.name} is uncompressed. Export AAC/MP3 (or re-upload from the iPhone app, which converts WAV automatically) so the mix can stream.`
+          : `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
+        variant: isWav ? "destructive" : "default",
       });
     }
   };

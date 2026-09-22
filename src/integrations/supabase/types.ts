@@ -628,6 +628,7 @@ export type Database = {
           event_start_time: string | null;
           event_end_time: string | null;
           event_timezone: string | null;
+          max_approvals: number | null;
           genre: string | null;
           id: string;
           image_url: string | null;
@@ -653,6 +654,7 @@ export type Database = {
           event_start_time?: string | null;
           event_end_time?: string | null;
           event_timezone?: string | null;
+          max_approvals?: number | null;
           genre?: string | null;
           id?: string;
           image_url?: string | null;
@@ -678,6 +680,7 @@ export type Database = {
           event_start_time?: string | null;
           event_end_time?: string | null;
           event_timezone?: string | null;
+          max_approvals?: number | null;
           genre?: string | null;
           id?: string;
           image_url?: string | null;

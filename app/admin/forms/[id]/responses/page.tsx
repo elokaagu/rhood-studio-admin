@@ -10,6 +10,7 @@ import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyApplicantOfApprovedApplication } from "@/lib/notifications";
+import { updatePortalApplicationStatus } from "@/lib/applications/service";
 import {
   ArrowLeft,
   CheckCircle,
@@ -181,19 +182,25 @@ export default function FormResponsesPage() {
     newStatus: string
   ) => {
     try {
-      const { error } = await supabase
-        .from("application_form_responses")
-        .update({
-          status: newStatus,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", responseId);
-
-      if (error) {
-        throw error;
+      if (newStatus !== "approved" && newStatus !== "rejected") {
+        return;
       }
 
-      // Update local state
+      const result = await updatePortalApplicationStatus({
+        applicationId: responseId,
+        applicationType: "form_response",
+        status: newStatus,
+      });
+
+      if (!result.ok) {
+        toast({
+          title: "Update Error",
+          description: result.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
       setResponses(
         responses.map((response) =>
           response.id === responseId

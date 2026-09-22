@@ -9,6 +9,11 @@ import {
   wallClockInZone,
 } from "@/lib/opportunities/event-times";
 import { isValidTimeZone, resolveTimeZone } from "@/lib/opportunities/timezones";
+import {
+  maxApprovalsFromForm,
+  formFromMaxApprovals,
+  type ApprovalLimitMode,
+} from "@/lib/opportunities/approval-limit";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -32,6 +37,8 @@ export type OpportunityFormState = {
   noEndDate: boolean;
   website: string;
   timezone: string;
+  approvalLimit: ApprovalLimitMode;
+  approvalLimitCount: number;
 };
 
 export type OpportunitySaveMode = "publish" | "draft";
@@ -148,6 +155,10 @@ export function buildOpportunityUpdatePayload(
       ? validated.eventEnd.toISOString()
       : null,
     event_timezone: form.timezone?.trim() || resolveTimeZone(),
+    max_approvals: maxApprovalsFromForm(
+      form.approvalLimit,
+      form.approvalLimitCount
+    ),
     payment: paymentAmount,
     genre: form.genre,
     skill_level: form.requirements.trim() || null,
@@ -184,6 +195,7 @@ export async function saveOpportunity(
       error.message?.includes("compensation") ||
       error.message?.includes("event_start_time") ||
       error.message?.includes("event_timezone") ||
+      error.message?.includes("max_approvals") ||
       (error.message?.includes("column") && error.message?.includes("does not exist"));
 
     if (isMissingColumn) {
@@ -194,6 +206,7 @@ export async function saveOpportunity(
       delete corePayload.compensation;
       delete corePayload.event_start_time;
       delete corePayload.event_timezone;
+      delete corePayload.max_approvals;
       const { error: retryError } = await supabase
         .from("opportunities")
         .update(corePayload)
@@ -226,6 +239,7 @@ type OpportunityRow = {
   listing_status?: string | null;
   website?: string | null;
   compensation?: string | null;
+  max_approvals?: number | null;
 };
 
 /** Map DB row → form state for the edit screen (no demo fallback). */
@@ -235,6 +249,7 @@ export function opportunityRowToFormState(
   const storedZone = data.event_timezone?.trim() || "";
   const timezone =
     storedZone && isValidTimeZone(storedZone) ? storedZone : resolveTimeZone();
+  const approval = formFromMaxApprovals(data.max_approvals);
   const eventDate = data.event_date ? new Date(data.event_date) : null;
   const startWall =
     eventDate && !isNaN(eventDate.getTime())
@@ -294,5 +309,7 @@ export function opportunityRowToFormState(
     noEndDate,
     website: data.website?.trim() ?? "",
     timezone,
+    approvalLimit: approval.mode,
+    approvalLimitCount: approval.count,
   };
 }

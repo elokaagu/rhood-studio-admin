@@ -42,7 +42,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
 
     return {
       id: profile.id,
-      role: (profile.role as UserRole) || "admin",
+      role: (profile.role as UserRole) || (profile.brand_name ? "brand" : "admin"),
       email: profile.email,
       first_name: profile.first_name,
       last_name: profile.last_name,

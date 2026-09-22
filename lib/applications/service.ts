@@ -429,9 +429,10 @@ export async function listPortalApplications(
   try {
     const userProfile = await getCurrentUserProfile();
     const userId = await getCurrentUserId();
+    const isAdmin = userProfile?.role === "admin";
 
     let brandOpportunityIds: string[] | null = null;
-    if (userProfile?.role === "brand" && userId) {
+    if (!isAdmin && userId) {
       const { data: brandOpportunities } = await supabase
         .from("opportunities")
         .select("id")
@@ -456,7 +457,7 @@ export async function listPortalApplications(
       formResponsesQuery = formResponsesQuery.eq("opportunity_id", params.opportunityId);
     }
 
-    if (userProfile?.role === "brand" && brandOpportunityIds) {
+    if (brandOpportunityIds) {
       if (brandOpportunityIds.length === 0) {
         return { applications: [], usedDemoFallback: false };
       }
@@ -526,50 +527,111 @@ export async function updatePortalApplicationStatus(params: {
   const userProfile = await getCurrentUserProfile();
   const userId = await getCurrentUserId();
 
-  // Brands own the opportunities so they update applications directly,
-  // bypassing the admin-only RPC. We verify ownership before updating.
-  if (userProfile?.role === "brand" && userId) {
-    const tableName =
-      params.applicationType === "form_response"
-        ? "application_form_responses"
-        : "applications";
+  if (!userId) {
+    return { ok: false, message: "You must be signed in to manage applications." };
+  }
 
-    // Confirm this application belongs to one of the brand's opportunities.
-    const { data: appRow } = await fromUntyped(tableName)
-      .select("opportunity_id")
-      .eq("id", params.applicationId)
-      .maybeSingle();
+  const tableName =
+    params.applicationType === "form_response"
+      ? "application_form_responses"
+      : "applications";
 
-    if (!appRow?.opportunity_id) {
-      return { ok: false, message: "Application not found." };
-    }
+  const { data: appRow } = await fromUntyped(tableName)
+    .select("opportunity_id, status")
+    .eq("id", params.applicationId)
+    .maybeSingle();
 
-    const { data: oppRow } = await supabase
+  if (!appRow) {
+    return { ok: false, message: "Application not found." };
+  }
+
+  let isOwner = false;
+  let maxApprovals: number | null = null;
+  if (appRow.opportunity_id) {
+    const { data: oppRow, error: oppError } = await supabase
       .from("opportunities")
-      .select("id")
+      .select("id, organizer_id, max_approvals")
       .eq("id", appRow.opportunity_id)
-      .eq("organizer_id", userId)
       .maybeSingle();
 
-    if (!oppRow) {
+    if (oppError?.message?.includes("max_approvals")) {
+      const retry = await supabase
+        .from("opportunities")
+        .select("id, organizer_id")
+        .eq("id", appRow.opportunity_id)
+        .maybeSingle();
+      isOwner = Boolean(retry.data && retry.data.organizer_id === userId);
+    } else {
+      isOwner = Boolean(oppRow && oppRow.organizer_id === userId);
+      const raw = (oppRow as { max_approvals?: number | null } | null)?.max_approvals;
+      maxApprovals = typeof raw === "number" && raw >= 1 ? raw : null;
+    }
+  }
+
+  const isAdmin = userProfile?.role === "admin";
+  if (!isOwner && !isAdmin) {
+    return {
+      ok: false,
+      message: "You can only manage applications for your own opportunities.",
+    };
+  }
+
+  if (
+    params.status === "approved" &&
+    maxApprovals &&
+    appRow.status !== "approved" &&
+    appRow.opportunity_id
+  ) {
+    const approvedCount = await countApprovedDjs(
+      appRow.opportunity_id,
+      params.applicationId
+    );
+    if (approvedCount >= maxApprovals) {
       return {
         ok: false,
-        message: "You can only manage applications for your own opportunities.",
+        message:
+          maxApprovals === 1
+            ? "This opportunity already has its one approved DJ."
+            : `This opportunity already has ${maxApprovals} approved DJs.`,
       };
+    }
+  }
+
+  // Opportunity owners update directly. This is not gated on prior gigs,
+  // and it does not require an admin role.
+  if (isOwner) {
+    const payload: Record<string, unknown> = {
+      status: params.status,
+      updated_at: new Date().toISOString(),
+    };
+    if (params.applicationType === "form_response") {
+      payload.reviewed_at = new Date().toISOString();
     }
 
     const { error } = await fromUntyped(tableName)
-      .update({ status: params.status, updated_at: new Date().toISOString() })
+      .update(payload)
       .eq("id", params.applicationId);
 
-    if (error) {
-      return { ok: false, message: error.message || "Failed to update application." };
+    if (!error) {
+      return { ok: true };
     }
 
-    return { ok: true };
+    if (error.message?.includes("updated_at")) {
+      delete payload.updated_at;
+      const retry = await fromUntyped(tableName)
+        .update(payload)
+        .eq("id", params.applicationId);
+      if (!retry.error) {
+        return { ok: true };
+      }
+    }
+
+    if (!isAdmin) {
+      return { ok: false, message: error.message || "Failed to update application." };
+    }
   }
 
-  // Admins use the privileged RPC.
+  // Admins (or owners if RLS blocked) use the privileged RPC.
   const rpcFunctionName =
     params.applicationType === "form_response"
       ? "admin_update_form_response_status"
@@ -586,23 +648,51 @@ export async function updatePortalApplicationStatus(params: {
   if (rpcError) {
     return {
       ok: false,
-      message: `RPC function error: ${rpcError.message}. Please verify the migration was run and your user has role='admin' in user_profiles.`,
+      message:
+        rpcError.message ||
+        "Failed to update application. Please try again.",
     };
   }
 
   const result = rpcResult as RpcResult;
   if (result && result.success !== true) {
     const errorMsg = result.error || "RPC function returned unsuccessful result";
+    const isRoleError =
+      errorMsg.includes("Only admins") || errorMsg.includes("Access denied");
     return {
       ok: false,
-      message:
-        errorMsg === "Only admins can use this function"
-          ? "You don't have admin permissions. Please verify your user has role='admin' in user_profiles."
-          : errorMsg,
+      message: isRoleError
+        ? "You can only approve DJs for opportunities you own."
+        : errorMsg,
     };
   }
 
   return { ok: true };
+}
+
+async function countApprovedDjs(
+  opportunityId: string,
+  excludeId?: string
+): Promise<number> {
+  const simpleQuery = fromUntyped("applications")
+    .select("id", { count: "exact", head: true })
+    .eq("opportunity_id", opportunityId)
+    .eq("status", "approved");
+  const formQuery = fromUntyped("application_form_responses")
+    .select("id", { count: "exact", head: true })
+    .eq("opportunity_id", opportunityId)
+    .eq("status", "approved");
+
+  const [simpleResult, formResult] = await Promise.all([
+    excludeId ? simpleQuery.neq("id", excludeId) : simpleQuery,
+    excludeId ? formQuery.neq("id", excludeId) : formQuery,
+  ]);
+
+  const formMissing =
+    formResult.error?.message?.includes("does not exist") ||
+    formResult.error?.code === "42P01";
+
+  return (simpleResult.count ?? 0) + (formMissing ? 0 : formResult.count ?? 0);
 }
 
 export async function completeGigAndRateDj(params: {
@@ -617,10 +707,29 @@ export async function completeGigAndRateDj(params: {
   const userRole = userProfile?.role;
 
   if (!userId || (userRole !== "admin" && userRole !== "brand")) {
-    return {
-      ok: false,
-      message: "Only admins or brands can mark gigs as completed.",
-    };
+    const tableName =
+      params.applicationType === "form_response"
+        ? "application_form_responses"
+        : "applications";
+    const { data: appRow } = await fromUntyped(tableName)
+      .select("opportunity_id")
+      .eq("id", params.applicationId)
+      .maybeSingle();
+    let isOwner = false;
+    if (userId && appRow?.opportunity_id) {
+      const { data: oppRow } = await supabase
+        .from("opportunities")
+        .select("organizer_id")
+        .eq("id", appRow.opportunity_id)
+        .maybeSingle();
+      isOwner = oppRow?.organizer_id === userId;
+    }
+    if (!isOwner) {
+      return {
+        ok: false,
+        message: "Only the opportunity owner can mark gigs as completed.",
+      };
+    }
   }
 
   const tableName =

@@ -8,6 +8,8 @@ import {
   resolveEndAfterStart,
 } from "@/lib/opportunities/event-times";
 import { isValidTimeZone, resolveTimeZone } from "@/lib/opportunities/timezones";
+import { maxApprovalsFromForm } from "@/lib/opportunities/approval-limit";
+import type { ApprovalLimitMode } from "@/lib/opportunities/approval-limit";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -33,6 +35,8 @@ export type OpportunityCreateFormInput = {
   additionalInfo?: string;
   /** IANA timezone for wall-clock event times. Defaults to the browser zone. */
   timezone?: string;
+  approvalLimit?: ApprovalLimitMode;
+  approvalLimitCount?: number;
 };
 
 export type CreateOpportunityParams = {
@@ -254,6 +258,10 @@ export async function createOpportunity(
     event_start_time: eventStart.toISOString(),
     event_end_time: eventEnd ? eventEnd.toISOString() : null,
     event_timezone: timezone,
+    max_approvals: maxApprovalsFromForm(
+      form.approvalLimit || "unlimited",
+      form.approvalLimitCount ?? 2
+    ),
     payment: paymentAmount,
     genre: genreValue,
     skill_level: form.requirements || null,
@@ -281,7 +289,8 @@ export async function createOpportunity(
       message.includes("additional_info") ||
       message.includes("compensation") ||
       message.includes("event_start_time") ||
-      message.includes("event_timezone"));
+      message.includes("event_timezone") ||
+      message.includes("max_approvals"));
 
   if (error && isMissingColumn(error.message)) {
     if (error.message?.includes("compensation")) {
@@ -298,6 +307,9 @@ export async function createOpportunity(
     }
     if (error.message?.includes("event_timezone")) {
       delete insertPayload.event_timezone;
+    }
+    if (error.message?.includes("max_approvals")) {
+      delete insertPayload.max_approvals;
     }
     if (error.message?.includes("listing_status")) {
       delete insertPayload.listing_status;

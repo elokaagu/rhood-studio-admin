@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
 import { TimezoneSelect } from "@/components/admin/TimezoneSelect";
+import { DjApprovalsField } from "@/components/admin/DjApprovalsField";
 import { resolveTimeZone } from "@/lib/opportunities/timezones";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -99,6 +100,8 @@ export default function EditOpportunityPage() {
     noEndDate: false,
     website: "",
     timezone: resolveTimeZone(),
+    approvalLimit: "unlimited",
+    approvalLimitCount: 2,
   });
 
   const draftSnapshot = useMemo(
@@ -114,6 +117,8 @@ export default function EditOpportunityPage() {
         setFormData({
           ...draft.formData,
           timezone: draft.formData.timezone || resolveTimeZone(),
+          approvalLimit: draft.formData.approvalLimit || "unlimited",
+          approvalLimitCount: draft.formData.approvalLimitCount || 2,
         });
       }
       if (Array.isArray(draft.selectedGenres)) {
@@ -777,6 +782,17 @@ export default function EditOpportunityPage() {
               </Label>
               <GenrePicker value={selectedGenres} onChange={setSelectedGenres} />
             </div>
+
+            <DjApprovalsField
+              mode={formData.approvalLimit}
+              count={formData.approvalLimitCount}
+              onModeChange={(approvalLimit) =>
+                setFormData({ ...formData, approvalLimit })
+              }
+              onCountChange={(approvalLimitCount) =>
+                setFormData({ ...formData, approvalLimitCount })
+              }
+            />
           </CardContent>
         </Card>
 

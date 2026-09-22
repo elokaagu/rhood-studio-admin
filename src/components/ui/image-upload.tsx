@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 
 interface ImageUploadProps {
   value?: string;
@@ -37,6 +38,7 @@ export function ImageUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [preview, setPreview] = useState<string | null>(value || null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -97,6 +99,14 @@ export function ImageUpload({
     [bucketName, folder, maxSize, acceptedFormats]
   );
 
+  const closeCrop = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   // Handle file selection
   const handleFileSelect = useCallback(
     async (file: File) => {
@@ -150,11 +160,37 @@ export function ImageUpload({
     [uploadImage, onChange, toast]
   );
 
+  const handleCroppedFile = async (file: File) => {
+    closeCrop();
+    await handleFileSelect(file);
+  };
+
+  const openCropper = (file: File) => {
+    if (file.size > maxSize * 1024 * 1024) {
+      toast({
+        title: "Upload Failed",
+        description: `File size must be less than ${maxSize}MB`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!acceptedFormats.includes(file.type)) {
+      toast({
+        title: "Upload Failed",
+        description: `File must be one of: ${acceptedFormats.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(URL.createObjectURL(file));
+  };
+
   // Handle file input change
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleFileSelect(file);
+      openCropper(file);
     }
   };
 
@@ -176,7 +212,7 @@ export function ImageUpload({
 
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      handleFileSelect(file);
+      openCropper(file);
     }
   };
 
@@ -306,6 +342,9 @@ export function ImageUpload({
           )}
         </CardContent>
       </Card>
+      <p className="text-xs text-muted-foreground">
+        After you choose a file you can zoom and crop it before it uploads.
+      </p>
 
       <input
         ref={fileInputRef}
@@ -313,6 +352,14 @@ export function ImageUpload({
         accept={acceptedFormats.join(",")}
         onChange={handleFileInputChange}
         className="hidden"
+      />
+
+      <ImageCropDialog
+        open={Boolean(cropSrc)}
+        src={cropSrc}
+        aspect={aspect}
+        onCancel={closeCrop}
+        onConfirm={handleCroppedFile}
       />
     </div>
   );

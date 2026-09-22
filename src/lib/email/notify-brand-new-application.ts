@@ -164,10 +164,9 @@ export async function notifyBrandOfNewApplication(
   }
 
   const portalUrl = `${getPortalBaseUrl()}/admin/applications`;
-  const firstName = brandName.split(" ")[0];
   const safeApplicant = escapeHtml(applicantName);
   const safeTitle = escapeHtml(opportunityTitle);
-  const safeBrand = escapeHtml(firstName);
+  const safeBrand = escapeHtml(brandName);
 
   const html = `
       <table style="width:100%;background-color:#0f0f0f;padding:32px 0;font-family:Helvetica,Arial,sans-serif;color:#ffffff;">
@@ -207,7 +206,7 @@ export async function notifyBrandOfNewApplication(
       </table>
     `;
 
-  const text = `Hey ${firstName},\n\n${applicantName} just applied to "${opportunityTitle}".\n\nReview applications: ${portalUrl}`;
+  const text = `Hey ${brandName},\n\n${applicantName} just applied to "${opportunityTitle}".\n\nReview applications: ${portalUrl}`;
 
   const resend = new Resend(resendApiKey);
   const emailResponse = await resend.emails.send({

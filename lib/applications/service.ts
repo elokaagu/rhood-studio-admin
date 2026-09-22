@@ -519,11 +519,72 @@ export async function listPortalApplications(
   }
 }
 
+function ownerIdsFromOpportunity(row: Record<string, unknown> | null): string[] {
+  if (!row) return [];
+  return ["organizer_id", "created_by", "posted_by"]
+    .map((key) => row[key])
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+}
+
+async function fetchOpportunityForApprove(opportunityId: string) {
+  const full = await fromUntyped("opportunities")
+    .select("id, organizer_id, created_by, posted_by, max_approvals")
+    .eq("id", opportunityId)
+    .maybeSingle();
+  if (!full.error) return full;
+
+  const withoutMax = await fromUntyped("opportunities")
+    .select("id, organizer_id, created_by, posted_by")
+    .eq("id", opportunityId)
+    .maybeSingle();
+  if (!withoutMax.error) return withoutMax;
+
+  return fromUntyped("opportunities")
+    .select("id, organizer_id")
+    .eq("id", opportunityId)
+    .maybeSingle();
+}
+
 export async function updatePortalApplicationStatus(params: {
   applicationId: string;
   applicationType: ApplicationSourceType;
   status: "approved" | "rejected";
 }): Promise<{ ok: true } | { ok: false; message: string }> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) {
+    return { ok: false, message: "You must be signed in to manage applications." };
+  }
+
+  try {
+    const response = await fetch("/api/applications/status", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        applicationId: params.applicationId,
+        applicationType: params.applicationType,
+        status: params.status,
+      }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    if (response.ok) {
+      return { ok: true };
+    }
+    if (response.status !== 404) {
+      return {
+        ok: false,
+        message: payload.error || "Failed to update application.",
+      };
+    }
+  } catch {
+    // Fall through to the client path if the API route is not deployed yet.
+  }
+
   const userProfile = await getCurrentUserProfile();
   const userId = await getCurrentUserId();
 
@@ -548,31 +609,19 @@ export async function updatePortalApplicationStatus(params: {
   let isOwner = false;
   let maxApprovals: number | null = null;
   if (appRow.opportunity_id) {
-    const { data: oppRow, error: oppError } = await supabase
-      .from("opportunities")
-      .select("id, organizer_id, max_approvals")
-      .eq("id", appRow.opportunity_id)
-      .maybeSingle();
-
-    if (oppError?.message?.includes("max_approvals")) {
-      const retry = await supabase
-        .from("opportunities")
-        .select("id, organizer_id")
-        .eq("id", appRow.opportunity_id)
-        .maybeSingle();
-      isOwner = Boolean(retry.data && retry.data.organizer_id === userId);
-    } else {
-      isOwner = Boolean(oppRow && oppRow.organizer_id === userId);
-      const raw = (oppRow as { max_approvals?: number | null } | null)?.max_approvals;
-      maxApprovals = typeof raw === "number" && raw >= 1 ? raw : null;
-    }
+    const { data: oppRow } = await fetchOpportunityForApprove(appRow.opportunity_id);
+    isOwner = ownerIdsFromOpportunity(oppRow as Record<string, unknown> | null).includes(
+      userId
+    );
+    const raw = (oppRow as { max_approvals?: number | null } | null)?.max_approvals;
+    maxApprovals = typeof raw === "number" && raw >= 1 ? raw : null;
   }
 
   const isAdmin = userProfile?.role === "admin";
   if (!isOwner && !isAdmin) {
     return {
       ok: false,
-      message: "You can only manage applications for your own opportunities.",
+      message: "You can only approve DJs for opportunities you own.",
     };
   }
 
@@ -597,89 +646,63 @@ export async function updatePortalApplicationStatus(params: {
     }
   }
 
-  // Opportunity owners update directly. This is not gated on prior gigs,
-  // and it does not require an admin role.
-  if (isOwner) {
-    const payload: Record<string, unknown> = {
-      status: params.status,
-      updated_at: new Date().toISOString(),
-    };
-    if (params.applicationType === "form_response") {
-      payload.reviewed_at = new Date().toISOString();
-    }
+  const payload: Record<string, unknown> = {
+    status: params.status,
+    updated_at: new Date().toISOString(),
+  };
+  if (params.applicationType === "form_response") {
+    payload.reviewed_at = new Date().toISOString();
+  }
 
-    const { error } = await fromUntyped(tableName)
+  const { error } = await fromUntyped(tableName)
+    .update(payload)
+    .eq("id", params.applicationId);
+
+  if (!error) {
+    return { ok: true };
+  }
+
+  if (error.message?.includes("updated_at")) {
+    delete payload.updated_at;
+    const retry = await fromUntyped(tableName)
       .update(payload)
       .eq("id", params.applicationId);
-
-    if (!error) {
+    if (!retry.error) {
       return { ok: true };
-    }
-
-    if (error.message?.includes("updated_at")) {
-      delete payload.updated_at;
-      const retry = await fromUntyped(tableName)
-        .update(payload)
-        .eq("id", params.applicationId);
-      if (!retry.error) {
-        return { ok: true };
-      }
-      if (
-        !isAdmin &&
-        !retry.error.message?.includes("gigs") &&
-        !retry.error.message?.includes("row-level security")
-      ) {
-        return {
-          ok: false,
-          message: retry.error.message || "Failed to update application.",
-        };
-      }
-    } else if (
-      !isAdmin &&
-      !error.message?.includes("gigs") &&
-      !error.message?.includes("row-level security")
-    ) {
-      return { ok: false, message: error.message || "Failed to update application." };
     }
   }
 
-  // Admins (or owners if RLS blocked) use the privileged RPC.
   const rpcFunctionName =
     params.applicationType === "form_response"
       ? "admin_update_form_response_status"
       : "admin_update_application_status";
 
-  const { data: rpcResult, error: rpcError } = await rpcUntyped(
-    rpcFunctionName,
-    {
-      p_application_id: params.applicationId,
-      p_new_status: params.status,
+  const { data: rpcResult, error: rpcError } = await rpcUntyped(rpcFunctionName, {
+    p_application_id: params.applicationId,
+    p_new_status: params.status,
+  });
+
+  if (!rpcError) {
+    const result = rpcResult as RpcResult;
+    if (!result || result.success === true) {
+      return { ok: true };
     }
-  );
-
-  if (rpcError) {
-    return {
-      ok: false,
-      message:
-        rpcError.message ||
-        "Failed to update application. Please try again.",
-    };
-  }
-
-  const result = rpcResult as RpcResult;
-  if (result && result.success !== true) {
-    const errorMsg = result.error || "RPC function returned unsuccessful result";
-    const isRoleError =
+    const errorMsg = result.error || "Failed to update application.";
+    const staleAdminOnly =
       errorMsg.includes("Only admins") || errorMsg.includes("Access denied");
-    return {
-      ok: false,
-      message: isRoleError
-        ? "You can only approve DJs for opportunities you own."
-        : errorMsg,
-    };
+    if (isOwner && staleAdminOnly) {
+      return {
+        ok: false,
+        message: error.message || "Failed to update application.",
+      };
+    }
+    return { ok: false, message: errorMsg };
   }
 
-  return { ok: true };
+  return {
+    ok: false,
+    message: error.message || rpcError.message || "Failed to update application.",
+  };
 }
 
 async function countApprovedDjs(

@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { TablesInsert } from "@/integrations/supabase/types";
 import { getDisplayText } from "@/lib/text-utils";
 import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
 import { parseNumericCompensation } from "@/lib/opportunities/compensation";
@@ -10,7 +9,10 @@ import {
 import { isValidTimeZone, resolveTimeZone } from "@/lib/opportunities/timezones";
 import { maxApprovalsFromForm } from "@/lib/opportunities/approval-limit";
 import type { ApprovalLimitMode } from "@/lib/opportunities/approval-limit";
-import { missingColumnFromError } from "@/lib/opportunities/missing-column";
+import {
+  missingColumnFromError,
+  errorMentionsColumn,
+} from "@/lib/opportunities/missing-column";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -250,7 +252,7 @@ export async function createOpportunity(
   const listingStatus = mode === "draft" ? "draft" : form.status || "pending";
   const isActive = mode === "publish" && listingStatus === "active";
 
-  const insertPayload: TablesInsert<"opportunities"> = {
+  const insertPayload: Record<string, unknown> = {
     title: form.title.trim(),
     description: processedDescription,
     location: form.location.trim() || "",
@@ -276,6 +278,14 @@ export async function createOpportunity(
     website: normalizeWebsiteUrl(form.website),
   };
 
+  const probe = await supabase
+    .from("opportunities")
+    .select("max_approvals")
+    .limit(1);
+  if (probe.error && errorMentionsColumn(probe.error, "max_approvals")) {
+    delete insertPayload.max_approvals;
+  }
+
   let { data: inserted, error } = await supabase
     .from("opportunities")
     .insert(insertPayload)
@@ -283,9 +293,11 @@ export async function createOpportunity(
     .single();
 
   for (let attempt = 0; attempt < 8 && error; attempt += 1) {
-    const missing = missingColumnFromError(error);
+    const missing =
+      missingColumnFromError(error) ||
+      (errorMentionsColumn(error, "max_approvals") ? "max_approvals" : null);
     if (!missing || !(missing in insertPayload)) break;
-    delete (insertPayload as Record<string, unknown>)[missing];
+    delete insertPayload[missing];
     const retry = await supabase
       .from("opportunities")
       .insert(insertPayload)

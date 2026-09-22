@@ -14,7 +14,7 @@ import {
   formFromMaxApprovals,
   type ApprovalLimitMode,
 } from "@/lib/opportunities/approval-limit";
-import { missingColumnFromError } from "@/lib/opportunities/missing-column";
+import { missingColumnFromError, errorMentionsColumn } from "@/lib/opportunities/missing-column";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -182,13 +182,24 @@ export async function saveOpportunity(
   payload: OpportunityUpdatePayload
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const body: Record<string, unknown> = { ...(payload as Record<string, unknown>) };
+
+  const probe = await supabase
+    .from("opportunities")
+    .select("max_approvals")
+    .limit(1);
+  if (probe.error && errorMentionsColumn(probe.error, "max_approvals")) {
+    delete body.max_approvals;
+  }
+
   let { error } = await supabase
     .from("opportunities")
     .update(body)
     .eq("id", opportunityId);
 
   for (let attempt = 0; attempt < 8 && error; attempt += 1) {
-    const missing = missingColumnFromError(error);
+    const missing =
+      missingColumnFromError(error) ||
+      (errorMentionsColumn(error, "max_approvals") ? "max_approvals" : null);
     if (!missing || !(missing in body)) break;
     delete body[missing];
     const retry = await supabase

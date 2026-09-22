@@ -22,10 +22,24 @@ export function missingColumnFromError(error: PostgrestLikeError): string | null
   );
   if (doesNotExist) return doesNotExist[1];
 
-  if (error.code === "PGRST204" || /schema cache/i.test(text)) {
+  if (
+    error.code === "PGRST204" ||
+    /schema cache/i.test(text) ||
+    /max_approvals/i.test(text)
+  ) {
+    if (/max_approvals/i.test(text)) return "max_approvals";
     const quoted = text.match(/['"]([a-z_][a-z0-9_]*)['"]/);
     if (quoted) return quoted[1];
   }
 
   return null;
+}
+
+export function errorMentionsColumn(error: PostgrestLikeError, column: string) {
+  if (!error) return false;
+  const text = [error.message, error.details, error.hint, error.code]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return text.includes(column.toLowerCase()) || error.code === "PGRST204";
 }

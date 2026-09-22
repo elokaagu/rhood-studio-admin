@@ -269,7 +269,7 @@ export default function MixesPage() {
         // Transform the data to ensure consistent format
         const transformedMixes = await Promise.all(
           (data || []).map(async (mix: any) => {
-            let imageUrl = mix.image_url;
+            let imageUrl = mix.image_url || mix.artwork_url;
             let resolvedDuration = mix.duration;
             const storedArtist: string | null =
               typeof mix.artist === "string" ? mix.artist : null;
@@ -416,7 +416,7 @@ export default function MixesPage() {
                 imageUrl = refreshedUrl;
                 await supabase
                   .from("mixes")
-                  .update({ image_url: refreshedUrl })
+                  .update({ image_url: refreshedUrl, artwork_url: refreshedUrl })
                   .eq("id", mix.id);
               }
             }
@@ -958,6 +958,7 @@ export default function MixesPage() {
         .update({
           file_url: publicUrl,
           image_url: imageUrl,
+          artwork_url: imageUrl,
           duration: formattedDuration,
         })
         .eq("id", mixId);
@@ -1433,9 +1434,9 @@ export default function MixesPage() {
                   {/* Mix Artwork with Play Button */}
                   <div className="relative group w-full sm:w-auto">
                     <div className="relative h-32 w-full sm:h-20 sm:w-20 rounded-xl overflow-hidden bg-gradient-to-br from-secondary to-muted shadow-lg">
-                      {mix.image_url || mix.imageUrl ? (
+                      {mix.image_url || mix.imageUrl || mix.artwork_url ? (
                         <Image
-                          src={mix.image_url || mix.imageUrl}
+                          src={mix.image_url || mix.imageUrl || mix.artwork_url}
                           alt={`${mix.title} artwork`}
                           fill
                           className="object-cover transition-transform duration-300 group-hover:scale-105"

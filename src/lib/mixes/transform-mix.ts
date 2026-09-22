@@ -32,6 +32,7 @@ type MixRow = {
   file_name: string;
   file_size: number;
   image_url: string | null;
+  artwork_url?: string | null;
   duration: string | null;
   plays: number | null;
   rating: number | null;
@@ -53,7 +54,7 @@ export function rowToMixListItem(mix: MixRow): MixListItem {
     file_url: mix.file_url,
     file_name: mix.file_name,
     file_size: mix.file_size,
-    image_url: mix.image_url,
+    image_url: mix.image_url || mix.artwork_url || null,
     duration: mix.duration,
     plays: mix.plays ?? 0,
     rating: mix.rating ?? 0,

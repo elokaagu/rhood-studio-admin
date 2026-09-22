@@ -20,6 +20,7 @@ import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers"
 import { TimezoneSelect } from "@/components/admin/TimezoneSelect";
 import { DjApprovalsField } from "@/components/admin/DjApprovalsField";
 import { resolveTimeZone } from "@/lib/opportunities/timezones";
+import type { ApprovalLimitMode } from "@/lib/opportunities/approval-limit";
 import {
   createOpportunity,
   OPPORTUNITY_DESCRIPTION_MAX_LENGTH,
@@ -93,7 +94,7 @@ export default function CreateOpportunityPage() {
     noEndDate: false,
     website: "",
     timezone: resolveTimeZone(),
-    approvalLimit: "unlimited" as const,
+    approvalLimit: "unlimited" as ApprovalLimitMode,
     approvalLimitCount: 2,
   });
 

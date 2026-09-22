@@ -10,9 +10,10 @@ import { isValidTimeZone, resolveTimeZone } from "@/lib/opportunities/timezones"
 import { maxApprovalsFromForm } from "@/lib/opportunities/approval-limit";
 import type { ApprovalLimitMode } from "@/lib/opportunities/approval-limit";
 import {
-  missingColumnFromError,
-  errorMentionsColumn,
-} from "@/lib/opportunities/missing-column";
+  persistMaxApprovals,
+  withoutMaxApprovals,
+  writeOpportunity,
+} from "@/lib/opportunities/write-opportunity";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -278,34 +279,8 @@ export async function createOpportunity(
     website: normalizeWebsiteUrl(form.website),
   };
 
-  const probe = await supabase
-    .from("opportunities")
-    .select("max_approvals")
-    .limit(1);
-  if (probe.error && errorMentionsColumn(probe.error, "max_approvals")) {
-    delete insertPayload.max_approvals;
-  }
-
-  let { data: inserted, error } = await supabase
-    .from("opportunities")
-    .insert(insertPayload)
-    .select("id")
-    .single();
-
-  for (let attempt = 0; attempt < 8 && error; attempt += 1) {
-    const missing =
-      missingColumnFromError(error) ||
-      (errorMentionsColumn(error, "max_approvals") ? "max_approvals" : null);
-    if (!missing || !(missing in insertPayload)) break;
-    delete insertPayload[missing];
-    const retry = await supabase
-      .from("opportunities")
-      .insert(insertPayload)
-      .select("id")
-      .single();
-    inserted = retry.data;
-    error = retry.error;
-  }
+  const { body, maxApprovals } = withoutMaxApprovals(insertPayload);
+  const { data: inserted, error } = await writeOpportunity(body, "insert");
 
   if (error) {
     return fail(
@@ -323,5 +298,6 @@ export async function createOpportunity(
     );
   }
 
+  await persistMaxApprovals(row.id, maxApprovals);
   return { ok: true, opportunity: { id: row.id } };
 }

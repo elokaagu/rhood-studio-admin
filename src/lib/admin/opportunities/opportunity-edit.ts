@@ -14,6 +14,7 @@ import {
   formFromMaxApprovals,
   type ApprovalLimitMode,
 } from "@/lib/opportunities/approval-limit";
+import { missingColumnFromError } from "@/lib/opportunities/missing-column";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -180,43 +181,24 @@ export async function saveOpportunity(
   opportunityId: string,
   payload: OpportunityUpdatePayload
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const { error } = await supabase
+  const body: Record<string, unknown> = { ...(payload as Record<string, unknown>) };
+  let { error } = await supabase
     .from("opportunities")
-    .update(payload)
+    .update(body)
     .eq("id", opportunityId);
 
+  for (let attempt = 0; attempt < 8 && error; attempt += 1) {
+    const missing = missingColumnFromError(error);
+    if (!missing || !(missing in body)) break;
+    delete body[missing];
+    const retry = await supabase
+      .from("opportunities")
+      .update(body)
+      .eq("id", opportunityId);
+    error = retry.error;
+  }
+
   if (error) {
-    // If listing_status / additional_info columns don't exist yet (migration pending),
-    // retry with only the core columns so the save still succeeds.
-    const isMissingColumn =
-      error.message?.includes("listing_status") ||
-      error.message?.includes("additional_info") ||
-      error.message?.includes("website") ||
-      error.message?.includes("compensation") ||
-      error.message?.includes("event_start_time") ||
-      error.message?.includes("event_timezone") ||
-      error.message?.includes("max_approvals") ||
-      (error.message?.includes("column") && error.message?.includes("does not exist"));
-
-    if (isMissingColumn) {
-      const corePayload = { ...(payload as any) };
-      delete corePayload.listing_status;
-      delete corePayload.additional_info;
-      delete corePayload.website;
-      delete corePayload.compensation;
-      delete corePayload.event_start_time;
-      delete corePayload.event_timezone;
-      delete corePayload.max_approvals;
-      const { error: retryError } = await supabase
-        .from("opportunities")
-        .update(corePayload)
-        .eq("id", opportunityId);
-      if (retryError) {
-        return { ok: false, message: retryError.message || "Failed to save." };
-      }
-      return { ok: true };
-    }
-
     return { ok: false, message: error.message || "Failed to save." };
   }
   return { ok: true };

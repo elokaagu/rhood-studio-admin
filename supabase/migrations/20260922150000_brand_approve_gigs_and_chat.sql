@@ -2,6 +2,9 @@
 -- gigs) and can message applicants. The gigs insert was failing RLS because
 -- the trigger ran as the brand, not as a table owner.
 
+ALTER TABLE public.opportunities
+  ADD COLUMN IF NOT EXISTS max_approvals INTEGER;
+
 -- 1) Opportunity owners / admins may insert and read gigs tied to their listings.
 DO $$
 DECLARE

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,6 +21,19 @@ export function DjApprovalsField({
   onModeChange: (mode: ApprovalLimitMode) => void;
   onCountChange: (count: number) => void;
 }) {
+  const [countText, setCountText] = useState(String(Math.max(2, count || 2)));
+
+  useEffect(() => {
+    setCountText(String(Math.max(2, count || 2)));
+  }, [count]);
+
+  const commitCount = () => {
+    const parsed = Math.floor(Number(countText));
+    const next = Number.isFinite(parsed) && parsed >= 2 ? parsed : 2;
+    setCountText(String(next));
+    if (next !== count) onCountChange(next);
+  };
+
   return (
     <div className="space-y-3">
       <Label className="text-foreground flex items-center">
@@ -28,7 +42,13 @@ export function DjApprovalsField({
       </Label>
       <RadioGroup
         value={mode}
-        onValueChange={(value) => onModeChange(value as ApprovalLimitMode)}
+        onValueChange={(value) => {
+          const next = value as ApprovalLimitMode;
+          onModeChange(next);
+          if (next === "limited" && (!count || count < 2)) {
+            onCountChange(2);
+          }
+        }}
         className="gap-3"
       >
         <label className="flex items-start gap-2 text-sm text-foreground cursor-pointer">
@@ -51,26 +71,49 @@ export function DjApprovalsField({
         </label>
         <label className="flex items-start gap-2 text-sm text-foreground cursor-pointer">
           <RadioGroupItem value="limited" className="mt-0.5" />
-          <span className="flex-1">
+          <span>
             Up to a set number
-            <span className="block text-xs text-muted-foreground mb-2">
+            <span className="block text-xs text-muted-foreground">
               Stop approvals once this many DJs are in.
             </span>
-            {mode === "limited" && (
-              <Input
-                type="number"
-                min={1}
-                step={1}
-                value={count}
-                onChange={(event) =>
-                  onCountChange(Math.max(1, Number(event.target.value) || 1))
-                }
-                className="bg-secondary border-border text-foreground w-28"
-              />
-            )}
           </span>
         </label>
       </RadioGroup>
+
+      {mode === "limited" && (
+        <div
+          className="pl-6"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <Input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            min={2}
+            value={countText}
+            onChange={(event) => {
+              const digits = event.target.value.replace(/[^\d]/g, "");
+              setCountText(digits);
+              const parsed = Math.floor(Number(digits));
+              if (Number.isFinite(parsed) && parsed >= 2) {
+                onCountChange(parsed);
+              }
+            }}
+            onBlur={commitCount}
+            onKeyDown={(event) => {
+              event.stopPropagation();
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitCount();
+              }
+            }}
+            className="bg-secondary border-border text-foreground w-28"
+            aria-label="Maximum number of DJs to approve"
+          />
+        </div>
+      )}
     </div>
   );
 }

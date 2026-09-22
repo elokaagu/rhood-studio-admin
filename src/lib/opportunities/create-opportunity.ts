@@ -10,6 +10,7 @@ import {
 import { isValidTimeZone, resolveTimeZone } from "@/lib/opportunities/timezones";
 import { maxApprovalsFromForm } from "@/lib/opportunities/approval-limit";
 import type { ApprovalLimitMode } from "@/lib/opportunities/approval-limit";
+import { missingColumnFromError } from "@/lib/opportunities/missing-column";
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -281,39 +282,10 @@ export async function createOpportunity(
     .select("id")
     .single();
 
-  const isMissingColumn = (message?: string) =>
-    !!message &&
-    (message.includes("does not exist") ||
-      message.includes("listing_status") ||
-      message.includes("website") ||
-      message.includes("additional_info") ||
-      message.includes("compensation") ||
-      message.includes("event_start_time") ||
-      message.includes("event_timezone") ||
-      message.includes("max_approvals"));
-
-  if (error && isMissingColumn(error.message)) {
-    if (error.message?.includes("compensation")) {
-      delete insertPayload.compensation;
-    }
-    if (error.message?.includes("website")) {
-      delete insertPayload.website;
-    }
-    if (error.message?.includes("additional_info")) {
-      delete insertPayload.additional_info;
-    }
-    if (error.message?.includes("event_start_time")) {
-      delete insertPayload.event_start_time;
-    }
-    if (error.message?.includes("event_timezone")) {
-      delete insertPayload.event_timezone;
-    }
-    if (error.message?.includes("max_approvals")) {
-      delete insertPayload.max_approvals;
-    }
-    if (error.message?.includes("listing_status")) {
-      delete insertPayload.listing_status;
-    }
+  for (let attempt = 0; attempt < 8 && error; attempt += 1) {
+    const missing = missingColumnFromError(error);
+    if (!missing || !(missing in insertPayload)) break;
+    delete (insertPayload as Record<string, unknown>)[missing];
     const retry = await supabase
       .from("opportunities")
       .insert(insertPayload)

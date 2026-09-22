@@ -224,6 +224,9 @@ export default function FormResponsesPage() {
             opportunityTitle:
               form?.opportunities?.title || form?.title || "this opportunity",
             userId: response?.user_id,
+            applicationId: responseId,
+            applicationType: "form_response",
+            opportunityId: response?.opportunity_id || form?.opportunity_id,
           });
         } catch {
           // Email is best-effort.

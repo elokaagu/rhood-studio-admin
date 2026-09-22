@@ -132,6 +132,9 @@ export default function ApplicationDetailsPage() {
             applicantName: application.applicant.name,
             opportunityTitle: application.opportunity,
             userId: application.userId,
+            applicationId: application.id,
+            opportunityId: application.opportunityId,
+            organizerId: application.organizerId,
           });
         } catch {
           // Email is best-effort.
@@ -145,7 +148,7 @@ export default function ApplicationDetailsPage() {
         title: nextStatus === "approved" ? "Application Approved" : "Application Rejected",
         description:
           nextStatus === "approved"
-            ? "The application has been approved and the user has been notified."
+            ? "The DJ has been approved, emailed, and introduced to the brand on a shared thread."
             : "The application has been rejected and the user has been notified.",
       });
     } catch (error) {

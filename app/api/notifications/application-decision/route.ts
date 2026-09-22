@@ -6,6 +6,7 @@ import {
   emailAppStoreButtons,
   emailAppStorePlainText,
 } from "@/lib/email/branding";
+import { notifyApprovedApplication } from "@/lib/email/notify-approved-application";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFromAddress =
@@ -17,6 +18,10 @@ interface ApplicationDecisionPayload {
   status?: string;
   opportunityTitle?: string;
   userId?: string | null;
+  applicationId?: string | null;
+  applicationType?: string | null;
+  opportunityId?: string | null;
+  organizerId?: string | null;
 }
 
 function isValidEmail(email: string): boolean {
@@ -137,27 +142,47 @@ export async function POST(request: Request) {
       );
     }
 
+    const approved = body.status === "approved";
+    if (approved) {
+      const result = await notifyApprovedApplication({
+        applicationId: body.applicationId,
+        applicationType: body.applicationType,
+        opportunityId: body.opportunityId,
+        organizerId: body.organizerId,
+        djUserId: body.userId,
+        djEmail: sanitizedEmail,
+        djName: body.applicantName,
+        opportunityTitle: body.opportunityTitle,
+      });
+      if (!result.ok && !result.decisionSent) {
+        return NextResponse.json(
+          {
+            error: "Failed to send email",
+            message: result.message || "Failed to send approval email.",
+          },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        previewText: result.introSent
+          ? "Approved — the brand and DJ are on a shared intro thread"
+          : "Your application was approved — view it in the R/HOOD app",
+        introSent: result.introSent,
+        to: sanitizedEmail,
+      });
+    }
+
     const resend = new Resend(resendApiKey);
     const firstName = body.applicantName?.trim().split(" ")[0] || "there";
     const safeName = escapeHtml(firstName);
     const safeTitle = escapeHtml(body.opportunityTitle);
-    const approved = body.status === "approved";
-    const subject = approved
-      ? `Your application for ${body.opportunityTitle} was approved`
-      : `Update on ${body.opportunityTitle}`;
-    const heroHeading = approved ? "You've been selected!" : "Thanks for applying";
-    const bodyCopy = approved
-      ? `Great news — your application for "${safeTitle}" has been approved. Open the R/HOOD app to see the opportunity and next steps.`
-      : `Thanks for putting yourself forward for "${safeTitle}". The organiser went in a different direction this time, but we'd love to see you apply again.`;
-    const plainBodyCopy = approved
-      ? `Great news — your application for "${body.opportunityTitle}" has been approved. Open the R/HOOD app to see the opportunity and next steps.`
-      : `Thanks for putting yourself forward for "${body.opportunityTitle}". The organiser went in a different direction this time, but we'd love to see you apply again.`;
-    const ctaLabel = approved
-      ? "View in the R/HOOD app"
-      : "Find more gigs in the app";
-    const previewText = approved
-      ? "Your application was approved — view it in the R/HOOD app"
-      : "You're still on our radar — check other live gigs in the app.";
+    const subject = `Update on ${body.opportunityTitle}`;
+    const heroHeading = "Thanks for applying";
+    const bodyCopy = `Thanks for putting yourself forward for "${safeTitle}". The organiser went in a different direction this time, but we'd love to see you apply again.`;
+    const plainBodyCopy = `Thanks for putting yourself forward for "${body.opportunityTitle}". The organiser went in a different direction this time, but we'd love to see you apply again.`;
+    const ctaLabel = "Find more gigs in the app";
+    const previewText = "You're still on our radar — check other live gigs in the app.";
 
     const html = `
       <table style="width:100%;background-color:#0f0f0f;padding:32px 0;font-family:Helvetica,Arial,sans-serif;color:#ffffff;">

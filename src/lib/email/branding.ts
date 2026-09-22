@@ -1,4 +1,4 @@
-import { PORTAL_BASE_URL, getDjAndroidPlayStoreUrl, getDjIosAppStoreUrl } from "@/lib/portal-url";
+import { PORTAL_BASE_URL, getDjAndroidPlayStoreUrl, getDjIosAppStoreUrl } from "../portal-url";
 
 export function emailLogoBlock(eyebrow: string): string {
   return `
@@ -16,6 +16,10 @@ export function emailLogoBlock(eyebrow: string): string {
 
 const buttonStyle =
   "display:inline-block;padding:14px 28px;background-color:#c2cc06;color:#1d1d1b;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;";
+
+export function emailLimeButton(href: string, label: string): string {
+  return `<a href="${href}" style="${buttonStyle}">${label}</a>`;
+}
 
 const secondaryButtonStyle =
   "display:inline-block;padding:14px 28px;background-color:#252525;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;border:1px solid #3a3a3a;";

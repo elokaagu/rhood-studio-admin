@@ -20,6 +20,10 @@ export interface ApplicationDecisionEmailPayload {
   status: "approved" | "rejected";
   opportunityTitle: string;
   userId?: string | null;
+  applicationId?: string | null;
+  applicationType?: string | null;
+  opportunityId?: string | null;
+  organizerId?: string | null;
 }
 
 /**
@@ -194,10 +198,14 @@ export async function notifyApplicantOfApprovedApplication(payload: {
   applicantName?: string | null;
   opportunityTitle?: string | null;
   userId?: string | null;
+  applicationId?: string | null;
+  applicationType?: string | null;
+  opportunityId?: string | null;
+  organizerId?: string | null;
 }) {
   const opportunityTitle = payload.opportunityTitle?.trim();
   if (!opportunityTitle) return;
-  if (!payload.email && !payload.userId) return;
+  if (!payload.email && !payload.userId && !payload.applicationId) return;
 
   return triggerApplicationDecisionEmail({
     email: payload.email,
@@ -205,6 +213,10 @@ export async function notifyApplicantOfApprovedApplication(payload: {
     status: "approved",
     opportunityTitle,
     userId: payload.userId,
+    applicationId: payload.applicationId,
+    applicationType: payload.applicationType,
+    opportunityId: payload.opportunityId,
+    organizerId: payload.organizerId,
   });
 }
 

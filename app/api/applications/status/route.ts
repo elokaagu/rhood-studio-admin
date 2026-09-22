@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { notifyApprovedApplication } from "@/lib/email/notify-approved-application";
 
 type Body = {
   applicationId?: string;
@@ -167,7 +168,7 @@ export async function POST(request: Request) {
       applicationType === "form_response" ? "application_form_responses" : "applications";
 
     const { data: appRow, error: appError } = await fromUntyped(admin, tableName)
-      .select("id, opportunity_id, status")
+      .select("id, opportunity_id, status, user_id")
       .eq("id", applicationId)
       .maybeSingle();
 
@@ -258,6 +259,24 @@ export async function POST(request: Request) {
         { error: update.error.message || "Failed to update application." },
         { status: 400 }
       );
+    }
+
+    if (status === "approved") {
+      try {
+        const emails = await notifyApprovedApplication({
+          applicationId,
+          applicationType,
+          opportunityId: appRow.opportunity_id,
+          djUserId: appRow.user_id,
+        });
+        return NextResponse.json({
+          ok: true,
+          introSent: emails.introSent,
+          decisionSent: emails.decisionSent,
+        });
+      } catch (emailError) {
+        console.error("[applications/status] approval emails", emailError);
+      }
     }
 
     return NextResponse.json({ ok: true });

@@ -352,12 +352,17 @@ export async function notifyApprovedApplication(
     };
   }
 
-  if (!brandEmail || brandEmail === djEmail) {
+  if (!djEmail || !brandEmail || brandEmail === djEmail) {
     return {
       ok: true,
       decisionSent,
       introSent: false,
-      message: brandEmail === djEmail ? "Skipped intro for the same email." : "Brand has no email.",
+      message:
+        !djEmail
+          ? "A valid DJ email is required to send the introduction."
+          : !brandEmail
+            ? "Brand has no email."
+            : "Skipped intro for the same email.",
     };
   }
 

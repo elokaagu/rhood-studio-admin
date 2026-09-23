@@ -78,9 +78,7 @@ export default function CampaignsPage() {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <div>
-        <h1 className={`${textStyles.heading.primary} text-foreground`}>
-          Campaigns
-        </h1>
+        <h1 className={textStyles.headline.section}>CAMPAIGNS</h1>
         <p className={`${textStyles.body.small} text-muted-foreground mt-1`}>
           Traffic-light status for the R/HOOD team. Click a light for where we
           are now — from Studio steps and the hello@rhood.io campaign thread.

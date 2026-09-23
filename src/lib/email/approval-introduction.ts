@@ -9,6 +9,7 @@ export type ApprovalIntroductionContent = {
   opportunityTitle: string;
   location?: string | null;
   eventDateLabel?: string | null;
+  additionalInfo?: string | null;
 };
 
 export function replyAllMailto(input: ApprovalIntroductionContent): string {
@@ -32,6 +33,7 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
   const djFirst = firstNameFrom(djName);
   const location = input.location?.trim() || "";
   const eventDateLabel = input.eventDateLabel?.trim() || "";
+  const additionalInfo = input.additionalInfo?.trim() || "";
   const details = [location, eventDateLabel].filter(Boolean).join(" · ");
 
   const subject = `R/HOOD intro: ${djName} × ${brandName} for ${title}`;
@@ -52,6 +54,9 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
   const safeDjEmail = escapeHtml(djEmail);
   const safeBrandEmail = escapeHtml(brandEmail);
   const safeDetails = details ? escapeHtml(details) : "";
+  const safeAdditional = additionalInfo
+    ? escapeHtml(additionalInfo).replace(/\n/g, "<br/>")
+    : "";
 
   const html = `
       <table style="width:100%;background-color:#0f0f0f;padding:32px 0;font-family:Helvetica,Arial,sans-serif;color:#ffffff;">
@@ -74,6 +79,22 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
                   ? `<tr>
                 <td style="padding-top:16px;font-size:14px;line-height:1.6;color:#c2cc06;font-weight:700;">
                   ${safeDetails}
+                </td>
+              </tr>`
+                  : ""
+              }
+              ${
+                safeAdditional
+                  ? `<tr>
+                <td style="padding-top:20px;">
+                  <table style="width:100%;background-color:#111111;border:1px solid #2a2a2a;border-radius:12px;padding:16px 18px;">
+                    <tr>
+                      <td style="font-size:14px;line-height:1.7;color:#dddddd;">
+                        <span style="color:#9e9e9e;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Additional information</span><br/>
+                        ${safeAdditional}
+                      </td>
+                    </tr>
+                  </table>
                 </td>
               </tr>`
                   : ""
@@ -124,6 +145,7 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
     `${brandName} approved ${djName} for "${title}".`,
     "You're both on this email so you can introduce yourselves and finish the opportunity from here.",
     details ? details : "",
+    additionalInfo ? `Additional information:\n${additionalInfo}` : "",
     "",
     `DJ: ${djName} <${djEmail}>`,
     `Brand: ${brandName} <${brandEmail}>`,

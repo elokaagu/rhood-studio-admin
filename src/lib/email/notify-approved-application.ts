@@ -208,6 +208,7 @@ export async function notifyApprovedApplication(
   let opportunityTitle = input.opportunityTitle?.trim() || null;
   let location: string | null = null;
   let dateLabel: string | null = null;
+  let additionalInfo: string | null = null;
   let createdBy: string | null = null;
   let postedBy: string | null = null;
   let organizerName: string | null = null;
@@ -215,7 +216,7 @@ export async function notifyApprovedApplication(
   if (opportunityId) {
     const full = await fromUntyped(admin, "opportunities")
       .select(
-        "id, title, organizer_id, organizer_name, created_by, posted_by, location, event_date, event_start_time, event_timezone"
+        "id, title, organizer_id, organizer_name, created_by, posted_by, location, event_date, event_start_time, event_timezone, additional_info"
       )
       .eq("id", opportunityId)
       .maybeSingle();
@@ -236,6 +237,8 @@ export async function notifyApprovedApplication(
       opportunityTitle =
         opportunityTitle || (typeof row.title === "string" ? row.title : null);
       location = typeof row.location === "string" ? row.location : null;
+      additionalInfo =
+        typeof row.additional_info === "string" ? row.additional_info : null;
       dateLabel = eventDateLabel({
         event_date: typeof row.event_date === "string" ? row.event_date : null,
         event_start_time:
@@ -378,6 +381,7 @@ export async function notifyApprovedApplication(
     opportunityTitle: title,
     location,
     eventDateLabel: dateLabel,
+    additionalInfo,
   });
 
   const introResponse = await resend.emails.send({

@@ -571,9 +571,7 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
                     first_name: e.target.value,
                   })
                 }
-                disabled={
-                  portalStatus === "loading" || isSavingProfile || !profile
-                }
+                disabled={isSavingProfile || !profile}
               />
             </div>
             <div className="space-y-2">
@@ -588,9 +586,7 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
                     last_name: e.target.value,
                   })
                 }
-                disabled={
-                  portalStatus === "loading" || isSavingProfile || !profile
-                }
+                disabled={isSavingProfile || !profile}
               />
             </div>
           </div>
@@ -604,9 +600,7 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
             </Button>
             <Button
               onClick={handleSaveProfile}
-              disabled={
-                portalStatus === "loading" || isSavingProfile || !profile
-              }
+              disabled={isSavingProfile || !profile}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {isSavingProfile ? "Saving..." : "Save Changes"}

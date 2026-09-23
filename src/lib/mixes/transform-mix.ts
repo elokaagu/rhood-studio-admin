@@ -1,4 +1,5 @@
 import { formatDateShort } from "@/lib/date-utils";
+import { getMixAudioPath } from "@/lib/mixes/share-url";
 import type { MixListItem, MixUploader } from "@/lib/mixes/types";
 
 export function resolveArtistLabel(
@@ -64,7 +65,7 @@ export function rowToMixListItem(mix: MixRow): MixListItem {
     uploadDate: mix.created_at
       ? formatDateShort(mix.created_at)
       : "Unknown",
-    audioUrl: mix.file_url,
+    audioUrl: getMixAudioPath(mix.id),
     originalArtist: storedArtist ?? "",
   };
 }

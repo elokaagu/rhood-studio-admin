@@ -17,8 +17,14 @@ export function getMixShareUrl(mixId: string): string {
   return `${getPortalBaseUrl()}${getMixSharePath(mixId)}`;
 }
 
-export function getMixAudioPath(mixId: string): string {
-  return `/api/mixes/${mixId}/audio`;
+export function getMixAudioPath(mixId: string, download = false): string {
+  const path = `/api/mixes/${mixId}/audio`;
+  return download ? `${path}?download=1` : path;
+}
+
+/** Absolute audio URL on the portal, never the storage host. */
+export function getMixAudioUrl(mixId: string, download = false): string {
+  return `${getPortalBaseUrl()}${getMixAudioPath(mixId, download)}`;
 }
 
 /** Resolve a stored mix file_url (full URL or storage path) to a fetchable URL. */

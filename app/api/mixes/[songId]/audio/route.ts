@@ -1,6 +1,18 @@
 import { fetchPublicMix } from "@/lib/mixes/fetch-public-mix";
 import { resolveMixStorageUrl } from "@/lib/mixes/share-url";
 
+function downloadFilename(title: string, fileUrl: string): string {
+  const extMatch = fileUrl.match(/\.([a-z0-9]+)(?:\?|$)/i);
+  const ext = extMatch?.[1] || "m4a";
+  const base =
+    title
+      .replace(/[^\w\s-]+/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .slice(0, 80) || "mix";
+  return `${base}.${ext}`;
+}
+
 type AudioRouteProps = {
   params: Promise<{ songId: string }>;
 };
@@ -10,7 +22,7 @@ export async function GET(request: Request, { params }: AudioRouteProps) {
   const mix = await fetchPublicMix(songId);
   const storageUrl = mix ? resolveMixStorageUrl(mix.file_url) : null;
 
-  if (!storageUrl) {
+  if (!mix || !storageUrl) {
     return new Response("Mix not found", { status: 404 });
   }
 
@@ -37,6 +49,14 @@ export async function GET(request: Request, { params }: AudioRouteProps) {
 
   const contentRange = upstream.headers.get("content-range");
   if (contentRange) headers.set("Content-Range", contentRange);
+
+  const download = new URL(request.url).searchParams.get("download") === "1";
+  if (download) {
+    headers.set(
+      "Content-Disposition",
+      `attachment; filename="${downloadFilename(mix.title, mix.file_url)}"`
+    );
+  }
 
   return new Response(upstream.body, {
     status: upstream.status,

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateShort } from "@/lib/date-utils";
-import { getMixShareUrl } from "@/lib/mixes/share-url";
+import { getMixAudioPath, getMixShareUrl } from "@/lib/mixes/share-url";
 import { supabase } from "@/integrations/supabase/client";
 import { textStyles } from "@/lib/typography";
 import Image from "next/image";
@@ -212,7 +212,7 @@ async function uploadGeneratedArtwork(mix: {
 
 export default function MixesPage() {
   const { toast } = useToast();
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -545,7 +545,7 @@ export default function MixesPage() {
     }
   };
 
-  const handlePlayPause = (mixId: number, audioUrl: string) => {
+  const handlePlayPause = (mixId: string) => {
     if (currentlyPlaying === mixId && isPlaying) {
       // Pause current audio
       if (audioRef.current) {
@@ -559,8 +559,8 @@ export default function MixesPage() {
         audioRef.current.currentTime = 0;
       }
 
-      // Create new audio element
-      const audio = new Audio(audioUrl);
+      // Stream through the portal slug, never the storage host.
+      const audio = new Audio(getMixAudioPath(mixId));
       audioRef.current = audio;
 
       // Set up event listeners
@@ -601,24 +601,11 @@ export default function MixesPage() {
     }
   };
 
-  const handleDownload = (mixTitle: string, fileUrl?: string) => {
-    if (!fileUrl) {
-      toast({
-        title: "Download Failed",
-        description: "No file URL available for this mix.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleDownload = (mixId: string, mixTitle: string) => {
     try {
-      // Create a temporary anchor element to trigger download
       const link = document.createElement("a");
-      link.href = fileUrl;
-      link.download = `${mixTitle}.mp3`; // Default to .mp3 extension
-      link.target = "_blank";
-
-      // Append to body, click, and remove
+      link.href = getMixAudioPath(mixId, true);
+      link.download = `${mixTitle}.m4a`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1458,12 +1445,7 @@ export default function MixesPage() {
                           variant="outline"
                           size="icon"
                           className="h-10 w-10 rounded-full bg-white/20 border-white/30 hover:bg-white/30 backdrop-blur-sm"
-                          onClick={() =>
-                            handlePlayPause(
-                              mix.id,
-                              mix.file_url || mix.audioUrl
-                            )
-                          }
+                          onClick={() => handlePlayPause(mix.id)}
                         >
                           {currentlyPlaying === mix.id && isPlaying ? (
                             <Pause className="h-5 w-5 text-white" />
@@ -1532,7 +1514,7 @@ export default function MixesPage() {
                       variant="outline"
                       size="sm"
                       className="bg-brand-green/10 border-brand-green/30 text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-300 text-xs sm:text-sm flex-1 sm:flex-initial"
-                      onClick={() => handleDownload(mix.title, mix.file_url)}
+                      onClick={() => handleDownload(mix.id, mix.title)}
                     >
                       <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                       <span className="hidden sm:inline">Download</span>

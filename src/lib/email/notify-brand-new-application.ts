@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { emailLogoBlock } from "@/lib/email/branding";
 import { getPortalBaseUrl } from "@/lib/portal-url";
+import { loginPathWithNext } from "@/lib/auth/login-redirect";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFromAddress =
@@ -163,7 +164,10 @@ export async function notifyBrandOfNewApplication(
     return { ok: true, emailed: false };
   }
 
-  const portalUrl = `${getPortalBaseUrl()}/admin/applications`;
+  const reviewPath = applicationId
+    ? `/admin/applications/${applicationId}`
+    : "/admin/applications";
+  const portalUrl = `${getPortalBaseUrl()}${loginPathWithNext(reviewPath)}`;
   const safeApplicant = escapeHtml(applicantName);
   const safeTitle = escapeHtml(opportunityTitle);
   const safeBrand = escapeHtml(brandName);

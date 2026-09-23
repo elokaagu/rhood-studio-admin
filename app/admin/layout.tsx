@@ -6,6 +6,7 @@ import {
   PortalUserProvider,
   usePortalUser,
 } from "@/contexts/portal-user-context";
+import { loginPathWithNext } from "@/lib/auth/login-redirect";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -294,8 +295,10 @@ function AppSidebar() {
 
 function AdminLayoutShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
   const {
+    authUser,
     displayName,
     profile,
     refresh,
@@ -310,6 +313,13 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
   });
   const [tourActive, setTourActive] = useState(false);
   const [photoPromptDismissed, setPhotoPromptDismissed] = useState(false);
+
+  useEffect(() => {
+    if (portalStatus === "loading") return;
+    if (authUser) return;
+    const search = window.location.search || "";
+    router.replace(loginPathWithNext(`${pathname}${search}`));
+  }, [portalStatus, authUser, pathname, router]);
 
   useEffect(() => {
     if (!accountSettingsOpen) return;
@@ -452,6 +462,18 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
       });
     }
   };
+
+  if (portalStatus === "loading" || !authUser) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-background">
+        <p className={`text-sm text-muted-foreground ${textStyles.body.small}`}>
+          {portalStatus === "loading"
+            ? "Loading your account…"
+            : "Taking you to login…"}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>

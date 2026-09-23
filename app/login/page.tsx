@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
 import { textStyles } from "@/lib/typography";
 import { PORTAL_BASE_URL } from "@/lib/portal-url";
+import { safePortalNextPath } from "@/lib/auth/login-redirect";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -47,14 +48,16 @@ export default function AdminLoginPage() {
     }
   }, []);
 
+  const destinationAfterLogin = () =>
+    safePortalNextPath(new URLSearchParams(window.location.search).get("next"));
+
   useEffect(() => {
-    // Check if user is already logged in
     const checkSession = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       if (session) {
-        router.push("/admin/dashboard");
+        router.push(destinationAfterLogin());
       }
     };
 
@@ -270,7 +273,7 @@ export default function AdminLoginPage() {
             title: "Welcome back!",
             description: "You have been successfully logged in.",
           });
-          router.push("/admin/dashboard");
+          router.push(destinationAfterLogin());
         }
       }
     } catch (error) {

@@ -41,6 +41,25 @@ function contextBlock(context: RefineRequest["context"]): string {
   return lines.length ? `\n\nListing details already entered:\n${lines.join("\n")}` : "";
 }
 
+const NEXT_BRIEF_HEADING =
+  /(?:^|\n)\s*(the opportunity|who it's for|what you'll do|vibe\s*&\s*sound)\b/i;
+
+function stripPracticalDetailsSection(text: string): string {
+  const heading = /(?:^|\n)\s*practical details\b[^\n]*/i;
+  const match = heading.exec(text);
+  if (!match || match.index === undefined) return text.trim();
+
+  const after = text.slice(match.index + match[0].length);
+  const next = NEXT_BRIEF_HEADING.exec(after);
+  const end =
+    next && next.index !== undefined
+      ? match.index + match[0].length + next.index
+      : text.length;
+  return `${text.slice(0, match.index)}${text.slice(end)}`
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export async function POST(request: Request) {
   try {
     const body: RefineRequest = await request.json();
@@ -62,7 +81,7 @@ export async function POST(request: Request) {
 
     const system = `You write standardised DJ opportunity briefs for R/HOOD Studio.
 
-Turn the brand's rough notes into a fuller, more useful brief that DJs can actually apply from. Expand the idea with context — what the event is, who it is for, what the DJ will do, the vibe/sound, and any practical details that are already known.
+Turn the brand's rough notes into a fuller, more useful brief that DJs can actually apply from. Expand the idea with context — what the event is, who it is for, what the DJ will do, and the vibe/sound.
 
 Rules:
 - Expand and add helpful context. Do not just tidy grammar or shorten the text.
@@ -73,16 +92,18 @@ Rules:
   Who it's for
   What you'll do
   Vibe & sound
-  Practical details
+- Do not include a Practical details section, logistics, load-in, door times, or a recap of dates, location, or pay. Those live elsewhere on the listing.
 - Professional, direct, and inviting. No hype, no hashtags, no markdown headings with #.
 - Stay within the character limit. Return only the brief.`;
     const prompt = `Write a standardised DJ brief of at most ${maxLength} characters from these notes:\n\n${text}${contextBlock(context)}`;
 
-    const refinedText = await refineTextWithAi({
-      system,
-      prompt,
-      maxTokens: Math.max(700, maxLength),
-    });
+    const refinedText = stripPracticalDetailsSection(
+      await refineTextWithAi({
+        system,
+        prompt,
+        maxTokens: Math.max(700, maxLength),
+      })
+    );
 
     const finalText =
       refinedText.length > maxLength

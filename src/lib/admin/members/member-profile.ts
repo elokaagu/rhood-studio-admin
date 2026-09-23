@@ -10,10 +10,12 @@ import {
 
 const ACTIVE_DAYS_THRESHOLD = 30;
 
+function fromUntyped(table: string) {
+  return (supabase as unknown as { from: (name: string) => any }).from(table);
+}
+
 function applicationsTable() {
-  return (supabase as unknown as { from: (name: string) => any }).from(
-    "applications"
-  );
+  return fromUntyped("applications");
 }
 
 /** DJ → brand → trimmed full name → email → Unknown */
@@ -94,13 +96,28 @@ export async function fetchAdminMemberProfile(
     return { ok: false, message: "Missing member id." };
   }
 
-  const { data: row, error } = await supabase
-    .from("user_profiles")
-    .select(
-      "id, role, dj_name, brand_name, first_name, last_name, email, city, bio, profile_image_url, instagram, soundcloud, genres, created_at, updated_at, invite_code, invite_code_used, credits"
-    )
+  const profileColumns =
+    "id, role, dj_name, brand_name, first_name, last_name, email, city, bio, profile_image_url, instagram, soundcloud, genres, created_at, updated_at, invite_code, invite_code_used, credits";
+  const profileColumnsWithoutOptional =
+    "id, role, dj_name, brand_name, first_name, last_name, email, city, bio, profile_image_url, instagram, soundcloud, genres, created_at, updated_at, invite_code_used";
+
+  let { data: row, error } = await fromUntyped("user_profiles")
+    .select(profileColumns)
     .eq("id", memberId)
     .single();
+
+  if (
+    error &&
+    (String(error.message || "").includes("invite_code") ||
+      String(error.message || "").includes("credits"))
+  ) {
+    const retry = await fromUntyped("user_profiles")
+      .select(profileColumnsWithoutOptional)
+      .eq("id", memberId)
+      .single();
+    row = retry.data;
+    error = retry.error;
+  }
 
   if (error || !row) {
     return {

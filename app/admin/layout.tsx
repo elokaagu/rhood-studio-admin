@@ -60,6 +60,7 @@ import {
   MessageCircle,
   ContactRound,
   UserCheck,
+  Radar,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -117,6 +118,12 @@ const allSidebarItems = [
     url: "/admin/applications",
     icon: FileText,
     roles: ["admin", "brand"] as UserRole[],
+  },
+  {
+    title: "Campaigns",
+    url: "/admin/campaigns",
+    icon: Radar,
+    roles: ["admin"] as UserRole[],
   },
   {
     title: "Mixes",

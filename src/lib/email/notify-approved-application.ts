@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { recordCampaignMessage } from "@/lib/campaigns/store-message";
 import { buildApprovalIntroduction } from "@/lib/email/approval-introduction";
 import {
   emailAppStoreButtons,
@@ -12,6 +13,8 @@ import {
   isValidEmail,
   sanitizeEmail,
 } from "@/lib/email/helpers";
+import { campaignAgentFromAddress, campaignOpsEmail } from "@/lib/email/ops";
+import { formatCompensationDisplay } from "@/lib/opportunities/compensation";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultFromAddress =
@@ -209,6 +212,7 @@ export async function notifyApprovedApplication(
   let location: string | null = null;
   let dateLabel: string | null = null;
   let additionalInfo: string | null = null;
+  let compensation: string | null = null;
   let createdBy: string | null = null;
   let postedBy: string | null = null;
   let organizerName: string | null = null;
@@ -216,7 +220,7 @@ export async function notifyApprovedApplication(
   if (opportunityId) {
     const full = await fromUntyped(admin, "opportunities")
       .select(
-        "id, title, organizer_id, organizer_name, created_by, posted_by, location, event_date, event_start_time, event_timezone, additional_info"
+        "id, title, organizer_id, organizer_name, created_by, posted_by, location, event_date, event_start_time, event_timezone, additional_info, compensation, payment"
       )
       .eq("id", opportunityId)
       .maybeSingle();
@@ -239,6 +243,11 @@ export async function notifyApprovedApplication(
       location = typeof row.location === "string" ? row.location : null;
       additionalInfo =
         typeof row.additional_info === "string" ? row.additional_info : null;
+      compensation =
+        formatCompensationDisplay(
+          typeof row.compensation === "string" ? row.compensation : null,
+          typeof row.payment === "number" ? row.payment : null
+        ) || null;
       dateLabel = eventDateLabel({
         event_date: typeof row.event_date === "string" ? row.event_date : null,
         event_start_time:
@@ -382,11 +391,13 @@ export async function notifyApprovedApplication(
     location,
     eventDateLabel: dateLabel,
     additionalInfo,
+    compensation,
   });
 
   const introResponse = await resend.emails.send({
-    from: defaultFromAddress,
+    from: campaignAgentFromAddress(),
     to: intro.to,
+    cc: intro.cc,
     replyTo: intro.replyTo,
     subject: intro.subject,
     html: intro.html,
@@ -415,6 +426,19 @@ export async function notifyApprovedApplication(
     "Introduction sent",
     `${djName} and ${brandName} were introduced for ${title}.`
   );
+  await recordCampaignMessage(admin, {
+    opportunityId,
+    applicationId,
+    brandEmail,
+    djEmail,
+    subject: intro.subject,
+    fromEmail: campaignOpsEmail(),
+    toEmails: intro.to,
+    ccEmails: intro.cc,
+    bodyText: intro.text,
+    direction: "outbound",
+    resendId: introResponse.data?.id ?? null,
+  });
 
   return { ok: true, decisionSent, introSent };
 }

@@ -18,7 +18,7 @@ export function missingColumnFromError(error: PostgrestLikeError): string | null
   if (schemaCache) return schemaCache[1];
 
   const doesNotExist = text.match(
-    /column ['"]?([a-z_][a-z0-9_]*)['"]? does not exist/i
+    /column ['"]?(?:[a-z_][a-z0-9_]*\.)?([a-z_][a-z0-9_]*)['"]? does not exist/i
   );
   if (doesNotExist) return doesNotExist[1];
 

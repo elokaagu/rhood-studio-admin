@@ -7,6 +7,7 @@ import {
   soundcloudHandleToStored,
   soundcloudStoredToHandle,
 } from "@/lib/admin/members/member-edit";
+import { missingColumnFromError } from "@/lib/opportunities/missing-column";
 
 const ACTIVE_DAYS_THRESHOLD = 30;
 
@@ -96,27 +97,45 @@ export async function fetchAdminMemberProfile(
     return { ok: false, message: "Missing member id." };
   }
 
-  const profileColumns =
-    "id, role, dj_name, brand_name, first_name, last_name, email, city, bio, profile_image_url, instagram, soundcloud, genres, created_at, updated_at, invite_code, invite_code_used, credits";
-  const profileColumnsWithoutOptional =
-    "id, role, dj_name, brand_name, first_name, last_name, email, city, bio, profile_image_url, instagram, soundcloud, genres, created_at, updated_at, invite_code_used";
+  const columns = [
+    "id",
+    "role",
+    "dj_name",
+    "brand_name",
+    "first_name",
+    "last_name",
+    "email",
+    "city",
+    "bio",
+    "profile_image_url",
+    "instagram",
+    "soundcloud",
+    "genres",
+    "created_at",
+    "updated_at",
+    "invite_code",
+    "invite_code_used",
+    "credits",
+  ];
 
-  let { data: row, error } = await fromUntyped("user_profiles")
-    .select(profileColumns)
-    .eq("id", memberId)
-    .single();
-
-  if (
-    error &&
-    (String(error.message || "").includes("invite_code") ||
-      String(error.message || "").includes("credits"))
-  ) {
-    const retry = await fromUntyped("user_profiles")
-      .select(profileColumnsWithoutOptional)
+  let row: unknown = null;
+  let error: { message?: string } | null = null;
+  for (let attempt = 0; attempt < columns.length; attempt += 1) {
+    const result = await fromUntyped("user_profiles")
+      .select(columns.join(", "))
       .eq("id", memberId)
       .single();
-    row = retry.data;
-    error = retry.error;
+    row = result.data;
+    error = result.error;
+    if (!error) break;
+
+    const missing =
+      missingColumnFromError(error) ||
+      [...columns]
+        .sort((a, b) => b.length - a.length)
+        .find((column) => String(error?.message || "").includes(column));
+    if (!missing || !columns.includes(missing)) break;
+    columns.splice(columns.indexOf(missing), 1);
   }
 
   if (error || !row) {

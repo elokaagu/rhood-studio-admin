@@ -76,6 +76,8 @@ export type AdminMemberProfileView = {
     instagram: string;
     soundcloud: string;
   };
+  ownInviteCode: string | null;
+  inviteCodeUsed: string | null;
 };
 
 export type FetchAdminMemberProfileResult =
@@ -95,7 +97,7 @@ export async function fetchAdminMemberProfile(
   const { data: row, error } = await supabase
     .from("user_profiles")
     .select(
-      "id, role, dj_name, brand_name, first_name, last_name, email, city, bio, profile_image_url, instagram, soundcloud, genres, created_at, updated_at"
+      "id, role, dj_name, brand_name, first_name, last_name, email, city, bio, profile_image_url, instagram, soundcloud, genres, created_at, updated_at, invite_code, invite_code_used, credits"
     )
     .eq("id", memberId)
     .single();
@@ -123,6 +125,9 @@ export async function fetchAdminMemberProfile(
     genres: string[] | null;
     created_at: string | null;
     updated_at: string | null;
+    invite_code?: string | null;
+    invite_code_used?: string | null;
+    credits?: number | null;
   };
 
   const [gigsRes, feedbackRes, inviteRes] = await Promise.all([
@@ -184,10 +189,9 @@ export async function fetchAdminMemberProfile(
       })()
     : "Unknown";
 
-  const ext = data as unknown as { credits?: number | null };
   const credits =
-    typeof ext.credits === "number" && !Number.isNaN(ext.credits)
-      ? ext.credits
+    typeof data.credits === "number" && !Number.isNaN(data.credits)
+      ? data.credits
       : 0;
 
   const member: AdminMemberProfileView = {
@@ -209,6 +213,8 @@ export async function fetchAdminMemberProfile(
       instagram: instagramStoredToHandle(data.instagram),
       soundcloud: soundcloudStoredToHandle(data.soundcloud),
     },
+    ownInviteCode: data.invite_code?.trim() || null,
+    inviteCodeUsed: data.invite_code_used?.trim() || null,
   };
 
   if (inviteRes.error) {

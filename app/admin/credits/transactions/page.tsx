@@ -84,6 +84,7 @@ export default function CreditTransactionsPage() {
       manual_adjustment: "Manual Adjustment",
       endorsement: "Brand Endorsement",
       streak_bonus: "Streak Bonus",
+      referral: "DJ Invite",
     };
     return (
       labels[type] ||
@@ -130,6 +131,7 @@ export default function CreditTransactionsPage() {
               <SelectItem value="gig_completed">Gig Completed</SelectItem>
               <SelectItem value="rating_received">Rating Received</SelectItem>
               <SelectItem value="boost_used">Boost Used</SelectItem>
+              <SelectItem value="referral">DJ Invite</SelectItem>
             </SelectContent>
           </Select>
         </div>

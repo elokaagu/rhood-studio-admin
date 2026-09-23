@@ -4,7 +4,8 @@ export type CreditFilterType =
   | "spent"
   | "gig_completed"
   | "rating_received"
-  | "boost_used";
+  | "boost_used"
+  | "referral";
 
 export type CreditTransactionProfile = {
   id: string;

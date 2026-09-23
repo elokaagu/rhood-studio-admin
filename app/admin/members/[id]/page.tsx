@@ -387,7 +387,37 @@ export default function MemberDetailsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {inviteCodes.length === 0 ? (
+                  {member.ownInviteCode ? (
+                    <div className="p-4 bg-secondary rounded-md border border-border">
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Shareable DJ invite code
+                      </p>
+                      <code className={`${textStyles.body.regular} font-mono text-brand-green font-semibold`}>
+                        {member.ownInviteCode}
+                      </code>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Friends who sign up with this code skip the waitlist and award 25 credits.
+                      </p>
+                    </div>
+                  ) : null}
+                  {member.inviteCodeUsed &&
+                  !inviteCodes.some(
+                    (code) =>
+                      code.code?.toUpperCase() ===
+                      member.inviteCodeUsed?.toUpperCase()
+                  ) ? (
+                    <div className="p-4 bg-secondary rounded-md border border-border">
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Signed up with
+                      </p>
+                      <code className={`${textStyles.body.regular} font-mono text-brand-green font-semibold`}>
+                        {member.inviteCodeUsed}
+                      </code>
+                    </div>
+                  ) : null}
+                  {inviteCodes.length === 0 &&
+                  !member.ownInviteCode &&
+                  !member.inviteCodeUsed ? (
                     <p className={`${textStyles.body.regular} text-muted-foreground`}>
                       This member hasn&apos;t used any invite codes.
                     </p>

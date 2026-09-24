@@ -217,12 +217,13 @@ export default function BookDJPage() {
                 Location
               </label>
               <LocationAutocomplete
-                placeholder="Filter by location..."
+                placeholder="City or country..."
                 value={selectedLocation}
                 onValueChange={setSelectedLocation}
                 onLocationSelect={(selection) =>
                   setSelectedLocation(selection.formattedAddress || selection.description)
                 }
+                allowOnline={false}
                 className="h-10 bg-secondary border-border text-foreground"
               />
             </div>

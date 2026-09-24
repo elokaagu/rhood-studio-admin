@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { formatDate } from "@/lib/date-utils";
 import { getCurrentUserId, getCurrentUserProfile } from "@/lib/auth-utils";
+import { brandAccountId } from "@/lib/brand/account-scope";
 import type {
   ApplicationListItem,
   ApplicationSourceType,
@@ -430,13 +431,14 @@ export async function listPortalApplications(
     const userProfile = await getCurrentUserProfile();
     const userId = await getCurrentUserId();
     const isAdmin = userProfile?.role === "admin";
+    const organizerId = brandAccountId(userProfile) || userId;
 
     let brandOpportunityIds: string[] | null = null;
-    if (!isAdmin && userId) {
+    if (!isAdmin && organizerId) {
       const { data: brandOpportunities } = await supabase
         .from("opportunities")
         .select("id")
-        .eq("organizer_id", userId);
+        .eq("organizer_id", organizerId);
       brandOpportunityIds = brandOpportunities?.map((opportunity) => opportunity.id) || [];
     }
 
@@ -740,8 +742,9 @@ export async function completeGigAndRateDj(params: {
   const userId = await getCurrentUserId();
   const userProfile = await getCurrentUserProfile();
   const userRole = userProfile?.role;
+  const organizerId = brandAccountId(userProfile) || userId;
 
-  if (!userId || (userRole !== "admin" && userRole !== "brand")) {
+  if (!userId || userRole !== "admin") {
     const tableName =
       params.applicationType === "form_response"
         ? "application_form_responses"
@@ -751,13 +754,13 @@ export async function completeGigAndRateDj(params: {
       .eq("id", params.applicationId)
       .maybeSingle();
     let isOwner = false;
-    if (userId && appRow?.opportunity_id) {
+    if (organizerId && appRow?.opportunity_id) {
       const { data: oppRow } = await supabase
         .from("opportunities")
         .select("organizer_id")
         .eq("id", appRow.opportunity_id)
         .maybeSingle();
-      isOwner = oppRow?.organizer_id === userId;
+      isOwner = oppRow?.organizer_id === organizerId;
     }
     if (!isOwner) {
       return {

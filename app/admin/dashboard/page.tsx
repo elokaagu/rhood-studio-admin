@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { textStyles } from "@/lib/typography";
-import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
+import { getCurrentUserProfile, getCurrentUserId, type UserProfile } from "@/lib/auth-utils";
+import { brandAccountId } from "@/lib/brand/account-scope";
+import { BrandTeammateInviteDialog } from "@/components/admin/brands/BrandTeammateInviteDialog";
 import {
   getDashboardData,
   type ActivityItem,
@@ -18,6 +20,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStat[]>([]);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,11 +34,12 @@ export default function DashboardPage() {
       ]);
 
       const data = await getDashboardData({
-        userId,
+        userId: brandAccountId(profile) || userId,
         role: profile?.role ?? null,
       });
 
       if (cancelled) return;
+      setProfile(profile);
       setStats(data.stats);
       setRecentActivity(data.recentActivity);
       setUpcomingEvents(data.upcomingEvents);
@@ -121,6 +125,17 @@ export default function DashboardPage() {
         </>
       ) : (
         <div className="space-y-4 sm:space-y-6 md:space-y-8 animate-blur-in">
+          {profile?.role === "brand" && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className={`${textStyles.body.regular} text-sm text-muted-foreground`}>
+                Invite a colleague to the same {profile.brand_name || "brand"} account.
+              </p>
+              <BrandTeammateInviteDialog
+                brandAccountId={brandAccountId(profile) || profile.id}
+                brandName={profile.brand_name || "your brand"}
+              />
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
             {stats.map((stat: DashboardStat) => (
               <Card key={stat.title} className="bg-card border-border">

@@ -14,6 +14,10 @@ import { textStyles } from "@/lib/typography";
 import { PORTAL_BASE_URL } from "@/lib/portal-url";
 import { safePortalNextPath } from "@/lib/auth/login-redirect";
 
+function fromUntyped(table: string) {
+  return (supabase as unknown as { from: (name: string) => any }).from(table);
+}
+
 export default function AdminLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -70,6 +74,14 @@ export default function AdminLoginPage() {
 
     try {
       if (isSignUp) {
+        let validatedInvite: {
+          id: string;
+          brand_name: string | null;
+          expires_at: string | null;
+          invite_type?: string | null;
+          brand_account_id?: string | null;
+        } | null = null;
+
         // Validate invite code for brand signups
         if (isBrandSignup) {
           if (!formData.inviteCode) {
@@ -83,41 +95,33 @@ export default function AdminLoginPage() {
           }
 
           // Validate invite code (brand codes only; DJ codes are redeemed in the app)
-          let inviteCodeData: {
-            id: string;
-            brand_name: string | null;
-            expires_at: string | null;
-            invite_type?: string | null;
-          } | null = null;
-
-          const inviteResult = await supabase
-            .from("invite_codes")
-            .select("id, brand_name, expires_at, invite_type")
-            .eq("code", formData.inviteCode.trim().toUpperCase())
-            .eq("is_active", true)
-            .is("used_by", null)
-            .single();
-
-          if (inviteResult.error?.message?.includes("invite_type")) {
-            const fallbackInvite = await supabase
-              .from("invite_codes")
-              .select("id, brand_name, expires_at")
-              .eq("code", formData.inviteCode.trim().toUpperCase())
+          const code = formData.inviteCode.trim().toUpperCase();
+          const inviteQuery = (columns: string) =>
+            fromUntyped("invite_codes")
+              .select(columns)
+              .eq("code", code)
               .eq("is_active", true)
               .is("used_by", null)
               .single();
-            inviteCodeData = fallbackInvite.data;
-            if (fallbackInvite.error || !inviteCodeData) {
-              toast({
-                title: "Invalid Invite Code",
-                description:
-                  "The invite code is invalid, expired, or has already been used.",
-                variant: "destructive",
-              });
-              setLoading(false);
-              return;
+
+          let inviteResult = await inviteQuery(
+            "id, brand_name, expires_at, invite_type, brand_account_id"
+          );
+          if (inviteResult.error?.message?.includes("brand_account_id")) {
+            inviteResult = await inviteQuery(
+              "id, brand_name, expires_at, invite_type"
+            );
+          }
+          if (inviteResult.error?.message?.includes("invite_type")) {
+            inviteResult = await inviteQuery(
+              "id, brand_name, expires_at, brand_account_id"
+            );
+            if (inviteResult.error?.message?.includes("brand_account_id")) {
+              inviteResult = await inviteQuery("id, brand_name, expires_at");
             }
-          } else if (inviteResult.error || !inviteResult.data) {
+          }
+
+          if (inviteResult.error || !inviteResult.data) {
             toast({
               title: "Invalid Invite Code",
               description:
@@ -126,15 +130,21 @@ export default function AdminLoginPage() {
             });
             setLoading(false);
             return;
-          } else {
-            inviteCodeData = inviteResult.data;
           }
 
-          if (!inviteCodeData || inviteCodeData.invite_type === "dj") {
+          validatedInvite = inviteResult.data as {
+            id: string;
+            brand_name: string | null;
+            expires_at: string | null;
+            invite_type?: string | null;
+            brand_account_id?: string | null;
+          };
+
+          if (!validatedInvite || validatedInvite.invite_type === "dj") {
             toast({
-              title: inviteCodeData?.invite_type === "dj" ? "DJ invite code" : "Invalid Invite Code",
+              title: validatedInvite?.invite_type === "dj" ? "DJ invite code" : "Invalid Invite Code",
               description:
-                inviteCodeData?.invite_type === "dj"
+                validatedInvite?.invite_type === "dj"
                   ? "This code is for the R/HOOD DJ app, not brand Studio signup."
                   : "The invite code is invalid, expired, or has already been used.",
               variant: "destructive",
@@ -145,8 +155,8 @@ export default function AdminLoginPage() {
 
           // Check if invite code is expired
           if (
-            inviteCodeData.expires_at &&
-            new Date(inviteCodeData.expires_at) < new Date()
+            validatedInvite.expires_at &&
+            new Date(validatedInvite.expires_at) < new Date()
           ) {
             toast({
               title: "Invite Code Expired",
@@ -203,30 +213,33 @@ export default function AdminLoginPage() {
           };
 
           // If brand signup, add brand_name from invite code
-          if (isBrandSignup && formData.inviteCode) {
-            const { data: inviteData } = await supabase
-              .from("invite_codes")
-              .select("id, brand_name")
-              .eq("code", formData.inviteCode.trim().toUpperCase())
-              .single();
-
-            if (inviteData) {
-              profileData.brand_name = inviteData.brand_name;
-
-              // Mark invite code as used
-              await supabase
-                .from("invite_codes")
-                .update({
-                  used_by: data.user.id,
-                  used_at: new Date().toISOString(),
-                })
-                .eq("id", inviteData.id);
+          if (isBrandSignup && validatedInvite) {
+            profileData.brand_name = validatedInvite.brand_name;
+            if (validatedInvite.brand_account_id) {
+              profileData.brand_account_id = validatedInvite.brand_account_id;
             }
+
+            await fromUntyped("invite_codes")
+              .update({
+                used_by: data.user.id,
+                used_at: new Date().toISOString(),
+              })
+              .eq("id", validatedInvite.id);
           }
 
-          const { error: profileError } = await supabase
+          let { error: profileError } = await supabase
             .from("user_profiles")
             .insert(profileData);
+
+          if (
+            profileError &&
+            /brand_account_id/i.test(profileError.message || "")
+          ) {
+            const { brand_account_id: _ignored, ...withoutAccount } = profileData;
+            ({ error: profileError } = await supabase
+              .from("user_profiles")
+              .insert(withoutAccount));
+          }
 
           if (profileError) {
             console.error("Error creating profile:", profileError);

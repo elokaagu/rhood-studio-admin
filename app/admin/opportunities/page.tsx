@@ -17,6 +17,8 @@ import {
   paySortValue,
   type OpportunityListItem,
 } from "@/lib/admin/opportunities/opportunity-list";
+import { fetchOpportunityApplicantCount } from "@/lib/admin/opportunities/applicant-counts";
+import { useApplicationsRealtime } from "@/hooks/use-applications-realtime";
 import {
   deleteOpportunityById,
   updateOpportunityArchiveState,
@@ -110,6 +112,25 @@ export default function OpportunitiesPage() {
   useEffect(() => {
     void loadOpportunitiesList(true);
   }, [loadOpportunitiesList]);
+
+  const liveOpportunityIds = useMemo(
+    () => opportunities.map((item) => item.id),
+    [opportunities]
+  );
+
+  useApplicationsRealtime(liveOpportunityIds, (opportunityId) => {
+    if (!opportunityId) {
+      void loadOpportunitiesList(false);
+      return;
+    }
+    void fetchOpportunityApplicantCount(opportunityId).then((count) => {
+      setOpportunities((prev) =>
+        prev.map((item) =>
+          item.id === opportunityId ? { ...item, applicants: count } : item
+        )
+      );
+    });
+  });
 
   const handleDelete = async (
     opportunityId: string,

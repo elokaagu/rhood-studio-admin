@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserProfile } from "@/lib/auth-utils";
+import { brandAccountId } from "@/lib/brand/account-scope";
 import {
   isMissingStudioColumnError,
   saveStudioOnboardingStore,
@@ -18,13 +20,15 @@ export async function signStudioAgreement(
   }
 
   const signedAt = new Date().toISOString();
+  const profile = await getCurrentUserProfile();
+  const accountId = brandAccountId(profile) || userId;
   const { error } = await supabase
     .from("user_profiles")
     .update({
       studio_agreement_signed_at: signedAt,
       studio_agreement_signed_by: trimmedName,
     })
-    .eq("id", userId);
+    .eq("id", accountId);
 
   if (!error) {
     return { ok: true, signed_at: signedAt, signed_by: trimmedName };
@@ -37,7 +41,7 @@ export async function signStudioAgreement(
     };
   }
 
-  const stored = await saveStudioOnboardingStore(userId, {
+  const stored = await saveStudioOnboardingStore(accountId, {
     signed_at: signedAt,
     signed_by: trimmedName,
   });
@@ -52,12 +56,14 @@ export async function markStudioTourComplete(
   userId: string
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const completedAt = new Date().toISOString();
+  const profile = await getCurrentUserProfile();
+  const accountId = brandAccountId(profile) || userId;
   const { error } = await supabase
     .from("user_profiles")
     .update({
       studio_tour_completed_at: completedAt,
     })
-    .eq("id", userId);
+    .eq("id", accountId);
 
   if (!error) {
     return { ok: true };
@@ -67,5 +73,5 @@ export async function markStudioTourComplete(
     return { ok: false, message: error.message || "Failed to save tour progress." };
   }
 
-  return saveStudioOnboardingStore(userId, { tour_completed_at: completedAt });
+  return saveStudioOnboardingStore(accountId, { tour_completed_at: completedAt });
 }

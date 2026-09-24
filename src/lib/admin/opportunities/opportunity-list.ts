@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserId, getCurrentUserProfile } from "@/lib/auth-utils";
+import { brandAccountId } from "@/lib/brand/account-scope";
+import { applicantCountsByOpportunity } from "@/lib/admin/opportunities/applicant-counts";
 
 function rawBoosts() {
   return (supabase as unknown as { from: (t: string) => any }).from(
@@ -56,27 +58,6 @@ function normalizeId(id: unknown): string {
   if (typeof id === "string") return id;
   if (typeof id === "number") return String(id);
   return "";
-}
-
-async function applicantCountsByOpportunity(
-  ids: string[]
-): Promise<Map<string, number>> {
-  const map = new Map<string, number>();
-  if (ids.length === 0) return map;
-
-  const { data, error } = await supabase
-    .from("applications")
-    .select("opportunity_id")
-    .in("opportunity_id", ids);
-
-  if (error || !data) return map;
-
-  for (const row of data as { opportunity_id: string | null }[]) {
-    const oid = row.opportunity_id;
-    if (!oid) continue;
-    map.set(oid, (map.get(oid) ?? 0) + 1);
-  }
-  return map;
 }
 
 async function fetchActiveBoostsForOpportunities(ids: string[]): Promise<
@@ -165,9 +146,10 @@ export async function fetchAdminOpportunitiesList(): Promise<
     }
   }
 
+  const organizerId = brandAccountId(userProfile) || userId;
   let query = supabase.from("opportunities").select("*");
-  if (userProfile?.role === "brand" && userId) {
-    query = query.eq("organizer_id", userId);
+  if (userProfile?.role === "brand" && organizerId) {
+    query = query.eq("organizer_id", organizerId);
   }
 
   const { data, error } = await query.order("created_at", {

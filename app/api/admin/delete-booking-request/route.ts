@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
     const { data: profile } = await admin
       .from("user_profiles")
-      .select("role")
+      .select("role, brand_account_id")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -69,7 +69,13 @@ export async function POST(request: Request) {
     }
 
     const isAdmin = profile?.role === "admin";
-    const isOwner = row.brand_id === user.id || row.dj_id === user.id;
+    const brandAccount =
+      (typeof profile?.brand_account_id === "string" && profile.brand_account_id) ||
+      user.id;
+    const isOwner =
+      row.brand_id === user.id ||
+      row.brand_id === brandAccount ||
+      row.dj_id === user.id;
     if (!isAdmin && !isOwner) {
       return NextResponse.json(
         { error: "You cannot delete this booking request." },

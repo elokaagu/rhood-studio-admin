@@ -30,6 +30,13 @@ export type BrandMember = {
   rejectedApplications: number;
   recentOpportunity: string | null;
   recentOpportunityDate: string | null;
+  teammates: BrandTeammate[];
+};
+
+export type BrandTeammate = {
+  id: string;
+  name: string;
+  email: string;
 };
 
 export type BrandProfileRow = {
@@ -43,4 +50,5 @@ export type BrandProfileRow = {
   updated_at: string | null;
   bio: string | null;
   profile_image_url: string | null;
+  brand_account_id?: string | null;
 };

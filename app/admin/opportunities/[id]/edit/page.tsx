@@ -22,6 +22,7 @@ import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentUserProfile, getCurrentUserId } from "@/lib/auth-utils";
+import { brandAccountId } from "@/lib/brand/account-scope";
 import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Calendar,
@@ -133,14 +134,15 @@ export default function EditOpportunityPage() {
     try {
       const userProfile = await getCurrentUserProfile();
       const userId = await getCurrentUserId();
+      const organizerId = brandAccountId(userProfile) || userId;
 
       let query = supabase
         .from("opportunities")
         .select("*")
         .eq("id", opportunityId);
 
-      if (userProfile?.role === "brand" && userId) {
-        query = query.eq("organizer_id", userId);
+      if (userProfile?.role === "brand" && organizerId) {
+        query = query.eq("organizer_id", organizerId);
       }
 
       const { data, error } = await query.single();
@@ -151,9 +153,9 @@ export default function EditOpportunityPage() {
 
       if (
         userProfile?.role === "brand" &&
-        userId &&
+        organizerId &&
         data &&
-        data.organizer_id !== userId
+        data.organizer_id !== organizerId
       ) {
         toast({
           title: "Access Denied",

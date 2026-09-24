@@ -8,6 +8,10 @@ import type {
 } from "./types";
 import { brandsSortToSupabaseOrder } from "./sort";
 
+function fromUntyped(table: string) {
+  return (supabase as unknown as { from: (name: string) => any }).from(table);
+}
+
 type OpportunityRow = {
   id: string;
   organizer_id: string;
@@ -26,20 +30,49 @@ function safeFormatDate(value: string | null): string {
   return formatted === "Invalid Date" ? "Unknown" : formatted;
 }
 
+function accountIdFor(profile: BrandProfileRow): string {
+  return profile.brand_account_id?.trim() || profile.id;
+}
+
+function displayName(profile: BrandProfileRow): string {
+  return (
+    profile.brand_name ||
+    `${profile.first_name} ${profile.last_name}`.trim() ||
+    profile.email
+  );
+}
+
+function personName(profile: BrandProfileRow): string {
+  const name = `${profile.first_name} ${profile.last_name}`.trim();
+  return name || profile.email;
+}
+
 function buildBrandMembers(
   profiles: BrandProfileRow[],
   opportunities: OpportunityRow[],
   applications: ApplicationRow[]
 ): { members: BrandMember[]; aggregateStats: BrandsAggregateStats } {
+  const profilesById = new Map(profiles.map((p) => [p.id, p]));
+  const byAccount = new Map<string, BrandProfileRow[]>();
+
+  for (const profile of profiles) {
+    const accountId = accountIdFor(profile);
+    const list = byAccount.get(accountId) ?? [];
+    list.push(profile);
+    byAccount.set(accountId, list);
+  }
+
   const oppsByBrand = new Map<string, OpportunityRow[]>();
   const oppIdToBrandId = new Map<string, string>();
 
   for (const o of opportunities) {
     if (!o.organizer_id) continue;
-    const list = oppsByBrand.get(o.organizer_id) ?? [];
+    const organizer = profilesById.get(o.organizer_id);
+    const accountId = organizer ? accountIdFor(organizer) : o.organizer_id;
+    const list = oppsByBrand.get(accountId) ?? [];
     list.push(o);
-    oppsByBrand.set(o.organizer_id, list);
-    oppIdToBrandId.set(o.id, o.organizer_id);
+    oppsByBrand.set(accountId, list);
+    oppIdToBrandId.set(o.id, accountId);
   }
 
   const appCountsByBrand = new Map<
@@ -52,8 +85,8 @@ function buildBrandMembers(
     }
   >();
 
-  for (const p of profiles) {
-    appCountsByBrand.set(p.id, {
+  for (const accountId of byAccount.keys()) {
+    appCountsByBrand.set(accountId, {
       total: 0,
       pending: 0,
       approved: 0,
@@ -73,9 +106,24 @@ function buildBrandMembers(
     else if (s === "rejected") bucket.rejected += 1;
   }
 
-  const members: BrandMember[] = profiles.map((member) => {
-    const opps = oppsByBrand.get(member.id) ?? [];
-    const counts = appCountsByBrand.get(member.id) ?? {
+  const members: BrandMember[] = [];
+  for (const [accountId, people] of byAccount) {
+    const owner =
+      people.find((p) => p.id === accountId) ||
+      profilesById.get(accountId) ||
+      people[0];
+    if (!owner) continue;
+
+    const teammates = people
+      .filter((p) => p.id !== owner.id)
+      .map((p) => ({
+        id: p.id,
+        name: personName(p),
+        email: p.email,
+      }));
+
+    const opps = oppsByBrand.get(accountId) ?? [];
+    const counts = appCountsByBrand.get(accountId) ?? {
       total: 0,
       pending: 0,
       approved: 0,
@@ -93,17 +141,17 @@ function buildBrandMembers(
       }
     }
 
-    return {
-      id: member.id,
-      name: member.brand_name || `${member.first_name} ${member.last_name}`,
-      email: member.email,
-      location: member.city,
-      joinedDate: safeFormatDate(member.created_at),
-      lastActive: safeFormatDate(member.updated_at),
+    members.push({
+      id: owner.id,
+      name: displayName(owner),
+      email: owner.email,
+      location: owner.city,
+      joinedDate: safeFormatDate(owner.created_at),
+      lastActive: safeFormatDate(owner.updated_at),
       status: "active",
-      brandName: member.brand_name,
-      bio: member.bio,
-      profileImageUrl: member.profile_image_url,
+      brandName: owner.brand_name,
+      bio: owner.bio,
+      profileImageUrl: owner.profile_image_url,
       opportunitiesCount: opps.length,
       totalApplications: counts.total,
       pendingApplications: counts.pending,
@@ -113,8 +161,9 @@ function buildBrandMembers(
       recentOpportunityDate: recent?.created_at
         ? formatDate(recent.created_at)
         : null,
-    };
-  });
+      teammates,
+    });
+  }
 
   const aggregateStats = members.reduce<BrandsAggregateStats>(
     (acc, m) => ({
@@ -148,13 +197,22 @@ export async function fetchBrandsWithStats(sortBy: BrandsSortOption): Promise<
 > {
   const sortOrder = brandsSortToSupabaseOrder(sortBy);
 
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .select(
-      "id, brand_name, first_name, last_name, email, city, created_at, updated_at, bio, profile_image_url"
-    )
+  const selectWithAccount =
+    "id, brand_name, first_name, last_name, email, city, created_at, updated_at, bio, profile_image_url, brand_account_id";
+  const selectWithoutAccount =
+    "id, brand_name, first_name, last_name, email, city, created_at, updated_at, bio, profile_image_url";
+
+  let { data, error } = await fromUntyped("user_profiles")
+    .select(selectWithAccount)
     .eq("role", "brand")
     .order(sortOrder.column, { ascending: sortOrder.ascending });
+
+  if (error && /brand_account_id/i.test(error.message || "")) {
+    ({ data, error } = await fromUntyped("user_profiles")
+      .select(selectWithoutAccount)
+      .eq("role", "brand")
+      .order(sortOrder.column, { ascending: sortOrder.ascending }));
+  }
 
   if (error) {
     if (

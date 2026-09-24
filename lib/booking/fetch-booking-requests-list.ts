@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { UserRole } from "@/lib/auth-utils";
+import { getCurrentUserProfile, type UserRole } from "@/lib/auth-utils";
+import { brandAccountId } from "@/lib/brand/account-scope";
 
 export interface BookingRequestListRow {
   id: string;
@@ -50,7 +51,8 @@ export async function getBookingRequestsForUser(
     .order("created_at", { ascending: false });
 
   if (role === "brand") {
-    query = query.eq("brand_id", userId);
+    const profile = await getCurrentUserProfile();
+    query = query.eq("brand_id", brandAccountId(profile) || userId);
   } else if (role !== "admin") {
     query = query.eq("dj_id", userId);
   }

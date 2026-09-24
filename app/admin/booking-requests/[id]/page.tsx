@@ -13,6 +13,7 @@ import {
   getCurrentUserId,
   type UserProfile,
 } from "@/lib/auth-utils";
+import { brandAccountId } from "@/lib/brand/account-scope";
 import {
   respondToBookingRequest,
   type BookingRequestDetail,
@@ -42,13 +43,15 @@ import {
 import { deleteBookingRequest } from "@/lib/booking/delete-booking-request";
 
 function viewerCanAccessBooking(
-  role: UserProfile["role"] | undefined,
+  profile: UserProfile | null,
   userId: string | null,
   row: Pick<BookingRequestDetail, "brand_id" | "dj_id">
 ): boolean {
-  if (!userId || !role) return false;
-  if (role === "admin") return true;
-  if (role === "brand") return row.brand_id === userId;
+  if (!userId || !profile?.role) return false;
+  if (profile.role === "admin") return true;
+  if (profile.role === "brand") {
+    return row.brand_id === (brandAccountId(profile) || userId);
+  }
   return row.dj_id === userId;
 }
 
@@ -111,9 +114,10 @@ export default function BookingRequestDetailPage() {
         throw error;
       }
 
-      const userId = await getCurrentUserId();
+      const profile = userProfile || (await getCurrentUserProfile());
+      const userId = profile?.id || (await getCurrentUserId());
       if (
-        !viewerCanAccessBooking(userProfile?.role, userId, {
+        !viewerCanAccessBooking(profile, userId, {
           brand_id: data.brand_id,
           dj_id: data.dj_id,
         })

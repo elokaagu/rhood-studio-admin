@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUserId } from "@/lib/auth-utils";
+import { getCurrentUserId, getCurrentUserProfile } from "@/lib/auth-utils";
+import { brandAccountId } from "@/lib/brand/account-scope";
 import { createNotification } from "@/lib/notifications";
 import {
   parseLocalDateTime,
@@ -63,7 +64,8 @@ export async function createBookingRequestWithNotifications(params: {
     return fail("Missing Location", "Please provide an event location.");
   }
 
-  const brandUserId = await getCurrentUserId();
+  const brandProfile = await getCurrentUserProfile();
+  const brandUserId = brandAccountId(brandProfile) || (await getCurrentUserId());
   if (!brandUserId) {
     return fail("Authentication Error", "Please log in to submit a booking request.");
   }

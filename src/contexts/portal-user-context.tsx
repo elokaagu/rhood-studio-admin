@@ -13,6 +13,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type { UserRole } from "@/lib/auth-utils";
 import { loadStudioOnboardingStore } from "@/lib/brand/studio-onboarding-store";
 
+function fromUntyped(table: string) {
+  return (supabase as unknown as { from: (name: string) => any }).from(table);
+}
+
 export type PortalProfileSnapshot = {
   id: string;
   role: UserRole | null;
@@ -132,16 +136,18 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
 
       setAuthUser(user);
 
-      const { data: row, error: profileError } = await supabase
-        .from("user_profiles")
+      const { data: row, error: profileError } = await fromUntyped("user_profiles")
         .select(
-          "id, role, first_name, last_name, dj_name, brand_name, profile_image_url, studio_agreement_signed_at, studio_tour_completed_at"
+          "id, role, first_name, last_name, dj_name, brand_name, profile_image_url, studio_agreement_signed_at, studio_tour_completed_at, brand_account_id"
         )
         .eq("id", user.id)
         .maybeSingle();
 
       if (profileError) {
-        if (profileError.message?.includes("studio_")) {
+        if (
+          profileError.message?.includes("studio_") ||
+          /brand_account_id/i.test(profileError.message || "")
+        ) {
           const fallback = await supabase
             .from("user_profiles")
             .select("id, role, first_name, last_name, dj_name, brand_name, profile_image_url")
@@ -196,6 +202,29 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
       let tourCompletedAt = (
         row as { studio_tour_completed_at?: string | null }
       ).studio_tour_completed_at ?? null;
+      let brandName = row.brand_name;
+      let profileImageUrl = (
+        row as { profile_image_url?: string | null }
+      ).profile_image_url ?? null;
+
+      const ownerId = (row as { brand_account_id?: string | null }).brand_account_id;
+      if (ownerId && ownerId !== user.id) {
+        const { data: owner } = await fromUntyped("user_profiles")
+          .select(
+            "brand_name, profile_image_url, studio_agreement_signed_at, studio_tour_completed_at"
+          )
+          .eq("id", ownerId)
+          .maybeSingle();
+        if (owner) {
+          brandName = owner.brand_name || brandName;
+          profileImageUrl = owner.profile_image_url || profileImageUrl;
+          signedAt = owner.studio_agreement_signed_at || signedAt;
+          tourCompletedAt = owner.studio_tour_completed_at || tourCompletedAt;
+        }
+        const ownerStore = await loadStudioOnboardingStore(ownerId);
+        signedAt = signedAt ?? ownerStore?.signed_at ?? null;
+        tourCompletedAt = tourCompletedAt ?? ownerStore?.tour_completed_at ?? null;
+      }
 
       if (!signedAt || !tourCompletedAt) {
         const stored = await loadStudioOnboardingStore(user.id);
@@ -234,10 +263,8 @@ export function PortalUserProvider({ children }: { children: React.ReactNode }) 
           first_name: row.first_name,
           last_name: row.last_name,
           dj_name: row.dj_name,
-          brand_name: row.brand_name,
-          profile_image_url: (
-            row as { profile_image_url?: string | null }
-          ).profile_image_url ?? null,
+          brand_name: brandName,
+          profile_image_url: profileImageUrl,
           credits,
           studio_agreement_signed_at: signedAt,
           studio_tour_completed_at: tourCompletedAt,

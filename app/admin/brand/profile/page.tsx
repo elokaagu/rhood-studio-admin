@@ -8,6 +8,7 @@ import { getCurrentUserProfile } from "@/lib/auth-utils";
 import { fetchBrandProfileForUser } from "@/lib/brand/fetch-brand-profile";
 import { fetchAcceptedContractsForBrand } from "@/lib/brand/fetch-brand-contracts";
 import { updateBrandProfile } from "@/lib/brand/update-brand-profile";
+import { brandAccountId } from "@/lib/brand/account-scope";
 import {
   brandProfileFormReducer,
   createEmptyBrandProfileForm,
@@ -44,11 +45,13 @@ export default function BrandProfilePage() {
       return;
     }
 
+    const accountId = brandAccountId(user) || user.id;
+
     setIsLoading(true);
 
     const [profileRes, contractsRes] = await Promise.all([
-      fetchBrandProfileForUser(user.id),
-      fetchAcceptedContractsForBrand(user.id),
+      fetchBrandProfileForUser(accountId),
+      fetchAcceptedContractsForBrand(accountId),
     ]);
 
     if (!profileRes.ok) {

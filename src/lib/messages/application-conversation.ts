@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserProfile } from "@/lib/auth-utils";
+import { brandAccountId } from "@/lib/brand/account-scope";
 
 export type ApplicationChatMessage = {
   id: string;
@@ -28,7 +30,10 @@ export async function hasApplicationConversationAccess(
   const me = sessionData.user?.id ?? null;
   if (!me || !otherUserId) return false;
 
-  if (options?.organizerId && options.organizerId === me) {
+  const profile = await getCurrentUserProfile();
+  const accountId = brandAccountId(profile) || me;
+
+  if (options?.organizerId && (options.organizerId === me || options.organizerId === accountId)) {
     return true;
   }
 
@@ -38,7 +43,7 @@ export async function hasApplicationConversationAccess(
       .select("organizer_id")
       .eq("id", options.opportunityId)
       .maybeSingle();
-    if (opp?.organizer_id === me) return true;
+    if (opp?.organizer_id === me || opp?.organizer_id === accountId) return true;
   }
 
   const { data, error } = await rpcUntyped(
@@ -53,7 +58,7 @@ export async function hasApplicationConversationAccess(
   const { data: ownedApps, error: ownedError } = await fromUntyped("applications")
     .select("id, opportunities!inner(organizer_id)")
     .eq("user_id", otherUserId)
-    .eq("opportunities.organizer_id", me)
+    .eq("opportunities.organizer_id", accountId)
     .limit(1);
 
   if (!ownedError && Array.isArray(ownedApps) && ownedApps.length > 0) {

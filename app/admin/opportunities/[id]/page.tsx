@@ -34,6 +34,8 @@ import {
   updateOpportunityArchiveState,
   type OpportunityDetailView,
 } from "@/lib/admin/opportunities/opportunity-detail";
+import { fetchOpportunityApplicantCount } from "@/lib/admin/opportunities/applicant-counts";
+import { useApplicationsRealtime } from "@/hooks/use-applications-realtime";
 import {
   Calendar,
   MapPin,
@@ -130,6 +132,14 @@ export default function OpportunityDetailsPage() {
   useEffect(() => {
     loadDetail();
   }, [loadDetail]);
+
+  useApplicationsRealtime(opportunityId ? [opportunityId] : null, (id) => {
+    const target = id || opportunityId;
+    if (!target) return;
+    void fetchOpportunityApplicantCount(target).then((count) => {
+      setOpportunity((prev) => (prev ? { ...prev, applicants: count } : prev));
+    });
+  });
 
   const handleDelete = () => {
     if (opportunity) {

@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserProfile } from "@/lib/auth-utils";
+import { brandAccountId } from "@/lib/brand/account-scope";
 import { getDisplayText } from "@/lib/text-utils";
 import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
 import { parseNumericCompensation } from "@/lib/opportunities/compensation";
@@ -14,6 +16,10 @@ import {
   withoutMaxApprovals,
   writeOpportunity,
 } from "@/lib/opportunities/write-opportunity";
+
+function fromUntyped(table: string) {
+  return (supabase as unknown as { from: (name: string) => any }).from(table);
+}
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
@@ -222,9 +228,10 @@ export async function createOpportunity(
     );
   }
 
+  const userProfile = await getCurrentUserProfile();
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("first_name, last_name, dj_name")
+    .select("first_name, last_name, dj_name, brand_name")
     .eq("id", user.id)
     .single();
 
@@ -234,6 +241,21 @@ export async function createOpportunity(
     profile?.last_name,
     user.email ?? undefined
   );
+
+  let organizerId = brandAccountId(userProfile) || user.id;
+  if (brandOverride?.id) {
+    const { data: brandRow, error: brandScopeError } = await fromUntyped(
+      "user_profiles"
+    )
+      .select("id, brand_account_id")
+      .eq("id", brandOverride.id)
+      .maybeSingle();
+    if (!brandScopeError || !/brand_account_id/i.test(brandScopeError.message || "")) {
+      organizerId = brandAccountId(brandRow) || brandOverride.id;
+    } else {
+      organizerId = brandOverride.id;
+    }
+  }
 
   const paymentAmount = parseNumericCompensation(form.pay);
   const compensation = form.pay.trim() || null;
@@ -269,8 +291,10 @@ export async function createOpportunity(
     payment: paymentAmount,
     genre: genreValue,
     skill_level: form.requirements || null,
-    organizer_id: brandOverride ? brandOverride.id : user.id,
-    organizer_name: brandOverride ? brandOverride.name : organizerName,
+    organizer_id: organizerId,
+    organizer_name: brandOverride
+      ? brandOverride.name
+      : profile?.brand_name || organizerName,
     is_active: isActive,
     is_archived: false,
     listing_status: listingStatus,

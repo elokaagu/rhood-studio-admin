@@ -1,4 +1,5 @@
-import type { BookableDJ } from "@/lib/booking/bookable-dj";
+import type { BookableDJ } from "./bookable-dj";
+import { djMatchesLocationFilter } from "./location-match";
 
 export interface BookableDJFilterState {
   searchTerm: string;
@@ -35,8 +36,9 @@ export function filterBookableDjs(
   }
 
   if (f.selectedLocation.trim()) {
-    const loc = f.selectedLocation.toLowerCase();
-    filtered = filtered.filter((dj) => dj.city.toLowerCase().includes(loc));
+    filtered = filtered.filter((dj) =>
+      djMatchesLocationFilter(dj.city, f.selectedLocation)
+    );
   }
 
   if (f.creditsFilter !== "all") {

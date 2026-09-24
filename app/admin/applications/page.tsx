@@ -25,6 +25,7 @@ import {
   updatePortalApplicationStatus,
 } from "@/lib/applications/service";
 import type { ApplicationListItem } from "@/lib/applications/types";
+import { useApplicationsRealtime } from "@/hooks/use-applications-realtime";
 import {
   Calendar,
   MapPin,
@@ -62,12 +63,12 @@ function ApplicationsContent() {
   const [djRatingComment, setDjRatingComment] = useState<string>("");
 
   // Fetch applications from database
-  const fetchApplications = async () => {
+  const fetchApplications = async (opts?: { silent?: boolean }) => {
     try {
-      setIsLoading(true);
+      if (!opts?.silent) setIsLoading(true);
       const result = await listPortalApplications({ opportunityId });
       setApplications(result.applications);
-      if (result.usedDemoFallback) {
+      if (result.usedDemoFallback && !opts?.silent) {
         toast({
           title: "Database Setup Required",
           description:
@@ -77,20 +78,26 @@ function ApplicationsContent() {
       }
     } catch (error) {
       console.error("Error fetching applications:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load applications. Please try again.",
-        variant: "destructive",
-      });
+      if (!opts?.silent) {
+        toast({
+          title: "Error",
+          description: "Failed to load applications. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
-      setIsLoading(false);
+      if (!opts?.silent) setIsLoading(false);
     }
   };
 
-  // Load applications on component mount
   useEffect(() => {
-    fetchApplications();
-  }, [opportunityId, toast]);
+    void fetchApplications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opportunityId]);
+
+  useApplicationsRealtime(opportunityId ? [opportunityId] : "all", () => {
+    void fetchApplications({ silent: true });
+  });
 
   // Filter and sort applications
   const filteredApplications = useMemo(() => {

@@ -13,6 +13,7 @@ interface BrandInvitePayload {
   inviteCode?: string;
   expiresAt?: string | null;
   message?: string | null;
+  teammate?: boolean;
 }
 
 function isValidEmail(email: string): boolean {
@@ -86,6 +87,18 @@ export async function POST(request: Request) {
       ? `<tr><td style="padding-top:20px;font-size:15px;line-height:1.6;color:#dddddd;">${escapeHtml(personalMessage).replace(/\n/g, "<br/>")}</td></tr>`
       : "";
 
+    const isTeammate = Boolean(body.teammate);
+    const headline = isTeammate
+      ? `You're invited to join ${safeBrand}`
+      : "You're invited to join as a brand";
+    const intro = isTeammate
+      ? `You've been invited to share the ${safeBrand} brand account on R/HOOD. You'll see the same listings, applications, and bookings.`
+      : `${safeBrand} has been invited to create a brand account on R/HOOD.`;
+    const subject = isTeammate
+      ? `Join the ${brandName} team on R/HOOD`
+      : `You're invited to R/HOOD - ${brandName}`;
+    const ctaLabel = isTeammate ? "Join this account" : "Create your account";
+
     const html = `
       <table style="width:100%;background-color:#0f0f0f;padding:32px 0;font-family:Helvetica,Arial,sans-serif;color:#ffffff;">
         <tr>
@@ -93,11 +106,11 @@ export async function POST(request: Request) {
             <table style="width:560px;background-color:#1a1a1a;border-radius:16px;padding:40px;">
               ${emailLogoBlock("R/HOOD For Brands")}
               <tr>
-                <td style="padding-top:24px;font-size:28px;font-weight:700;line-height:1.3;">You're invited to join as a brand</td>
+                <td style="padding-top:24px;font-size:28px;font-weight:700;line-height:1.3;">${headline}</td>
               </tr>
               <tr>
                 <td style="padding-top:16px;font-size:16px;line-height:1.6;color:#dddddd;">
-                  ${safeBrand} has been invited to create a brand account on R/HOOD.
+                  ${intro}
                 </td>
               </tr>
               ${safeMessage}
@@ -109,7 +122,7 @@ export async function POST(request: Request) {
               </tr>
               <tr>
                 <td style="padding-top:32px;">
-                  <a href="${signupUrl}" style="display:inline-block;padding:14px 28px;background-color:#c2cc06;color:#1d1d1b;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;">Create your account</a>
+                  <a href="${signupUrl}" style="display:inline-block;padding:14px 28px;background-color:#c2cc06;color:#1d1d1b;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;">${ctaLabel}</a>
                 </td>
               </tr>
               <tr>
@@ -129,10 +142,12 @@ export async function POST(request: Request) {
     `;
 
     const text = [
-      `You're invited to join R/HOOD as a brand (${brandName}).`,
+      isTeammate
+        ? `You've been invited to share the ${brandName} brand account on R/HOOD.`
+        : `You're invited to join R/HOOD as a brand (${brandName}).`,
       personalMessage ? `\n${personalMessage}\n` : "",
       `Invite code: ${inviteCode}`,
-      `Create your account: ${signupUrl}`,
+      `${ctaLabel}: ${signupUrl}`,
       `This link opens brand signup with your invite code already filled in. It expires on ${expiryLabel}.`,
     ]
       .filter(Boolean)
@@ -141,7 +156,7 @@ export async function POST(request: Request) {
     const emailResponse = await resend.emails.send({
       from: defaultFromAddress,
       to: sanitizedEmail,
-      subject: `You're invited to R/HOOD - ${brandName}`,
+      subject,
       html,
       text,
     });

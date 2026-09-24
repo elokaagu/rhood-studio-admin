@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { textStyles } from "@/lib/typography";
 import type { BrandMember } from "@/lib/brands/types";
+import { BrandTeammateInviteDialog } from "@/components/admin/brands/BrandTeammateInviteDialog";
 import {
   MapPin,
   Calendar,
@@ -121,6 +122,14 @@ export function BrandMemberList({
                   >
                     {member.email}
                   </p>
+                  {member.teammates?.length > 0 && (
+                    <p className="text-muted-foreground text-xs mt-1">
+                      Also:{" "}
+                      {member.teammates
+                        .map((person) => person.email || person.name)
+                        .join(", ")}
+                    </p>
+                  )}
 
                   <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground mt-2">
                     {member.location && (
@@ -203,6 +212,11 @@ export function BrandMemberList({
                   <span className="hidden sm:inline">Message</span>
                   <span className="sm:hidden">Msg</span>
                 </Button>
+
+                <BrandTeammateInviteDialog
+                  brandAccountId={member.id}
+                  brandName={member.brandName || member.name}
+                />
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

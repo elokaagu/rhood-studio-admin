@@ -1,7 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatOpportunityClock } from "@/lib/date-utils";
 import { getCurrentUserId, getCurrentUserProfile } from "@/lib/auth-utils";
+import { brandAccountId } from "@/lib/brand/account-scope";
 import { formatCompensationDisplay } from "@/lib/opportunities/compensation";
+import { fetchOpportunityApplicantCount } from "@/lib/admin/opportunities/applicant-counts";
 
 export type OpportunityDetailView = {
   id: string;
@@ -84,13 +86,15 @@ export async function fetchOpportunityDetails(
   const userProfile = await getCurrentUserProfile();
   const userId = await getCurrentUserId();
 
+  const organizerId = brandAccountId(userProfile) || userId;
+
   let query = supabase
     .from("opportunities")
     .select("*")
     .eq("id", opportunityId);
 
-  if (userProfile?.role === "brand" && userId) {
-    query = query.eq("organizer_id", userId);
+  if (userProfile?.role === "brand" && organizerId) {
+    query = query.eq("organizer_id", organizerId);
   }
 
   const { data, error } = await query.single();
@@ -120,7 +124,7 @@ export async function fetchOpportunityDetails(
 
   const row = data as OpportunityRow;
 
-  if (userProfile?.role === "brand" && userId && row.organizer_id !== userId) {
+  if (userProfile?.role === "brand" && organizerId && row.organizer_id !== organizerId) {
     return {
       ok: false,
       message: "You can only view your own opportunities.",
@@ -135,15 +139,7 @@ export async function fetchOpportunityDetails(
     new Date(row.event_end_time).getTime() < now.getTime() &&
     !(row.is_archived ?? false);
 
-  let applicantCount = 0;
-  const { count, error: countError } = await supabase
-    .from("applications")
-    .select("id", { count: "exact", head: true })
-    .eq("opportunity_id", row.id);
-
-  if (!countError && typeof count === "number") {
-    applicantCount = count;
-  }
+  let applicantCount = await fetchOpportunityApplicantCount(row.id);
 
   let hasAcceptedApplication = false;
   try {

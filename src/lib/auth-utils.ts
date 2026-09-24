@@ -4,6 +4,10 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+function fromUntyped(table: string) {
+  return (supabase as unknown as { from: (name: string) => any }).from(table);
+}
+
 export type UserRole = "admin" | "brand" | "dj";
 
 export interface UserProfile {
@@ -14,6 +18,7 @@ export interface UserProfile {
   last_name: string;
   dj_name: string;
   brand_name?: string | null;
+  brand_account_id?: string | null;
 }
 
 /**
@@ -30,24 +35,45 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
       return null;
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("user_profiles")
-      .select("id, role, email, first_name, last_name, dj_name, brand_name")
+    const { data: profile, error: profileError } = await fromUntyped("user_profiles")
+      .select("id, role, email, first_name, last_name, dj_name, brand_name, brand_account_id")
       .eq("id", user.id)
       .single();
 
-    if (profileError || !profile) {
+    const row =
+      profileError && /brand_account_id/i.test(profileError.message || "")
+        ? (
+            await fromUntyped("user_profiles")
+              .select("id, role, email, first_name, last_name, dj_name, brand_name")
+              .eq("id", user.id)
+              .single()
+          ).data
+        : profile;
+
+    if ((!profile && !row) || (profileError && !row)) {
       return null;
     }
 
+    const resolved = (row || profile) as {
+      id: string;
+      role: string | null;
+      email: string;
+      first_name: string;
+      last_name: string;
+      dj_name: string;
+      brand_name?: string | null;
+      brand_account_id?: string | null;
+    };
+
     return {
-      id: profile.id,
-      role: (profile.role as UserRole) || (profile.brand_name ? "brand" : "admin"),
-      email: profile.email,
-      first_name: profile.first_name,
-      last_name: profile.last_name,
-      dj_name: profile.dj_name,
-      brand_name: profile.brand_name,
+      id: resolved.id,
+      role: (resolved.role as UserRole) || (resolved.brand_name ? "brand" : "admin"),
+      email: resolved.email,
+      first_name: resolved.first_name,
+      last_name: resolved.last_name,
+      dj_name: resolved.dj_name,
+      brand_name: resolved.brand_name,
+      brand_account_id: resolved.brand_account_id ?? null,
     };
   } catch (error) {
     console.error("Error fetching user profile:", error);

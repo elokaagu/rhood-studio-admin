@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { refineTextWithAi } from "@/lib/ai/refine-text";
+import { clipBriefToLimit } from "@/lib/text-utils";
 
 interface RefineRequest {
   text: string;
@@ -94,7 +95,8 @@ Rules:
   Vibe & sound
 - Do not include a Practical details section, logistics, load-in, door times, or a recap of dates, location, or pay. Those live elsewhere on the listing.
 - Professional, direct, and inviting. No hype, no hashtags, no markdown headings with #.
-- Stay within the character limit. Return only the brief.`;
+- Stay within the character limit. End on a complete word and a complete sentence. Never stop mid-word or on a dangling word such as "It" or "The".
+- Return only the brief.`;
     const prompt = `Write a standardised DJ brief of at most ${maxLength} characters from these notes:\n\n${text}${contextBlock(context)}`;
 
     const refinedText = stripPracticalDetailsSection(
@@ -105,10 +107,7 @@ Rules:
       })
     );
 
-    const finalText =
-      refinedText.length > maxLength
-        ? refinedText.substring(0, maxLength).trim()
-        : refinedText;
+    const finalText = clipBriefToLimit(refinedText, maxLength);
 
     return NextResponse.json({ refinedText: finalText });
   } catch (error) {

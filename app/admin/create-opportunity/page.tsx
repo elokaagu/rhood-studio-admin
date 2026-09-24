@@ -53,10 +53,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getDisplayLength } from "@/lib/text-utils";
+import { getDisplayLength, clipBriefToLimit } from "@/lib/text-utils";
 import { getCurrentUserProfile } from "@/lib/auth-utils";
 import { checkCanPublishOpportunity } from "@/lib/brand/subscription";
 import { fetchBrandList, type BrandListItem } from "@/lib/brands/fetch-brand-list";
+import { listingStatusLabel } from "@/lib/opportunities/listing-status";
 import {
   AutosaveStatusText,
   useAutosaveDraft,
@@ -231,16 +232,15 @@ export default function CreateOpportunityPage() {
       }
 
       const data = await response.json();
-      const refinedText = data.refinedText || formData.description;
-
-      // Check display length before applying
-      if (getDisplayLength(refinedText) > OPPORTUNITY_DESCRIPTION_MAX_LENGTH) {
-        toast({
-          title: "Refinement too long",
-          description: `The refined text exceeds the ${OPPORTUNITY_DESCRIPTION_MAX_LENGTH} character limit.`,
-          variant: "destructive",
-        });
-        return;
+      let refinedText = clipBriefToLimit(
+        data.refinedText || formData.description,
+        OPPORTUNITY_DESCRIPTION_MAX_LENGTH
+      );
+      while (
+        getDisplayLength(refinedText) > OPPORTUNITY_DESCRIPTION_MAX_LENGTH &&
+        refinedText.length > 0
+      ) {
+        refinedText = clipBriefToLimit(refinedText, refinedText.length - 1);
       }
 
       setFormData({ ...formData, description: refinedText });
@@ -817,7 +817,7 @@ export default function CreateOpportunityPage() {
                     value="pending"
                     className="text-foreground hover:bg-accent"
                   >
-                    Pending
+                    {listingStatusLabel("pending")}
                   </SelectItem>
                   <SelectItem
                     value="draft"
@@ -829,7 +829,7 @@ export default function CreateOpportunityPage() {
                     value="active"
                     className="text-foreground hover:bg-accent"
                   >
-                    Active
+                    {listingStatusLabel("active")}
                   </SelectItem>
                   <SelectItem
                     value="closed"

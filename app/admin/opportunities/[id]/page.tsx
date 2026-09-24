@@ -35,6 +35,7 @@ import {
   type OpportunityDetailView,
 } from "@/lib/admin/opportunities/opportunity-detail";
 import { fetchOpportunityApplicantCount } from "@/lib/admin/opportunities/applicant-counts";
+import { listingStatusLabel } from "@/lib/opportunities/listing-status";
 import { useApplicationsRealtime } from "@/hooks/use-applications-realtime";
 import {
   Calendar,
@@ -235,7 +236,7 @@ export default function OpportunityDetailsPage() {
             className="border-amber-400/70 text-amber-400 bg-amber-400/10 text-xs"
           >
             <Clock className="h-3 w-3 mr-1" />
-            Pending
+            {listingStatusLabel("pending")}
           </Badge>
         );
       case "active":
@@ -245,7 +246,7 @@ export default function OpportunityDetailsPage() {
             className="border-brand-green text-brand-green bg-brand-green/10 text-xs"
           >
             <Clock className="h-3 w-3 mr-1" />
-            Active
+            {listingStatusLabel("active")}
           </Badge>
         );
       case "completed":

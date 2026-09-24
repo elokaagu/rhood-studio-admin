@@ -90,6 +90,35 @@ async function countApprovedDjs(
   return (simpleResult.count ?? 0) + (formMissing ? 0 : formResult.count ?? 0);
 }
 
+async function withGenreClippedForGigInsert<T>(
+  admin: AdminClient,
+  opportunityId: string | null | undefined,
+  run: () => Promise<T>
+): Promise<T> {
+  if (!opportunityId) return run();
+
+  const { data } = await fromUntyped(admin, "opportunities")
+    .select("genre")
+    .eq("id", opportunityId)
+    .maybeSingle();
+  const genre = typeof data?.genre === "string" ? data.genre : "";
+  if (genre.length <= 100) return run();
+
+  const clipped = genre.slice(0, 100);
+  const { error: clipError } = await fromUntyped(admin, "opportunities")
+    .update({ genre: clipped })
+    .eq("id", opportunityId);
+  if (clipError) return run();
+
+  try {
+    return await run();
+  } finally {
+    await fromUntyped(admin, "opportunities")
+      .update({ genre })
+      .eq("id", opportunityId);
+  }
+}
+
 async function updateApplicationRow(
   admin: AdminClient,
   tableName: string,
@@ -246,13 +275,18 @@ export async function POST(request: Request) {
       }
     }
 
-    const update = await updateApplicationRow(
-      admin,
-      tableName,
-      applicationId,
-      status,
-      applicationType === "form_response"
-    );
+    const runUpdate = () =>
+      updateApplicationRow(
+        admin,
+        tableName,
+        applicationId,
+        status,
+        applicationType === "form_response"
+      );
+    const update =
+      status === "approved"
+        ? await withGenreClippedForGigInsert(admin, appRow.opportunity_id, runUpdate)
+        : await runUpdate();
 
     if (update.error) {
       return NextResponse.json(

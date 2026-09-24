@@ -28,13 +28,13 @@ export function useApplicationsRealtime(
     const single = ids.length === 1 ? ids[0] : null;
     const filter = single ? `opportunity_id=eq.${single}` : undefined;
 
-    const notify = (payload: {
+    const notify = (payload?: {
       new?: { opportunity_id?: string };
       old?: { opportunity_id?: string };
     }) => {
       const id =
-        payload.new?.opportunity_id ||
-        payload.old?.opportunity_id ||
+        payload?.new?.opportunity_id ||
+        payload?.old?.opportunity_id ||
         single ||
         null;
       onChangeRef.current(id);
@@ -68,7 +68,18 @@ export function useApplicationsRealtime(
       )
       .subscribe();
 
+    const poll = () => notify();
+    const interval = window.setInterval(poll, 4000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") poll();
+    };
+    window.addEventListener("focus", poll);
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", poll);
+      document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(appsChannel);
       supabase.removeChannel(formsChannel);
     };

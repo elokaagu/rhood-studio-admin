@@ -24,6 +24,30 @@ function rpcUntyped(fn: string, args: Record<string, unknown>) {
   return supabase.rpc(fn as never, args as never);
 }
 
+async function withGenreClippedForGigInsert<T>(
+  opportunityId: string | null | undefined,
+  run: () => Promise<T>
+): Promise<T> {
+  if (!opportunityId) return run();
+  const { data } = await fromUntyped("opportunities")
+    .select("genre")
+    .eq("id", opportunityId)
+    .maybeSingle();
+  const genre = typeof data?.genre === "string" ? data.genre : "";
+  if (genre.length <= 100) return run();
+
+  const { error: clipError } = await fromUntyped("opportunities")
+    .update({ genre: genre.slice(0, 100) })
+    .eq("id", opportunityId);
+  if (clipError) return run();
+
+  try {
+    return await run();
+  } finally {
+    await fromUntyped("opportunities").update({ genre }).eq("id", opportunityId);
+  }
+}
+
 type RpcResult = { success?: boolean; error?: string } | null;
 type RawProfile = {
   dj_name?: string | null;
@@ -656,55 +680,61 @@ export async function updatePortalApplicationStatus(params: {
     payload.reviewed_at = new Date().toISOString();
   }
 
-  const { error } = await fromUntyped(tableName)
-    .update(payload)
-    .eq("id", params.applicationId);
-
-  if (!error) {
-    return { ok: true };
-  }
-
-  if (error.message?.includes("updated_at")) {
-    delete payload.updated_at;
-    const retry = await fromUntyped(tableName)
+  const applyUpdate = async () => {
+    const { error } = await fromUntyped(tableName)
       .update(payload)
       .eq("id", params.applicationId);
-    if (!retry.error) {
-      return { ok: true };
+
+    if (!error) {
+      return { ok: true as const };
     }
-  }
 
-  const rpcFunctionName =
-    params.applicationType === "form_response"
-      ? "admin_update_form_response_status"
-      : "admin_update_application_status";
-
-  const { data: rpcResult, error: rpcError } = await rpcUntyped(rpcFunctionName, {
-    p_application_id: params.applicationId,
-    p_new_status: params.status,
-  });
-
-  if (!rpcError) {
-    const result = rpcResult as RpcResult;
-    if (!result || result.success === true) {
-      return { ok: true };
+    if (error.message?.includes("updated_at")) {
+      delete payload.updated_at;
+      const retry = await fromUntyped(tableName)
+        .update(payload)
+        .eq("id", params.applicationId);
+      if (!retry.error) {
+        return { ok: true as const };
+      }
     }
-    const errorMsg = result.error || "Failed to update application.";
-    const staleAdminOnly =
-      errorMsg.includes("Only admins") || errorMsg.includes("Access denied");
-    if (isOwner && staleAdminOnly) {
-      return {
-        ok: false,
-        message: error.message || "Failed to update application.",
-      };
-    }
-    return { ok: false, message: errorMsg };
-  }
 
-  return {
-    ok: false,
-    message: error.message || rpcError.message || "Failed to update application.",
+    const rpcFunctionName =
+      params.applicationType === "form_response"
+        ? "admin_update_form_response_status"
+        : "admin_update_application_status";
+
+    const { data: rpcResult, error: rpcError } = await rpcUntyped(rpcFunctionName, {
+      p_application_id: params.applicationId,
+      p_new_status: params.status,
+    });
+
+    if (!rpcError) {
+      const result = rpcResult as RpcResult;
+      if (!result || result.success === true) {
+        return { ok: true as const };
+      }
+      const errorMsg = result.error || "Failed to update application.";
+      const staleAdminOnly =
+        errorMsg.includes("Only admins") || errorMsg.includes("Access denied");
+      if (isOwner && staleAdminOnly) {
+        return {
+          ok: false as const,
+          message: error.message || "Failed to update application.",
+        };
+      }
+      return { ok: false as const, message: errorMsg };
+    }
+
+    return {
+      ok: false as const,
+      message: error.message || rpcError.message || "Failed to update application.",
+    };
   };
+
+  return params.status === "approved"
+    ? withGenreClippedForGigInsert(appRow.opportunity_id, applyUpdate)
+    : applyUpdate();
 }
 
 async function countApprovedDjs(

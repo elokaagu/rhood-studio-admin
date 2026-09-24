@@ -51,7 +51,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getDisplayLength } from "@/lib/text-utils";
+import { listingStatusLabel } from "@/lib/opportunities/listing-status";
+import { getDisplayLength, clipBriefToLimit } from "@/lib/text-utils";
 import {
   OPPORTUNITY_DESCRIPTION_MAX_LENGTH,
   buildOpportunityUpdatePayload,
@@ -349,16 +350,15 @@ export default function EditOpportunityPage() {
       }
 
       const data = await response.json();
-      const refinedText = data.refinedText || formData.description;
-
-      // Check display length before applying
-      if (getDisplayLength(refinedText) > OPPORTUNITY_DESCRIPTION_MAX_LENGTH) {
-        toast({
-          title: "Refinement too long",
-          description: `The refined text exceeds the ${OPPORTUNITY_DESCRIPTION_MAX_LENGTH} character limit.`,
-          variant: "destructive",
-        });
-        return;
+      let refinedText = clipBriefToLimit(
+        data.refinedText || formData.description,
+        OPPORTUNITY_DESCRIPTION_MAX_LENGTH
+      );
+      while (
+        getDisplayLength(refinedText) > OPPORTUNITY_DESCRIPTION_MAX_LENGTH &&
+        refinedText.length > 0
+      ) {
+        refinedText = clipBriefToLimit(refinedText, refinedText.length - 1);
       }
 
       setFormData({ ...formData, description: refinedText });
@@ -857,9 +857,10 @@ export default function EditOpportunityPage() {
                 Status
               </Label>
               <p className="text-xs text-muted-foreground">
-                Saved as <code className="text-xs">listing_status</code>. “Active”
-                also sets <code className="text-xs">is_active</code> for the app when
-                not archived.
+                Saved as <code className="text-xs">listing_status</code>. “
+                {listingStatusLabel("active")}” also sets{" "}
+                <code className="text-xs">is_active</code> for the app when not
+                archived.
               </p>
               <Select
                 value={formData.status}
@@ -875,7 +876,7 @@ export default function EditOpportunityPage() {
                     value="pending"
                     className="text-foreground hover:bg-accent"
                   >
-                    Pending
+                    {listingStatusLabel("pending")}
                   </SelectItem>
                   <SelectItem
                     value="draft"
@@ -887,7 +888,7 @@ export default function EditOpportunityPage() {
                     value="active"
                     className="text-foreground hover:bg-accent"
                   >
-                    Active
+                    {listingStatusLabel("active")}
                   </SelectItem>
                   <SelectItem
                     value="closed"

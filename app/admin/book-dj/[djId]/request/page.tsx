@@ -323,7 +323,7 @@ export default function BookingRequestPage() {
                   </Label>
                   <Input
                     id="event_title"
-                    placeholder="e.g., Summer Festival 2024"
+                    placeholder="e.g., Summer Festival 2026"
                     value={formData.event_title}
                     onChange={(e) =>
                       setFormData({ ...formData, event_title: e.target.value })

@@ -5,6 +5,12 @@ type Body = {
   bookingRequestId?: string;
 };
 
+type ProfileRow = {
+  role?: string | null;
+  brand_name?: string | null;
+  brand_account_id?: string | null;
+};
+
 function serviceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -58,16 +64,17 @@ export async function POST(request: Request) {
       .eq("id", user.id)
       .maybeSingle();
 
-    const profile =
-      profileError && /brand_account_id/i.test(profileError.message || "")
-        ? (
-            await admin
-              .from("user_profiles")
-              .select("role, brand_name")
-              .eq("id", user.id)
-              .maybeSingle()
-          ).data
-        : profileWithAccount;
+    let profile: ProfileRow | null = profileWithAccount;
+    if (profileError && /brand_account_id/i.test(profileError.message || "")) {
+      const fallback = await admin
+        .from("user_profiles")
+        .select("role, brand_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      profile = fallback.data;
+    } else if (profileError) {
+      profile = null;
+    }
 
     const { data: row, error: rowError } = await admin
       .from("booking_requests")

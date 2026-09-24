@@ -4,7 +4,11 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { OPPORTUNITY_GENRES } from "@/lib/opportunities/genres";
+import {
+  ALL_GENRES_LABEL,
+  OPPORTUNITY_GENRES,
+  isAllGenres,
+} from "@/lib/opportunities/genres";
 import { Plus } from "lucide-react";
 
 type Props = {
@@ -14,15 +18,28 @@ type Props = {
 
 export function GenrePicker({ value, onChange }: Props) {
   const [custom, setCustom] = useState("");
+  const allSelected = isAllGenres(value);
   const extras = value.filter(
     (genre) =>
+      genre.toLowerCase() !== ALL_GENRES_LABEL.toLowerCase() &&
       !OPPORTUNITY_GENRES.some(
         (preset) => preset.toLowerCase() === genre.toLowerCase()
       )
   );
-  const options = [...OPPORTUNITY_GENRES, ...extras];
+  const options = [ALL_GENRES_LABEL, ...OPPORTUNITY_GENRES, ...extras];
+
+  const isSelected = (genre: string) =>
+    genre === ALL_GENRES_LABEL ? allSelected : !allSelected && value.includes(genre);
 
   const toggle = (genre: string) => {
+    if (genre === ALL_GENRES_LABEL) {
+      onChange(allSelected ? [] : [ALL_GENRES_LABEL]);
+      return;
+    }
+    if (allSelected) {
+      onChange([genre]);
+      return;
+    }
     onChange(
       value.includes(genre)
         ? value.filter((item) => item !== genre)
@@ -33,13 +50,19 @@ export function GenrePicker({ value, onChange }: Props) {
   const addCustom = () => {
     const name = custom.trim();
     if (!name) return;
+    if (name.toLowerCase() === ALL_GENRES_LABEL.toLowerCase()) {
+      onChange([ALL_GENRES_LABEL]);
+      setCustom("");
+      return;
+    }
     const match = options.find(
       (genre) => genre.toLowerCase() === name.toLowerCase()
     );
-    if (match) {
-      if (!value.includes(match)) onChange([...value, match]);
-    } else {
-      onChange([...value, name]);
+    const next = match || name;
+    if (allSelected) {
+      onChange([next]);
+    } else if (!value.includes(next)) {
+      onChange([...value, next]);
     }
     setCustom("");
   };
@@ -50,9 +73,9 @@ export function GenrePicker({ value, onChange }: Props) {
         {options.map((genre) => (
           <Badge
             key={genre}
-            variant={value.includes(genre) ? "default" : "outline"}
+            variant={isSelected(genre) ? "default" : "outline"}
             className={`cursor-pointer transition-all duration-200 ${
-              value.includes(genre)
+              isSelected(genre)
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "border-border text-foreground hover:bg-accent"
             }`}

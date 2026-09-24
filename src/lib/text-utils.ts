@@ -67,7 +67,7 @@ export function stripIncompleteTrailingFragment(text: string): string {
     return result;
   }
 
-  const sentenceSplit = result.match(/^(.*[.!?])(?:\s+\S+)?$/s);
+  const sentenceSplit = result.match(/^([\s\S]*[.!?])(?:\s+\S+)?$/);
   if (sentenceSplit?.[1]?.trim()) {
     return sentenceSplit[1].trim();
   }

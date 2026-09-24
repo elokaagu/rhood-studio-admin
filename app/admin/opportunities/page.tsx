@@ -18,7 +18,7 @@ import {
   type OpportunityListItem,
 } from "@/lib/admin/opportunities/opportunity-list";
 import { fetchOpportunityApplicantCount } from "@/lib/admin/opportunities/applicant-counts";
-import { listingStatusLabel } from "@/lib/opportunities/listing-status";
+import { listingStatusViewLabel } from "@/lib/opportunities/listing-status";
 import { useApplicationsRealtime } from "@/hooks/use-applications-realtime";
 import {
   deleteOpportunityById,
@@ -322,7 +322,7 @@ export default function OpportunitiesPage() {
             className="border-amber-400/70 text-amber-400 bg-amber-400/10 text-xs"
           >
             <Clock className="h-3 w-3 mr-1" />
-            {listingStatusLabel("pending")}
+            {listingStatusViewLabel("pending")}
             {chevron}
           </Badge>
         );
@@ -343,7 +343,7 @@ export default function OpportunitiesPage() {
             className="border-brand-green text-brand-green bg-brand-green/10 text-xs"
           >
             <Clock className="h-3 w-3 mr-1" />
-            {listingStatusLabel("active")}
+            {listingStatusViewLabel("active")}
             {chevron}
           </Badge>
         );
@@ -385,8 +385,8 @@ export default function OpportunitiesPage() {
   const renderStatusControl = (opportunity: OpportunityListItem) => {
     const current = opportunity.is_archived ? "archived" : opportunity.status;
     const options: { value: OpportunityWorkflowStatus; label: string }[] = [
-      { value: "pending", label: listingStatusLabel("pending") },
-      { value: "active", label: listingStatusLabel("active") },
+      { value: "pending", label: listingStatusViewLabel("pending") },
+      { value: "active", label: listingStatusViewLabel("active") },
       { value: "closed", label: "Closed" },
       { value: "archived", label: "Archive" },
     ];
@@ -572,8 +572,8 @@ export default function OpportunitiesPage() {
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="pending">{listingStatusLabel("pending")}</SelectItem>
-                  <SelectItem value="active">{listingStatusLabel("active")}</SelectItem>
+                  <SelectItem value="pending">{listingStatusViewLabel("pending")}</SelectItem>
+                  <SelectItem value="active">{listingStatusViewLabel("active")}</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="closed">Closed</SelectItem>
@@ -601,7 +601,7 @@ export default function OpportunitiesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">
-                  {listingStatusLabel("active")}
+                  {listingStatusViewLabel("active")}
                 </p>
                 <p className="text-2xl font-bold text-foreground">
                   {

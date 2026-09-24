@@ -113,7 +113,7 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
                         Everything about this campaign happens in this email thread — dates, brief, logistics, questions, and anything else.
                         Don't move it to WhatsApp, DMs, or a separate email.<br/><br/>
                         <a href="mailto:${safeOps}" style="color:#c2cc06;text-decoration:none;">${safeOps}</a>
-                        is on this thread as the R/HOOD campaign agent. That's how we follow the work and manage this campaign in the R/HOOD portal.
+                        is on this thread as R/HOOD. That's how we follow the work and manage this campaign in the R/HOOD portal.
                       </td>
                     </tr>
                   </table>
@@ -197,7 +197,7 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
                   <table style="width:100%;background-color:#111111;border:1px solid #2a2a2a;border-radius:12px;padding:16px 18px;">
                     <tr>
                       <td style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#9e9e9e;font-weight:700;padding-bottom:8px;">
-                        R/HOOD agent — ${safeOps}
+                        R/HOOD — ${safeOps}
                       </td>
                     </tr>
                     <tr>
@@ -223,7 +223,7 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
                         <strong>${safeBrand}</strong><br/>
                         <a href="mailto:${safeBrandEmail}" style="color:#c2cc06;text-decoration:none;">${safeBrandEmail}</a>
                         <div style="height:14px;"></div>
-                        <span style="color:#9e9e9e;font-size:12px;letter-spacing:1px;text-transform:uppercase;">R/HOOD agent</span><br/>
+                        <span style="color:#9e9e9e;font-size:12px;letter-spacing:1px;text-transform:uppercase;">R/HOOD</span><br/>
                         <strong>hello@rhood.io</strong><br/>
                         <a href="mailto:${safeOps}" style="color:#c2cc06;text-decoration:none;">${safeOps}</a>
                       </td>
@@ -260,7 +260,7 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
     `${brandName} approved ${djName} for "${title}". This email is the campaign thread.`,
     "",
     "All communication about this campaign stays in this email thread — dates, brief, logistics, questions, and anything else. Don't move it to WhatsApp, DMs, or a separate email.",
-    `${opsEmail} is on this thread as the R/HOOD campaign agent. That's how we follow the work and manage this campaign in the R/HOOD portal.`,
+    `${opsEmail} is on this thread as R/HOOD. That's how we follow the work and manage this campaign in the R/HOOD portal.`,
     details ? details : "",
     additionalInfo ? `Notes:\n${additionalInfo}` : "",
     compensation ? `Fee: ${compensation}` : "",
@@ -275,11 +275,11 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
     "",
     `Brand (${brandName}): confirm date/venue/load-in, send the brief, reply all on this thread.`,
     `DJ (${djName}): confirm the date and brief, list tech needs, reply all on this thread.`,
-    `R/HOOD agent (${opsEmail}): stays copied, manages the campaign in the portal, invoices the brand and pays the DJ.`,
+    `R/HOOD (${opsEmail}): stays copied, manages the campaign in the portal, invoices the brand and pays the DJ.`,
     "",
     `DJ: ${djName} <${djEmail}>`,
     `Brand: ${brandName} <${brandEmail}>`,
-    `R/HOOD agent: ${opsEmail}`,
+    `R/HOOD: ${opsEmail}`,
     "",
     `Keep every message on this thread with ${opsEmail}. That's how R/HOOD manages the campaign in the portal.`,
   ]

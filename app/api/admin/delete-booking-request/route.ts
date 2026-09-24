@@ -52,11 +52,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing booking request id." }, { status: 400 });
     }
 
-    const { data: profile } = await admin
+    const { data: profileWithAccount, error: profileError } = await admin
       .from("user_profiles")
-      .select("role, brand_account_id")
+      .select("role, brand_name, brand_account_id")
       .eq("id", user.id)
       .maybeSingle();
+
+    const profile =
+      profileError && /brand_account_id/i.test(profileError.message || "")
+        ? (
+            await admin
+              .from("user_profiles")
+              .select("role, brand_name")
+              .eq("id", user.id)
+              .maybeSingle()
+          ).data
+        : profileWithAccount;
 
     const { data: row, error: rowError } = await admin
       .from("booking_requests")
@@ -68,7 +79,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Booking request not found." }, { status: 404 });
     }
 
-    const isAdmin = profile?.role === "admin";
+    const role = typeof profile?.role === "string" ? profile.role : null;
+    const brandName =
+      typeof profile?.brand_name === "string" ? profile.brand_name.trim() : "";
+    const isAdmin = role === "admin" || (!role && !brandName);
     const brandAccount =
       (typeof profile?.brand_account_id === "string" && profile.brand_account_id) ||
       user.id;

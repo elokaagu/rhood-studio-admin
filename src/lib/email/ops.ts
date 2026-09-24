@@ -1,6 +1,6 @@
 import { sanitizeEmail } from "./helpers";
 
-/** Inbox that acts as the R/HOOD campaign agent on every brand–DJ thread. */
+/** Inbox that stays on every brand–DJ thread as R/HOOD. */
 export const CAMPAIGN_AGENT_EMAIL = "hello@rhood.io";
 
 export function campaignOpsEmail(): string {

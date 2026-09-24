@@ -55,11 +55,21 @@ function tableMissing(message: string | undefined) {
 export async function fetchCampaignBoard(): Promise<
   { ok: true; campaigns: CampaignBoardRow[] } | { ok: false; message: string }
 > {
-  const { data: oppData, error: oppError } = await fromUntyped("opportunities")
-    .select(
-      "id, title, location, event_date, event_timezone, organizer_name, organizer_id, listing_status, is_archived, is_active"
-    )
+  const withTimezone =
+    "id, title, location, event_date, event_timezone, organizer_name, organizer_id, listing_status, is_archived, is_active";
+  const withoutTimezone =
+    "id, title, location, event_date, organizer_name, organizer_id, listing_status, is_archived, is_active";
+
+  let oppQuery = await fromUntyped("opportunities")
+    .select(withTimezone)
     .order("created_at", { ascending: false });
+  if (oppQuery.error && /event_timezone/i.test(oppQuery.error.message || "")) {
+    oppQuery = await fromUntyped("opportunities")
+      .select(withoutTimezone)
+      .order("created_at", { ascending: false });
+  }
+
+  const { data: oppData, error: oppError } = oppQuery;
 
   if (oppError) {
     return { ok: false, message: oppError.message || "Failed to load campaigns." };

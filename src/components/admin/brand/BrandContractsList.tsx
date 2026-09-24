@@ -109,7 +109,7 @@ export function BrandContractsList({
                         : "Platform terms for using R/HOOD Studio."}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 sm:flex-col sm:items-end">
+                  <div className="flex items-center gap-2 sm:flex-col sm:items-stretch sm:w-44">
                     {studioAgreement.signedAt ? (
                       <Button
                         variant="outline"
@@ -124,7 +124,7 @@ export function BrandContractsList({
                             fileName: "R-HOOD_Studio_Brand_Agreement.pdf",
                           })
                         }
-                        className="text-xs h-8 border-brand-green/50 text-brand-green hover:bg-brand-green/10"
+                        className="text-xs h-8 w-full justify-center border-brand-green/50 text-brand-green hover:bg-brand-green/10"
                       >
                         <Download className="h-3.5 w-3.5 mr-1.5" />
                         Download PDF
@@ -133,7 +133,7 @@ export function BrandContractsList({
                     <Button
                       size="sm"
                       onClick={onViewStudioAgreement}
-                      className="text-xs h-8 bg-brand-green text-brand-black hover:bg-brand-green/90 font-semibold"
+                      className="text-xs h-8 w-full justify-center bg-brand-green text-brand-black hover:bg-brand-green/90 font-semibold"
                     >
                       <FileSignature className="h-3.5 w-3.5 mr-1.5" />
                       {studioAgreement.signedAt ? "View agreement" : "Sign"}

@@ -682,13 +682,15 @@ export default function OpportunitiesPage() {
           </div>
           </div>
         ) : filteredOpportunities.length === 0 ? (
-          <div className="text-center py-8">
-            <p className={textStyles.body.regular}>
-              {fetchError && opportunities.length === 0
-                ? "Could not load opportunities. Use Retry above or refresh the page."
-                : "No opportunities found. Create your first opportunity!"}
-            </p>
-          </div>
+          <Card className="bg-card border-border mx-auto max-w-lg">
+            <CardContent className="py-16 px-6 text-center">
+              <p className={textStyles.body.regular}>
+                {fetchError && opportunities.length === 0
+                  ? "Could not load opportunities. Use Retry above or refresh the page."
+                  : "No opportunities found. Create your first opportunity!"}
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           filteredOpportunities.map((opportunity: OpportunityListItem) => (
             <Card

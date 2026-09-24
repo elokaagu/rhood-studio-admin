@@ -362,7 +362,11 @@ export default function AdminLoginPage() {
           )}
         </CardHeader>
         <CardContent className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            autoComplete={isSignUp ? "off" : "on"}
+          >
             {/* First Name and Last Name - Only show for sign up */}
             {isSignUp && (
               <>
@@ -377,6 +381,8 @@ export default function AdminLoginPage() {
                     <Input
                       id="firstName"
                       type="text"
+                      name="firstName"
+                      autoComplete="off"
                       placeholder="John"
                       value={formData.firstName}
                       onChange={(e) =>
@@ -396,6 +402,8 @@ export default function AdminLoginPage() {
                     <Input
                       id="lastName"
                       type="text"
+                      name="lastName"
+                      autoComplete="off"
                       placeholder="Doe"
                       value={formData.lastName}
                       onChange={(e) =>
@@ -417,6 +425,8 @@ export default function AdminLoginPage() {
               <Input
                 id="email"
                 type="email"
+                name={isSignUp ? "portal-email" : "email"}
+                autoComplete={isSignUp ? "off" : "username"}
                 placeholder="team@rhood.io"
                 value={formData.email}
                 onChange={(e) =>
@@ -434,13 +444,22 @@ export default function AdminLoginPage() {
               </Label>
               <Input
                 id="password"
-                type="password"
+                type={isSignUp ? "text" : "password"}
+                name={isSignUp ? "portal-password" : "password"}
+                autoComplete={isSignUp ? "off" : "current-password"}
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-1p-ignore={isSignUp || undefined}
+                data-lpignore={isSignUp ? "true" : undefined}
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
                 }
-                className="bg-secondary border-border text-foreground"
+                className={`bg-secondary border-border text-foreground${
+                  isSignUp ? " [-webkit-text-security:disc]" : ""
+                }`}
                 required
               />
             </div>
@@ -463,6 +482,7 @@ export default function AdminLoginPage() {
                     })
                   }
                   className="bg-secondary border-border text-foreground font-mono"
+                  autoComplete="off"
                   required
                 />
                 <p className={textStyles.body.small + " text-muted-foreground"}>

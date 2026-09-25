@@ -97,10 +97,10 @@ export function OrderValueField({
           }
         >
           <SelectTrigger
-            className="w-28 shrink-0 bg-secondary border-border text-foreground"
+            className="w-24 shrink-0 bg-secondary border-border text-foreground"
             aria-label="Order currency"
           >
-            <SelectValue />
+            <SelectValue>{currency}</SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-popover border-border">
             {ORDER_CURRENCIES.map((option) => (

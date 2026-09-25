@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 import { recordCampaignMessage } from "@/lib/campaigns/store-message";
 import { sanitizeEmail } from "@/lib/email/helpers";
 
@@ -78,21 +79,53 @@ async function fetchReceivingBody(emailId: string): Promise<{
   };
 }
 
-export async function POST(request: Request) {
-  const secret = process.env.CAMPAIGN_INBOUND_SECRET || process.env.RESEND_WEBHOOK_SECRET;
-  if (secret) {
-    const header =
-      request.headers.get("x-campaign-secret") ||
-      request.headers.get("authorization") ||
-      request.headers.get("svix-signature") ||
-      "";
-    if (
-      header !== secret &&
-      header !== `Bearer ${secret}` &&
-      !request.headers.get("svix-signature")
-    ) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
+ * Accepts only Resend webhooks with a valid Svix signature
+ * (RESEND_WEBHOOK_SECRET), or callers presenting CAMPAIGN_INBOUND_SECRET.
+ * Anything else is rejected, including when no secret is configured.
+ */
+function isAuthorized(request: Request, rawBody: string): boolean {
+  const svixId = request.headers.get("svix-id");
+  const svixTimestamp = request.headers.get("svix-timestamp");
+  const svixSignature = request.headers.get("svix-signature");
+  if (svixId && svixTimestamp && svixSignature) {
+    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+    if (!webhookSecret) return false;
+    try {
+      new Resend(process.env.RESEND_API_KEY || "re_verify_only").webhooks.verify({
+        payload: rawBody,
+        headers: { id: svixId, timestamp: svixTimestamp, signature: svixSignature },
+        webhookSecret,
+      });
+      return true;
+    } catch {
+      return false;
     }
+  }
+
+  const sharedSecret = process.env.CAMPAIGN_INBOUND_SECRET;
+  if (!sharedSecret) return false;
+  const presented =
+    request.headers.get("x-campaign-secret") ||
+    (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  return Boolean(presented) && timingSafeEqual(presented, sharedSecret);
+}
+
+export async function POST(request: Request) {
+  const rawBody = await request.text();
+  if (!isAuthorized(request, rawBody)) {
+    console.warn("[email/inbound] rejected unauthenticated request", {
+      hasSvixHeaders: Boolean(request.headers.get("svix-signature")),
+      webhookSecretSet: Boolean(process.env.RESEND_WEBHOOK_SECRET),
+    });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -101,7 +134,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing Supabase service role." }, { status: 500 });
   }
 
-  const raw = await request.json().catch(() => null);
+  let raw: unknown = null;
+  try {
+    raw = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+  }
+  const eventType = (raw as { type?: unknown } | null)?.type;
+  if (typeof eventType === "string" && eventType !== "email.received") {
+    return NextResponse.json({ ok: true, ignored: eventType });
+  }
   const data = inboundPayload(raw);
   let from = addresses(data.from)[0] || null;
   let to = addresses(data.to);

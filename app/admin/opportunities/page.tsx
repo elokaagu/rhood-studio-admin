@@ -18,7 +18,10 @@ import {
   type OpportunityListItem,
 } from "@/lib/admin/opportunities/opportunity-list";
 import { fetchOpportunityApplicantCount } from "@/lib/admin/opportunities/applicant-counts";
-import { listingStatusViewLabel } from "@/lib/opportunities/listing-status";
+import {
+  listingStatusLabel,
+  listingStatusViewLabel,
+} from "@/lib/opportunities/listing-status";
 import { useApplicationsRealtime } from "@/hooks/use-applications-realtime";
 import {
   deleteOpportunityById,
@@ -293,7 +296,7 @@ export default function OpportunitiesPage() {
 
     toast({
       title: "Status updated",
-      description: `"${opportunity.title}" is now ${status}.`,
+      description: `"${opportunity.title}" is now ${listingStatusViewLabel(status).toLowerCase()}.`,
     });
     setActionLoadingId(null);
   };
@@ -385,8 +388,8 @@ export default function OpportunitiesPage() {
   const renderStatusControl = (opportunity: OpportunityListItem) => {
     const current = opportunity.is_archived ? "archived" : opportunity.status;
     const options: { value: OpportunityWorkflowStatus; label: string }[] = [
-      { value: "pending", label: listingStatusViewLabel("pending") },
-      { value: "active", label: listingStatusViewLabel("active") },
+      { value: "pending", label: listingStatusLabel("pending") },
+      { value: "active", label: listingStatusLabel("active") },
       { value: "closed", label: "Closed" },
       { value: "archived", label: "Archive" },
     ];

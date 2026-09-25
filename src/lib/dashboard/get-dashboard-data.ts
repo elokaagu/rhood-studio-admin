@@ -178,7 +178,7 @@ export async function getDashboardData(viewer: ViewerContext): Promise<Dashboard
 
   const stats: DashboardStat[] = [
     {
-      title: "Active Opportunities",
+      title: "Live Opportunities",
       value: String(activeOppCountRes.count ?? 0),
     },
     {

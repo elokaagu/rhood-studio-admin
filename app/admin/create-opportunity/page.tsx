@@ -327,7 +327,11 @@ export default function CreateOpportunityPage() {
         title: mode === "publish" ? "Success" : "Draft Saved",
         description:
           mode === "publish"
-            ? "Opportunity created successfully!"
+            ? formData.status === "active"
+              ? "Your opportunity is live in the app."
+              : formData.status === "pending"
+                ? "Your opportunity is in review."
+                : "Opportunity created successfully!"
             : "Opportunity saved as draft successfully!",
       });
 
@@ -861,7 +865,11 @@ export default function CreateOpportunityPage() {
             disabled={isSubmitting}
           >
             <Plus className="h-4 w-4 mr-2" />
-            {isSubmitting ? "Creating..." : "Create Opportunity"}
+            {isSubmitting
+              ? "Saving..."
+              : formData.status === "active" || formData.status === "pending"
+                ? listingStatusLabel(formData.status)
+                : "Create Opportunity"}
           </Button>
         </div>
       </form>

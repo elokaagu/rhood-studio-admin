@@ -213,7 +213,7 @@ export default function FormResponsesPage() {
         )
       );
 
-      if (newStatus === "approved") {
+      if (newStatus === "approved" && !result.emailsHandled) {
         const response = responses.find((item) => item.id === responseId);
         try {
           await notifyApplicantOfApprovedApplication({

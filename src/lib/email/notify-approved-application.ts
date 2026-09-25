@@ -129,6 +129,31 @@ async function alreadySent(
   }
 }
 
+/** An outbound intro is already on this application's campaign thread. */
+async function introOnCampaignThread(
+  admin: SupabaseClient,
+  applicationId: string | null | undefined
+): Promise<boolean> {
+  if (!applicationId) return false;
+  try {
+    const { data: thread } = await fromUntyped(admin, "campaign_threads")
+      .select("id")
+      .eq("application_id", applicationId)
+      .limit(1)
+      .maybeSingle();
+    if (!thread?.id) return false;
+    const { data: message } = await fromUntyped(admin, "campaign_messages")
+      .select("id")
+      .eq("thread_id", thread.id)
+      .eq("direction", "outbound")
+      .limit(1)
+      .maybeSingle();
+    return Boolean(message?.id);
+  } catch {
+    return false;
+  }
+}
+
 async function markSent(
   admin: SupabaseClient,
   userId: string | null | undefined,
@@ -378,7 +403,10 @@ export async function notifyApprovedApplication(
     };
   }
 
-  if (await alreadySent(admin, "application_intro", relatedId)) {
+  if (
+    (await alreadySent(admin, "application_intro", relatedId)) ||
+    (await introOnCampaignThread(admin, applicationId))
+  ) {
     return { ok: true, decisionSent, introSent: true };
   }
 

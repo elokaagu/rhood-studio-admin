@@ -289,7 +289,9 @@ export async function getApplicationDetails(
 export async function updateApplicationStatus(
   applicationId: string,
   status: "approved" | "rejected"
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<
+  { ok: true; emailsHandled?: boolean } | { ok: false; message: string }
+> {
   const { data: simpleRow } = await fromUntyped("applications")
     .select("id")
     .eq("id", applicationId)
@@ -575,7 +577,9 @@ export async function updatePortalApplicationStatus(params: {
   applicationId: string;
   applicationType: ApplicationSourceType;
   status: "approved" | "rejected";
-}): Promise<{ ok: true } | { ok: false; message: string }> {
+}): Promise<
+  { ok: true; emailsHandled?: boolean } | { ok: false; message: string }
+> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -599,7 +603,8 @@ export async function updatePortalApplicationStatus(params: {
     });
     const payload = (await response.json().catch(() => ({}))) as { error?: string };
     if (response.ok) {
-      return { ok: true };
+      // The status route sends the approval + intro emails itself.
+      return { ok: true, emailsHandled: true };
     }
     if (response.status !== 404) {
       return {

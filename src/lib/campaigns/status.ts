@@ -253,10 +253,28 @@ export function stageAndBriefing(input: {
     };
   }
 
+  if (input.approved > 0) {
+    const names = input.placements
+      .filter((p) => p.status === "approved")
+      .map((p) => p.djName)
+      .join(", ");
+    return {
+      stage: "reviewing",
+      briefing: `Approved ${names || `${input.approved} DJ${input.approved === 1 ? "" : "s"}`}, but the intro email hasn't gone out yet.`,
+    };
+  }
+
   if (input.pending > 0) {
     return {
       stage: "reviewing",
       briefing: `${input.pending} application${input.pending === 1 ? "" : "s"} waiting to be reviewed.`,
+    };
+  }
+
+  if (input.rejected > 0) {
+    return {
+      stage: "reviewing",
+      briefing: `${input.rejected} application${input.rejected === 1 ? "" : "s"}, none approved yet.`,
     };
   }
 

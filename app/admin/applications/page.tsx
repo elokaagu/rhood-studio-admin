@@ -207,7 +207,7 @@ function ApplicationsContent() {
         }
       }
 
-      if (status === "approved") {
+      if (status === "approved" && !updateResult.emailsHandled) {
         try {
           await notifyApplicantOfApprovedApplication({
             email: application.applicant.email,

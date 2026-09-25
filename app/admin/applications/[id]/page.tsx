@@ -125,7 +125,7 @@ export default function ApplicationDetailsPage() {
         }
       }
 
-      if (nextStatus === "approved") {
+      if (nextStatus === "approved" && !result.emailsHandled) {
         try {
           await notifyApplicantOfApprovedApplication({
             email: application.applicant.email,

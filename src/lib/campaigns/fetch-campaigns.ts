@@ -219,9 +219,12 @@ export async function fetchCampaignBoard(): Promise<
         (a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()
       )[0];
       const introSent =
+        (emailsByApplication.get(app.id) ?? []).some((e) => e.direction === "outbound") ||
         introIds.has(app.id) ||
         Boolean(app.opportunity_id && app.user_id && introIds.has(`${app.opportunity_id}:${app.user_id}`));
       const introAt =
+        (emailsByApplication.get(app.id) ?? []).find((e) => e.direction === "outbound")
+          ?.receivedAt ||
         introAtByRelated.get(app.id) ||
         (app.opportunity_id && app.user_id
           ? introAtByRelated.get(`${app.opportunity_id}:${app.user_id}`)

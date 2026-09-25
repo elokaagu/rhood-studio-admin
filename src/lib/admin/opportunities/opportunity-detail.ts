@@ -3,6 +3,11 @@ import { formatDate, formatOpportunityClock } from "@/lib/date-utils";
 import { getCurrentUserId, getCurrentUserProfile } from "@/lib/auth-utils";
 import { brandAccountId } from "@/lib/brand/account-scope";
 import { formatCompensationDisplay } from "@/lib/opportunities/compensation";
+import {
+  INVOICE_CURRENCY,
+  orderBreakdown,
+  type OrderBreakdown,
+} from "@/lib/opportunities/order-value";
 import { fetchOpportunityApplicantCount } from "@/lib/admin/opportunities/applicant-counts";
 
 export type OpportunityDetailView = {
@@ -28,6 +33,7 @@ export type OpportunityDetailView = {
   /** Event window ended (by end time) but row not archived — UI only, no DB write */
   eventPastDue: boolean;
   hasAcceptedApplication: boolean;
+  order: OrderBreakdown | null;
 };
 
 function normalizeId(id: unknown, fallback: string): string {
@@ -71,7 +77,37 @@ type OpportunityRow = {
   additional_info?: string | null;
   short_summary?: string | null;
   website?: string | null;
+  order_value?: number | string | null;
+  rhood_fee?: number | string | null;
+  order_total?: number | string | null;
+  order_currency?: string | null;
+  order_value_original?: number | string | null;
+  fx_rate_to_gbp?: number | string | null;
+  fx_rate_date?: string | null;
 };
+
+function storedOrder(row: OpportunityRow): OrderBreakdown | null {
+  if (row.order_value == null) return null;
+  const orderValue = Number(row.order_value);
+  const fee = row.rhood_fee != null ? Number(row.rhood_fee) : null;
+  const total = row.order_total != null ? Number(row.order_total) : null;
+  if (fee == null || total == null || !Number.isFinite(fee) || !Number.isFinite(total)) {
+    return orderBreakdown(orderValue);
+  }
+  const currency = row.order_currency || INVOICE_CURRENCY;
+  const original =
+    row.order_value_original != null ? Number(row.order_value_original) : orderValue;
+  const fxRate = row.fx_rate_to_gbp != null ? Number(row.fx_rate_to_gbp) : 1;
+  return {
+    currency,
+    originalValue: original,
+    fxRate,
+    fxDate: row.fx_rate_date ?? null,
+    orderValue,
+    fee,
+    total,
+  };
+}
 
 /**
  * Loads one opportunity with applicant count and acceptance flag for the current user.
@@ -190,6 +226,7 @@ export async function fetchOpportunityDetails(
     image_url: row.image_url,
     eventPastDue,
     hasAcceptedApplication,
+    order: storedOrder(row),
   };
 
   return { ok: true, detail };

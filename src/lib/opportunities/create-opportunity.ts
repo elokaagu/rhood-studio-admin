@@ -5,6 +5,10 @@ import { getDisplayText } from "@/lib/text-utils";
 import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
 import { parseNumericCompensation } from "@/lib/opportunities/compensation";
 import {
+  orderValueColumns,
+  orderValueError,
+} from "@/lib/opportunities/order-value";
+import {
   parseEventDateTime,
   resolveEndAfterStart,
 } from "@/lib/opportunities/event-times";
@@ -47,6 +51,11 @@ export type OpportunityCreateFormInput = {
   timezone?: string;
   approvalLimit?: ApprovalLimitMode;
   approvalLimitCount?: number;
+  /** Brand budget before the R/HOOD fee, in `orderCurrency`. */
+  orderValue?: string;
+  orderCurrency?: string;
+  orderFxRate?: number | null;
+  orderFxDate?: string | null;
 };
 
 export type CreateOpportunityParams = {
@@ -98,6 +107,9 @@ export function validateOpportunityCreate(
       "Please provide a start date and start time."
     );
   }
+
+  const orderError = orderValueError(form);
+  if (orderError) return fail("Check order value", orderError);
 
   const noEndDate = form.dateType === "range" && !!form.noEndDate;
 
@@ -301,6 +313,7 @@ export async function createOpportunity(
     image_url: form.imageUrl || null,
     additional_info: form.additionalInfo?.trim() || null,
     website: normalizeWebsiteUrl(form.website),
+    ...orderValueColumns(form),
   };
 
   const { body, maxApprovals } = withoutMaxApprovals(insertPayload);

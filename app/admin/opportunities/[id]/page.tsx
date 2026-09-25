@@ -36,6 +36,12 @@ import {
 } from "@/lib/admin/opportunities/opportunity-detail";
 import { fetchOpportunityApplicantCount } from "@/lib/admin/opportunities/applicant-counts";
 import { listingStatusViewLabel } from "@/lib/opportunities/listing-status";
+import {
+  INVOICE_CURRENCY,
+  RHOOD_FEE_PERCENT_LABEL,
+  formatGbp,
+  formatMoney,
+} from "@/lib/opportunities/order-value";
 import { useApplicationsRealtime } from "@/hooks/use-applications-realtime";
 import {
   Calendar,
@@ -524,6 +530,53 @@ export default function OpportunityDetailsPage() {
         </div>
 
         <div className="space-y-6">
+          {opportunity.order ? (
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-3">
+                <CardTitle className={`${textStyles.subheading.small} uppercase tracking-wide text-xs text-muted-foreground`}>
+                  Order
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="space-y-2 text-sm">
+                  {opportunity.order.currency !== INVOICE_CURRENCY ? (
+                    <div className="flex justify-between text-muted-foreground">
+                      <dt>Brand budget</dt>
+                      <dd>
+                        {formatMoney(
+                          opportunity.order.originalValue,
+                          opportunity.order.currency
+                        )}
+                      </dd>
+                    </div>
+                  ) : null}
+                  <div className="flex justify-between text-muted-foreground">
+                    <dt>Order value</dt>
+                    <dd>{formatGbp(opportunity.order.orderValue)}</dd>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <dt>R/HOOD fee ({RHOOD_FEE_PERCENT_LABEL})</dt>
+                    <dd>{formatGbp(opportunity.order.fee)}</dd>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-medium text-foreground">
+                    <dt>Total invoiced</dt>
+                    <dd>{formatGbp(opportunity.order.total)}</dd>
+                  </div>
+                </dl>
+                {opportunity.order.currency !== INVOICE_CURRENCY ? (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    1 {opportunity.order.currency} = £
+                    {opportunity.order.fxRate.toFixed(4)}
+                    {opportunity.order.fxDate
+                      ? ` (rate from ${opportunity.order.fxDate})`
+                      : ""}
+                  </p>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <CardTitle className={`${textStyles.subheading.small} uppercase tracking-wide text-xs text-muted-foreground`}>

@@ -2,6 +2,12 @@ import { getDisplayText } from "@/lib/text-utils";
 import { normalizeWebsiteUrl } from "@/lib/opportunities/website";
 import { parseNumericCompensation } from "@/lib/opportunities/compensation";
 import {
+  INVOICE_CURRENCY,
+  isOrderCurrency,
+  orderValueColumns,
+  orderValueError,
+} from "@/lib/opportunities/order-value";
+import {
   isOvernightSpan,
   parseEventDateTime,
   resolveEndAfterStart,
@@ -43,6 +49,10 @@ export type OpportunityFormState = {
   timezone: string;
   approvalLimit: ApprovalLimitMode;
   approvalLimitCount: number;
+  orderValue: string;
+  orderCurrency: string;
+  orderFxRate: number | null;
+  orderFxDate: string | null;
 };
 
 export type OpportunitySaveMode = "publish" | "draft";
@@ -55,6 +65,9 @@ export function validateOpportunityForm(
   if (!form.title.trim()) {
     return { ok: false, message: "Please enter a title." };
   }
+
+  const orderError = orderValueError(form);
+  if (orderError) return { ok: false, message: orderError };
 
   if (!form.date || !form.time) {
     return {
@@ -172,6 +185,7 @@ export function buildOpportunityUpdatePayload(
     is_archived: form.archived,
     image_url: form.imageUrl || null,
     website: normalizeWebsiteUrl(form.website),
+    ...orderValueColumns(form),
   };
 }
 
@@ -215,6 +229,11 @@ type OpportunityRow = {
   website?: string | null;
   compensation?: string | null;
   max_approvals?: number | null;
+  order_value?: number | string | null;
+  order_value_original?: number | string | null;
+  order_currency?: string | null;
+  fx_rate_to_gbp?: number | string | null;
+  fx_rate_date?: string | null;
 };
 
 /** Map DB row → form state for the edit screen (no demo fallback). */
@@ -286,5 +305,21 @@ export function opportunityRowToFormState(
     timezone,
     approvalLimit: approval.mode,
     approvalLimitCount: approval.count,
+    ...storedOrderForm(data),
+  };
+}
+
+function storedOrderForm(data: OpportunityRow) {
+  const currency = isOrderCurrency(data.order_currency)
+    ? data.order_currency
+    : INVOICE_CURRENCY;
+  const original = data.order_value_original ?? data.order_value;
+  const rate = data.fx_rate_to_gbp != null ? Number(data.fx_rate_to_gbp) : null;
+  return {
+    orderValue: original != null ? String(Number(original)) : "",
+    orderCurrency: currency,
+    orderFxRate:
+      currency === INVOICE_CURRENCY ? 1 : rate && rate > 0 ? rate : null,
+    orderFxDate: data.fx_rate_date ?? null,
   };
 }

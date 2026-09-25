@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
 import { TimezoneSelect } from "@/components/admin/TimezoneSelect";
 import { DjApprovalsField } from "@/components/admin/DjApprovalsField";
+import { OrderValueField } from "@/components/admin/OrderValueField";
 import { resolveTimeZone } from "@/lib/opportunities/timezones";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -104,6 +105,10 @@ export default function EditOpportunityPage() {
     timezone: resolveTimeZone(),
     approvalLimit: "unlimited",
     approvalLimitCount: 2,
+    orderValue: "",
+    orderCurrency: "GBP",
+    orderFxRate: 1,
+    orderFxDate: null,
   });
 
   const draftSnapshot = useMemo(
@@ -121,6 +126,10 @@ export default function EditOpportunityPage() {
           timezone: draft.formData.timezone || resolveTimeZone(),
           approvalLimit: draft.formData.approvalLimit || "unlimited",
           approvalLimitCount: draft.formData.approvalLimitCount || 2,
+          orderValue: draft.formData.orderValue || "",
+          orderCurrency: draft.formData.orderCurrency || "GBP",
+          orderFxRate: draft.formData.orderFxRate ?? 1,
+          orderFxDate: draft.formData.orderFxDate ?? null,
         });
       }
       if (Array.isArray(draft.selectedGenres)) {
@@ -611,6 +620,13 @@ export default function EditOpportunityPage() {
                     className="bg-secondary border-border text-foreground"
                   />
                 </div>
+
+                <OrderValueField
+                  value={formData}
+                  onChange={(patch) =>
+                    setFormData((previous) => ({ ...previous, ...patch }))
+                  }
+                />
 
                 <div className="space-y-2">
                   <Label htmlFor="website" className={`${textStyles.body.regular} flex items-center`}>

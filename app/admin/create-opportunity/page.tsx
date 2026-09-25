@@ -19,6 +19,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers";
 import { TimezoneSelect } from "@/components/admin/TimezoneSelect";
 import { DjApprovalsField } from "@/components/admin/DjApprovalsField";
+import { OrderValueField } from "@/components/admin/OrderValueField";
 import { resolveTimeZone } from "@/lib/opportunities/timezones";
 import type { ApprovalLimitMode } from "@/lib/opportunities/approval-limit";
 import {
@@ -97,6 +98,10 @@ export default function CreateOpportunityPage() {
     timezone: resolveTimeZone(),
     approvalLimit: "unlimited" as ApprovalLimitMode,
     approvalLimitCount: 2,
+    orderValue: "",
+    orderCurrency: "GBP",
+    orderFxRate: 1 as number | null,
+    orderFxDate: null as string | null,
   });
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -115,6 +120,10 @@ export default function CreateOpportunityPage() {
           timezone: draft.formData.timezone || resolveTimeZone(),
           approvalLimit: draft.formData.approvalLimit || "unlimited",
           approvalLimitCount: draft.formData.approvalLimitCount || 2,
+          orderValue: draft.formData.orderValue || "",
+          orderCurrency: draft.formData.orderCurrency || "GBP",
+          orderFxRate: draft.formData.orderFxRate ?? 1,
+          orderFxDate: draft.formData.orderFxDate ?? null,
         });
       }
       if (Array.isArray(draft.selectedGenres)) {
@@ -564,6 +573,13 @@ export default function CreateOpportunityPage() {
                     className="bg-secondary border-border text-foreground"
                   />
                 </div>
+
+                <OrderValueField
+                  value={formData}
+                  onChange={(patch) =>
+                    setFormData((previous) => ({ ...previous, ...patch }))
+                  }
+                />
 
                 <div className="space-y-2">
                   <Label

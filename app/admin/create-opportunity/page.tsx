@@ -20,6 +20,7 @@ import { RhoodDatePicker, RhoodTimePicker } from "@/components/ui/rhood-pickers"
 import { TimezoneSelect } from "@/components/admin/TimezoneSelect";
 import { DjApprovalsField } from "@/components/admin/DjApprovalsField";
 import { OrderValueField } from "@/components/admin/OrderValueField";
+import { orderValuePatchForCompensation } from "@/lib/opportunities/order-value";
 import { resolveTimeZone } from "@/lib/opportunities/timezones";
 import type { ApprovalLimitMode } from "@/lib/opportunities/approval-limit";
 import {
@@ -575,7 +576,11 @@ export default function CreateOpportunityPage() {
                     placeholder="e.g. Free, 0, £200, or drinks + travel"
                     value={formData.pay}
                     onChange={(e) =>
-                      setFormData({ ...formData, pay: e.target.value })
+                      setFormData({
+                        ...formData,
+                        ...orderValuePatchForCompensation(formData, e.target.value),
+                        pay: e.target.value,
+                      })
                     }
                     className="bg-secondary border-border text-foreground"
                   />

@@ -88,6 +88,61 @@ export function formatGbp(value: number): string {
   return formatMoney(value, INVOICE_CURRENCY);
 }
 
+const SYMBOL_CURRENCY: Record<string, OrderCurrency> = { "£": "GBP", "€": "EUR", $: "USD" };
+
+/**
+ * Order value implied by a purely monetary compensation ("£500", "500",
+ * "€1,200", "300 EUR"). Null for free, zero or non-cash compensation.
+ */
+export function orderValueFromCompensation(
+  pay: string | null | undefined
+): { orderValue: string; orderCurrency: OrderCurrency } | null {
+  const text = (pay ?? "").trim().replace(/,/g, "");
+  const match = text.match(/^([£€$])?\s*(\d+(?:\.\d{1,2})?)\s*([A-Za-z]{3})?$/);
+  if (!match) return null;
+  const [, symbol, amount, code] = match;
+  if (!(Number(amount) > 0)) return null;
+  const upper = code?.toUpperCase();
+  if (upper && !isOrderCurrency(upper)) return null;
+  const currency = (upper as OrderCurrency | undefined) ?? (symbol ? SYMBOL_CURRENCY[symbol] : undefined);
+  return { orderValue: amount, orderCurrency: currency ?? INVOICE_CURRENCY };
+}
+
+type LinkedOrderFields = {
+  pay: string;
+  orderValue: string;
+  orderCurrency: string;
+};
+
+/**
+ * Keeps the order value following the compensation while it's empty or still
+ * matches what the previous compensation implied; once the brand types their
+ * own order value it's left alone.
+ */
+export function orderValuePatchForCompensation(
+  previous: LinkedOrderFields,
+  nextPay: string
+): Partial<OrderValueInput> {
+  const before = orderValueFromCompensation(previous.pay);
+  const stillLinked =
+    !previous.orderValue.trim() ||
+    (before != null &&
+      before.orderValue === previous.orderValue &&
+      before.orderCurrency === previous.orderCurrency);
+  if (!stillLinked) return {};
+
+  const next = orderValueFromCompensation(nextPay);
+  if (!next) return previous.orderValue.trim() && before ? { orderValue: "" } : {};
+
+  const patch: Partial<OrderValueInput> = { orderValue: next.orderValue };
+  if (next.orderCurrency !== previous.orderCurrency) {
+    patch.orderCurrency = next.orderCurrency;
+    patch.orderFxRate = next.orderCurrency === INVOICE_CURRENCY ? 1 : null;
+    patch.orderFxDate = null;
+  }
+  return patch;
+}
+
 export type OrderValueInput = {
   orderValue?: string;
   orderCurrency?: string;

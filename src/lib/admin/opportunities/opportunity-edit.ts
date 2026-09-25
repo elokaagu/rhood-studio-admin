@@ -20,6 +20,7 @@ import {
   type ApprovalLimitMode,
 } from "@/lib/opportunities/approval-limit";
 import {
+  orderValueNotSavedWarning,
   persistMaxApprovals,
   withoutMaxApprovals,
   writeOpportunity,
@@ -197,18 +198,22 @@ export type OpportunityUpdatePayload = ReturnType<
 export async function saveOpportunity(
   opportunityId: string,
   payload: OpportunityUpdatePayload
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<{ ok: true; warning?: string } | { ok: false; message: string }> {
   const { body, maxApprovals } = withoutMaxApprovals({
     ...(payload as Record<string, unknown>),
   });
-  const { error } = await writeOpportunity(body, "update", opportunityId);
+  const { error, droppedColumns } = await writeOpportunity(
+    body,
+    "update",
+    opportunityId
+  );
 
   if (error) {
     return { ok: false, message: error.message || "Failed to save." };
   }
 
   await persistMaxApprovals(opportunityId, maxApprovals);
-  return { ok: true };
+  return { ok: true, warning: orderValueNotSavedWarning(droppedColumns, body) };
 }
 
 type OpportunityRow = {

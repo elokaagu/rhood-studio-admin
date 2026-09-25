@@ -343,6 +343,13 @@ export default function CreateOpportunityPage() {
                 : "Opportunity created successfully!"
             : "Opportunity saved as draft successfully!",
       });
+      if (result.warning) {
+        toast({
+          title: "Order value not saved",
+          description: result.warning,
+          variant: "destructive",
+        });
+      }
 
       router.push(`/admin/opportunities/${result.opportunity.id}`);
     } catch {

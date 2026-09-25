@@ -16,6 +16,7 @@ import { isValidTimeZone, resolveTimeZone } from "@/lib/opportunities/timezones"
 import { maxApprovalsFromForm } from "@/lib/opportunities/approval-limit";
 import type { ApprovalLimitMode } from "@/lib/opportunities/approval-limit";
 import {
+  orderValueNotSavedWarning,
   persistMaxApprovals,
   withoutMaxApprovals,
   writeOpportunity,
@@ -80,6 +81,7 @@ export type CreatedOpportunity = {
 export type CreateOpportunitySuccess = {
   ok: true;
   opportunity: CreatedOpportunity;
+  warning?: string;
 };
 
 export type CreateOpportunityResult =
@@ -317,7 +319,10 @@ export async function createOpportunity(
   };
 
   const { body, maxApprovals } = withoutMaxApprovals(insertPayload);
-  const { data: inserted, error } = await writeOpportunity(body, "insert");
+  const { data: inserted, error, droppedColumns } = await writeOpportunity(
+    body,
+    "insert"
+  );
 
   if (error) {
     return fail(
@@ -336,5 +341,9 @@ export async function createOpportunity(
   }
 
   await persistMaxApprovals(row.id, maxApprovals);
-  return { ok: true, opportunity: { id: row.id } };
+  return {
+    ok: true,
+    opportunity: { id: row.id },
+    warning: orderValueNotSavedWarning(droppedColumns, body),
+  };
 }

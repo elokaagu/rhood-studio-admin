@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MailCheck } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { portalAuthRedirectUrl } from "@/lib/portal-url";
 import { textStyles } from "@/lib/typography";
 
 export function ForgotPasswordForm({
@@ -27,14 +25,15 @@ export function ForgotPasswordForm({
     if (!address) return;
     setSending(true);
     setError(null);
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(address, {
-      redirectTo: portalAuthRedirectUrl("/reset-password"),
-    });
+    const response = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: address }),
+    }).catch(() => null);
     setSending(false);
-    // Same confirmation whether or not the account exists, so the form can't
-    // be used to discover which emails are registered.
-    if (resetError && /rate limit|too many/i.test(resetError.message)) {
-      setError("Too many reset emails requested. Please wait a few minutes and try again.");
+    if (!response?.ok) {
+      const payload = (await response?.json().catch(() => null)) as { error?: string } | null;
+      setError(payload?.error || "We couldn't send the reset email. Please try again.");
       return;
     }
     setSentTo(address);

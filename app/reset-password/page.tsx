@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { textStyles } from "@/lib/typography";
 
 const MIN_PASSWORD_LENGTH = 8;
-const LINK_CHECK_TIMEOUT_MS = 5000;
+const LINK_CHECK_TIMEOUT_MS = 10000;
 
 type LinkState = "checking" | "ready" | "invalid";
 
@@ -66,7 +66,22 @@ export default function ResetPasswordPage() {
     });
 
     const check = async () => {
-      const code = new URLSearchParams(window.location.search).get("code");
+      const query = new URLSearchParams(window.location.search);
+      const tokenHash = query.get("token_hash");
+      if (tokenHash) {
+        const { error } = await supabase.auth.verifyOtp({
+          type: "recovery",
+          token_hash: tokenHash,
+        });
+        window.history.replaceState(null, "", "/reset-password");
+        if (error) {
+          markInvalid("This reset link has expired or has already been used.");
+          return;
+        }
+        markReady();
+        return;
+      }
+      const code = query.get("code");
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {

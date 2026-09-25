@@ -200,19 +200,22 @@ export default function EditMemberPage() {
 
   return (
     <div className="space-y-6 animate-blur-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={textStyles.headline.section}>EDIT MEMBER</h1>
-          <p className={textStyles.body.regular}>
+      <div className="flex items-start justify-between gap-3 sm:items-center">
+        <div className="min-w-0">
+          <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl`}>EDIT MEMBER</h1>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base break-words`}>
             Update {member.name}&apos;s profile information
           </p>
         </div>
         <Button
           variant="outline"
+          size="icon"
+          className="shrink-0 sm:w-auto sm:px-4"
+          aria-label="Back to Profile"
           onClick={() => router.push(`/admin/members/${member.id}`)}
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Profile
+          <ArrowLeft className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Back to Profile</span>
         </Button>
       </div>
 

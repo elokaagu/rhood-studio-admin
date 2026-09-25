@@ -39,7 +39,7 @@ export function CommunityChatPanel({
   return (
     <Card className="bg-card border-border">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center space-x-2">
             <MessageSquare className="h-5 w-5" />
             <span>{selectedPrivateChatId ? "Private Chat" : "Messages"}</span>
@@ -56,7 +56,7 @@ export function CommunityChatPanel({
             {privateChats.find((c) => c.id === selectedPrivateChatId)?.name}
           </p>
         ) : communityDescription ? (
-          <p className="text-sm text-muted-foreground">{communityDescription}</p>
+          <p className="text-sm text-muted-foreground break-words">{communityDescription}</p>
         ) : null}
       </CardHeader>
       <CardContent className="p-0">
@@ -74,14 +74,14 @@ export function CommunityChatPanel({
           ) : (
             messages.map((message) => (
               <div key={message.id} className="flex items-start space-x-3">
-                <Avatar className="w-8 h-8">
+                <Avatar className="w-8 h-8 shrink-0">
                   <AvatarImage src={message.sender_avatar || undefined} />
                   <AvatarFallback className="text-xs">
                     {message.sender_name?.[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
+                  <div className="flex flex-wrap items-center gap-x-2 mb-1">
                     <span className="text-sm font-medium text-foreground">
                       {message.sender_name}
                     </span>
@@ -92,7 +92,7 @@ export function CommunityChatPanel({
                       <Pin className="h-3 w-3 text-primary" />
                     )}
                   </div>
-                  <p className="text-sm text-foreground">{message.content}</p>
+                  <p className="text-sm text-foreground break-words">{message.content}</p>
                 </div>
               </div>
             ))

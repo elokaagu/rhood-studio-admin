@@ -125,7 +125,7 @@ export function ApplicantConversationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-w-lg p-0 gap-0">
+      <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-lg p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-3">
           <DialogTitle className="text-brand-green font-bold flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />

@@ -76,9 +76,9 @@ export default function CampaignsPage() {
   }, [load]);
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="sm:p-6 space-y-6">
       <div>
-        <h1 className={textStyles.headline.section}>CAMPAIGNS</h1>
+        <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl`}>CAMPAIGNS</h1>
         <p className={`${textStyles.body.small} text-muted-foreground mt-1`}>
           Traffic-light status for the R/HOOD team. Click a light for where we
           are now — from Studio steps and the hello@rhood.io campaign thread.
@@ -130,7 +130,7 @@ export default function CampaignsPage() {
                       {campaign.eventLabel ? ` · ${campaign.eventLabel}` : ""}
                       {` · ${campaign.pending + campaign.approved + campaign.rejected} applicant${campaign.pending + campaign.approved + campaign.rejected === 1 ? "" : "s"}`}
                     </p>
-                    <p className={`${textStyles.body.regular} text-foreground mt-2`}>
+                    <p className={`${textStyles.body.regular} text-foreground mt-2 break-words`}>
                       {campaign.briefing}
                     </p>
                   </button>
@@ -158,7 +158,7 @@ export default function CampaignsPage() {
       )}
 
       <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="bg-card border-border max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-lg max-h-[85vh] overflow-y-auto">
           {selected ? (
             <>
               <DialogHeader>

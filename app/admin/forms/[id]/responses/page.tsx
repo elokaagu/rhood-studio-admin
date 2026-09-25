@@ -262,30 +262,36 @@ export default function FormResponsesPage() {
   return (
     <div className="space-y-6 animate-blur-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+      <div className="flex items-start justify-between gap-3 sm:items-center">
+        <div className="min-w-0">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
             Brief Responses
           </h1>
-          <p className={textStyles.body.regular}>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base break-words`}>
             {form?.title} - {responses.length} responses
           </p>
         </div>
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+        <Button
+          variant="outline"
+          size="icon"
+          className="shrink-0 sm:w-auto sm:px-4"
+          aria-label="Back"
+          onClick={() => router.back()}
+        >
+          <ArrowLeft className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Back</span>
         </Button>
       </div>
 
       {/* Form Info */}
       <Card className="bg-card border-border">
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className={`${textStyles.subheading.large} mb-2`}>
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <h3 className={`${textStyles.subheading.large} mb-2 break-words`}>
                 {form?.title}
               </h3>
-              <p className={`${textStyles.body.regular} mb-4`}>
+              <p className={`${textStyles.body.regular} mb-4 break-words`}>
                 {form?.description}
               </p>
               {form?.opportunities && (
@@ -295,11 +301,11 @@ export default function FormResponsesPage() {
                 </div>
               )}
             </div>
-            <div className="text-right">
+            <div className="md:text-right">
               <p className={`${textStyles.body.regular} mb-2`}>
                 Total Responses: {responses.length}
               </p>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2 md:justify-end">
                 {responses.filter((r) => r.status === "submitted").length >
                   0 && (
                   <Badge variant="outline" className="text-xs">
@@ -339,20 +345,20 @@ export default function FormResponsesPage() {
         ) : (
           responses.map((response) => (
             <Card key={response.id} className="bg-card border-border">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 bg-brand-green/20 rounded-full flex items-center justify-center">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="h-10 w-10 shrink-0 bg-brand-green/20 rounded-full flex items-center justify-center">
                       <User className="h-5 w-5 text-brand-green" />
                     </div>
-                    <div>
-                      <h4 className={`${textStyles.subheading.small} mb-1`}>
+                    <div className="min-w-0">
+                      <h4 className={`${textStyles.subheading.small} mb-1 break-words`}>
                         {response.user_profiles?.dj_name ||
                           `${response.user_profiles?.first_name} ${response.user_profiles?.last_name}` ||
                           "Unknown User"}
                       </h4>
                       <p
-                        className={`${textStyles.body.small} text-muted-foreground`}
+                        className={`${textStyles.body.small} text-muted-foreground break-all`}
                       >
                         {response.user_profiles?.email}
                       </p>
@@ -360,7 +366,7 @@ export default function FormResponsesPage() {
                   </div>
                   <div className="flex items-center space-x-3">
                     {getStatusBadge(response.status)}
-                    <div className="text-right">
+                    <div className="sm:text-right">
                       <p
                         className={`${textStyles.body.small} text-muted-foreground`}
                       >
@@ -378,7 +384,7 @@ export default function FormResponsesPage() {
                       <Label className={textStyles.body.small}>
                         {field.field_label}
                       </Label>
-                      <p className={textStyles.body.regular}>
+                      <p className={`${textStyles.body.regular} break-words`}>
                         {response.response_data?.[field.field_name] || "N/A"}
                       </p>
                     </div>
@@ -387,7 +393,7 @@ export default function FormResponsesPage() {
 
                 {/* Actions */}
                 {response.status === "submitted" && (
-                  <div className="flex items-center space-x-2 pt-4 border-t border-border">
+                  <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border">
                     <Button
                       size="sm"
                       className="bg-green-600 hover:bg-green-700 text-white"

@@ -459,18 +459,20 @@ export default function EditOpportunityPage() {
   return (
     <div className="space-y-4 sm:space-y-6 animate-blur-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:space-x-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3 sm:items-center sm:gap-4 min-w-0">
           <Button
             variant="outline"
+            size="icon"
+            aria-label="Back"
             onClick={() => router.push(`/admin/opportunities/${opportunityId}`)}
-            className="w-full sm:w-auto"
+            className="shrink-0 sm:w-auto sm:px-4"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
-          <div>
-            <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl`}>EDIT OPPORTUNITY</h1>
+          <div className="min-w-0">
+            <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl break-words`}>EDIT OPPORTUNITY</h1>
             <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
               Update opportunity information
             </p>
@@ -978,7 +980,7 @@ export default function EditOpportunityPage() {
 
       {/* Link Dialog */}
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
-        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Insert Link</DialogTitle>
             <DialogDescription>
@@ -1037,7 +1039,7 @@ export default function EditOpportunityPage() {
 
       {/* AI Refinement Dialog */}
       <Dialog open={aiRefineDialogOpen} onOpenChange={setAiRefineDialogOpen}>
-        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />

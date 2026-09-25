@@ -67,7 +67,7 @@ export function BrandProfilePhotoDialog({
         if (!next && !isUploading) onDismiss();
       }}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-[95vw] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add your brand logo</DialogTitle>
           <DialogDescription>

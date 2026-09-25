@@ -318,7 +318,7 @@ export default function AnalyticsPage() {
                 >
                   <span className={textStyles.body.regular}>{data.month}</span>
                   <div className="flex items-center space-x-2">
-                    <div className="w-32 bg-muted rounded-full h-2">
+                    <div className="w-24 sm:w-32 bg-muted rounded-full h-2">
                       <div
                         className="bg-brand-green h-2 rounded-full"
                         style={{
@@ -350,16 +350,16 @@ export default function AnalyticsPage() {
               {analytics.locationData.slice(0, 5).map((data, index) => (
                 <div
                   key={data.location}
-                  className="flex items-center justify-between"
+                  className="flex items-center justify-between gap-2"
                 >
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 min-w-0">
                     <Badge
                       variant="outline"
-                      className="border-brand-green text-brand-green bg-transparent text-xs"
+                      className="border-brand-green text-brand-green bg-transparent text-xs shrink-0"
                     >
                       #{index + 1}
                     </Badge>
-                    <span className={textStyles.body.regular}>
+                    <span className={`${textStyles.body.regular} truncate`}>
                       {data.location}
                     </span>
                   </div>
@@ -424,18 +424,18 @@ export default function AnalyticsPage() {
               {analytics.topUsers.highestRating.map((user, index) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                  className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-muted/50"
                 >
-                  <div className="flex items-center space-x-2">
-                    <Star className="h-4 w-4 text-yellow-400" />
+                  <div className="flex items-center space-x-2 min-w-0">
+                    <Star className="h-4 w-4 text-yellow-400 shrink-0" />
                     <button
                       onClick={() => router.push(`/admin/members/${user.id}`)}
-                      className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer`}
+                      className={`${textStyles.body.regular} hover:text-brand-green transition-colors cursor-pointer truncate text-left`}
                     >
                       {user.name}
                     </button>
                   </div>
-                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-400">
+                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-400 shrink-0">
                     {user.rating.toFixed(1)}
                   </Badge>
                 </div>

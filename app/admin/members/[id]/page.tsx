@@ -212,20 +212,26 @@ export default function MemberDetailsPage() {
   return (
     <div className="space-y-6 animate-blur-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+      <div className="flex items-start justify-between gap-3 sm:items-center">
+        <div className="min-w-0">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl break-words">
             {displayName}
           </h1>
-          <p className={textStyles.body.regular}>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
             {memberIsBrand
               ? "Brand profile and details"
               : "Member profile and details"}
           </p>
         </div>
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+        <Button
+          variant="outline"
+          size="icon"
+          className="shrink-0 sm:w-auto sm:px-4"
+          aria-label="Back"
+          onClick={() => router.back()}
+        >
+          <ArrowLeft className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Back</span>
         </Button>
       </div>
 
@@ -235,9 +241,9 @@ export default function MemberDetailsPage() {
           {/* Profile Card */}
           <Card className="bg-card border-border">
             <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-4">
-                  <Avatar className="h-16 w-16 bg-brand-green">
+              <div className="flex flex-col-reverse items-start gap-3 sm:flex-row sm:justify-between">
+                <div className="flex items-center space-x-4 min-w-0">
+                  <Avatar className="h-16 w-16 shrink-0 bg-brand-green">
                     <AvatarImage
                       src={member.profileImageUrl}
                       alt={member.name}
@@ -250,9 +256,9 @@ export default function MemberDetailsPage() {
                         .join("")}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div className="min-w-0">
                     <CardTitle
-                      className={`${textStyles.subheading.large} flex items-center`}
+                      className={`${textStyles.subheading.large} flex flex-wrap items-center break-words`}
                     >
                       {member.name}
                       <Star className="h-4 w-4 ml-2 text-yellow-400" />
@@ -260,7 +266,7 @@ export default function MemberDetailsPage() {
                         {member.rating || 0}
                       </span>
                     </CardTitle>
-                    <p className={textStyles.body.regular}>{member.email}</p>
+                    <p className={`${textStyles.body.regular} break-all`}>{member.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -294,7 +300,7 @@ export default function MemberDetailsPage() {
 
               <div className="space-y-2">
                 <h3 className={textStyles.subheading.small}>Bio</h3>
-                <p className={textStyles.body.regular}>{member.bio}</p>
+                <p className={`${textStyles.body.regular} break-words`}>{member.bio}</p>
               </div>
             </CardContent>
           </Card>
@@ -310,7 +316,7 @@ export default function MemberDetailsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <h4 className={textStyles.subheading.small}>Email</h4>
-                  <p className={textStyles.body.regular}>{member.email}</p>
+                  <p className={`${textStyles.body.regular} break-all`}>{member.email}</p>
                 </div>
                 <div>
                   <h4 className={textStyles.subheading.small}>Phone</h4>
@@ -430,9 +436,9 @@ export default function MemberDetailsPage() {
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2">
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
                                 <code
-                                  className={`${textStyles.body.regular} font-mono text-brand-green font-semibold`}
+                                  className={`${textStyles.body.regular} font-mono text-brand-green font-semibold break-all`}
                                 >
                                   {code.code}
                                 </code>
@@ -588,7 +594,7 @@ export default function MemberDetailsPage() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent className="bg-card border-border text-foreground">
+        <DialogContent className="bg-card border-border text-foreground max-w-[95vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle
               className={`${textStyles.subheading.large} text-brand-white`}
@@ -600,7 +606,7 @@ export default function MemberDetailsPage() {
               &quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={cancelDelete}

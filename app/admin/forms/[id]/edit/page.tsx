@@ -459,18 +459,24 @@ export default function EditFormPage() {
   return (
     <div className="space-y-6 animate-blur-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+      <div className="flex items-start justify-between gap-3 sm:items-center">
+        <div className="min-w-0">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
             Edit Application Brief
           </h1>
-          <p className={textStyles.body.regular}>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
             Modify the brief details and fields
           </p>
         </div>
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+        <Button
+          variant="outline"
+          size="icon"
+          className="shrink-0 sm:w-auto sm:px-4"
+          aria-label="Back"
+          onClick={() => router.back()}
+        >
+          <ArrowLeft className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Back</span>
         </Button>
       </div>
 
@@ -770,7 +776,7 @@ export default function EditFormPage() {
         </Card>
 
         {/* Actions */}
-        <div className="flex items-center justify-end space-x-4">
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
           <AutosaveStatusText status={autosaveStatus} />
           <Button
             type="submit"

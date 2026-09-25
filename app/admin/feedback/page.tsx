@@ -402,7 +402,7 @@ export default function FeedbackPage() {
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         {getTypeIcon(item.type)}
-                        <span className="font-medium text-foreground">
+                        <span className="font-medium text-foreground break-words min-w-0">
                           {item.issue_title}
                         </span>
                         {getSeverityBadge(item.severity)}
@@ -436,7 +436,7 @@ export default function FeedbackPage() {
                       </p>
                     )}
                     {item.steps_to_reproduce && (
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
                         <span className="font-medium">Steps:</span>{" "}
                         {item.steps_to_reproduce}
                       </p>
@@ -454,8 +454,8 @@ export default function FeedbackPage() {
                     )}
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
                       {item.submitter && (
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
+                        <span className="flex items-center gap-1 min-w-0 break-all">
+                          <User className="h-3 w-3 shrink-0" />
                           {item.submitter.first_name} {item.submitter.last_name}
                           {item.submitter.email ? ` (${item.submitter.email})` : ""}
                         </span>

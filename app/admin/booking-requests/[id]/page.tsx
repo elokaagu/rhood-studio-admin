@@ -285,18 +285,20 @@ export default function BookingRequestDetailPage() {
   return (
     <div className="space-y-4 sm:space-y-6 animate-blur-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:space-x-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3 sm:items-center sm:gap-4 min-w-0">
           <Button
             variant="outline"
+            size="icon"
+            aria-label="Back"
             onClick={() => router.push("/admin/booking-requests")}
-            className="w-full sm:w-auto"
+            className="shrink-0 sm:w-auto sm:px-4"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words">
               {bookingRequest.event_title}
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
@@ -304,7 +306,7 @@ export default function BookingRequestDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canRespond && (
             <>
             <Button
@@ -313,7 +315,7 @@ export default function BookingRequestDetailPage() {
                 setResponseType("decline");
                 setResponseDialogOpen(true);
               }}
-              className="flex-1 sm:flex-none"
+              className="flex-1 md:flex-none"
             >
               <XCircle className="h-4 w-4 mr-2" />
               Decline
@@ -323,7 +325,7 @@ export default function BookingRequestDetailPage() {
                 setResponseType("accept");
                 setResponseDialogOpen(true);
               }}
-              className="flex-1 sm:flex-none bg-primary text-primary-foreground hover:bg-primary/90"
+              className="flex-1 md:flex-none bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               Accept
@@ -333,7 +335,7 @@ export default function BookingRequestDetailPage() {
           <Button
             variant="outline"
             onClick={() => setDeleteModalOpen(true)}
-            className="flex-1 sm:flex-none text-red-500 hover:text-red-400"
+            className="flex-1 md:flex-none text-red-500 hover:text-red-400"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
@@ -411,7 +413,7 @@ export default function BookingRequestDetailPage() {
               {bookingRequest.event_description && (
                 <div>
                   <Label className="text-sm text-muted-foreground">Description</Label>
-                  <p className="text-sm text-foreground mt-2">
+                  <p className="text-sm text-foreground mt-2 break-words">
                     {bookingRequest.event_description}
                   </p>
                 </div>
@@ -422,7 +424,7 @@ export default function BookingRequestDetailPage() {
                   <Label className="text-sm text-muted-foreground">
                     Additional Requirements
                   </Label>
-                  <p className="text-sm text-foreground mt-2">
+                  <p className="text-sm text-foreground mt-2 break-words">
                     {bookingRequest.additional_requirements}
                   </p>
                 </div>
@@ -487,9 +489,9 @@ export default function BookingRequestDetailPage() {
                     </div>
                   </div>
                   {bookingRequest.dj_profile.email && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                       <Label className="text-xs text-muted-foreground">Email</Label>
-                      <p className="text-sm text-foreground">
+                      <p className="text-sm text-foreground break-all">
                         {bookingRequest.dj_profile.email}
                       </p>
                     </div>
@@ -509,17 +511,17 @@ export default function BookingRequestDetailPage() {
                     </div>
                   </div>
                   {bookingRequest.contact_email && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                       <Label className="text-xs text-muted-foreground">
                         Request contact email
                       </Label>
-                      <p className="text-sm text-foreground">
+                      <p className="text-sm text-foreground break-all">
                         {bookingRequest.contact_email}
                       </p>
                     </div>
                   )}
                   {bookingRequest.contact_phone && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                       <Label className="text-xs text-muted-foreground">
                         Request contact phone
                       </Label>
@@ -529,11 +531,11 @@ export default function BookingRequestDetailPage() {
                     </div>
                   )}
                   {bookingRequest.brand_profile.email && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                       <Label className="text-xs text-muted-foreground">
                         Brand account email
                       </Label>
-                      <p className="text-sm text-foreground">
+                      <p className="text-sm text-foreground break-all">
                         {bookingRequest.brand_profile.email}
                       </p>
                     </div>

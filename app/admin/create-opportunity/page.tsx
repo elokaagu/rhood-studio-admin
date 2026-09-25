@@ -904,7 +904,7 @@ export default function CreateOpportunityPage() {
 
       {/* Link Dialog */}
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
-        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Insert Link</DialogTitle>
             <DialogDescription>
@@ -963,7 +963,7 @@ export default function CreateOpportunityPage() {
 
       {/* AI Refinement Dialog */}
       <Dialog open={aiRefineDialogOpen} onOpenChange={setAiRefineDialogOpen}>
-        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />

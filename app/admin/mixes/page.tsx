@@ -1014,7 +1014,7 @@ export default function MixesPage() {
                 <span className="sm:hidden">Upload</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-2xl">
+            <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className={textStyles.headline.card}>
                   UPLOAD NEW MIX

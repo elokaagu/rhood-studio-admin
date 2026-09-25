@@ -203,18 +203,20 @@ export default function BookingRequestPage() {
   return (
     <div className="space-y-4 sm:space-y-6 animate-blur-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:space-x-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3 sm:items-center sm:gap-4 min-w-0">
           <Button
             variant="outline"
+            size="icon"
+            aria-label="Back"
             onClick={() => router.push("/admin/book-dj")}
-            className="w-full sm:w-auto"
+            className="shrink-0 sm:w-auto sm:px-4"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words">
               Book {displayName}
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">

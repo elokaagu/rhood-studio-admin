@@ -354,25 +354,27 @@ export default function OpportunityDetailsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="shrink-0 mt-0.5"
+            aria-label="Back"
+            className="shrink-0 mt-0.5 w-9 px-0 sm:w-auto sm:px-3"
             onClick={() => router.push("/admin/opportunities")}
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
               Opportunity
             </p>
-            <h1 className={`${textStyles.headline.section} text-left text-lg sm:text-xl md:text-2xl mt-0.5`}>
+            <h1 className={`${textStyles.headline.section} text-left text-lg sm:text-xl md:text-2xl mt-0.5 break-words`}>
               {opportunity.title}
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:pt-1">
+        <div className="flex flex-wrap items-center gap-2 sm:pt-1">
           <Button
             variant="outline"
             size="sm"
+            className="flex-1 sm:flex-none"
             onClick={() =>
               router.push(`/admin/opportunities/${opportunityId}/edit`)
             }
@@ -383,7 +385,7 @@ export default function OpportunityDetailsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="text-red-500 hover:text-red-400"
+            className="flex-1 sm:flex-none text-red-500 hover:text-red-400"
             onClick={handleDelete}
           >
             <Trash2 className="h-4 w-4 mr-2" />
@@ -441,7 +443,7 @@ export default function OpportunityDetailsPage() {
                       </Badge>
                     ))}
                   </div>
-                  <h2 className={`${textStyles.subheading.large} mt-3 text-left`}>
+                  <h2 className={`${textStyles.subheading.large} mt-3 text-left break-words`}>
                     {opportunity.title}
                   </h2>
                 </div>
@@ -478,7 +480,7 @@ export default function OpportunityDetailsPage() {
                         href={opportunity.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-foreground hover:text-brand-green"
+                        className="text-sm text-foreground hover:text-brand-green break-all"
                       >
                         {websiteDisplayLabel(opportunity.website)}
                       </a>
@@ -498,7 +500,7 @@ export default function OpportunityDetailsPage() {
                 {opportunity.description?.includes("**") ? (
                   <BriefRenderer text={opportunity.description} />
                 ) : (
-                  <p className={`${textStyles.body.regular} leading-relaxed`}>
+                  <p className={`${textStyles.body.regular} leading-relaxed break-words`}>
                     <LinkText text={opportunity.description} />
                   </p>
                 )}
@@ -509,7 +511,7 @@ export default function OpportunityDetailsPage() {
                   <h3 className={`${textStyles.subheading.small} text-muted-foreground uppercase tracking-wide text-xs`}>
                     Requirements
                   </h3>
-                  <p className={textStyles.body.regular}>
+                  <p className={`${textStyles.body.regular} break-words`}>
                     <LinkText text={opportunity.requirements} />
                   </p>
                 </section>
@@ -679,7 +681,7 @@ export default function OpportunityDetailsPage() {
       </div>
 
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent className="bg-card border-border text-foreground">
+        <DialogContent className="bg-card border-border text-foreground max-w-[95vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle
               className={`${textStyles.subheading.large} text-brand-white`}

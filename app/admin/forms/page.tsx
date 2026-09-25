@@ -182,17 +182,17 @@ export default function FormsPage() {
   return (
     <div className="space-y-6 animate-blur-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl">
             BRIEFS
           </h1>
-          <p className={textStyles.body.regular}>
+          <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
             Create and manage application briefs
           </p>
         </div>
         <Button
-          className="bg-brand-green hover:bg-brand-green/90 text-brand-black"
+          className="w-full md:w-auto bg-brand-green hover:bg-brand-green/90 text-brand-black"
           onClick={() => router.push("/admin/forms/create")}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -294,21 +294,21 @@ export default function FormsPage() {
             );
             return (
               <Card key={form.id} className="bg-card border-border">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className={`${textStyles.subheading.large} mb-0`}>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
+                        <h3 className={`${textStyles.subheading.large} mb-0 break-words`}>
                           {form.title}
                         </h3>
                         {getStatusBadge(form.is_active)}
                       </div>
 
-                      <p className={`${textStyles.body.regular} mb-4`}>
+                      <p className={`${textStyles.body.regular} mb-4 break-words`}>
                         {form.description || "No description"}
                       </p>
 
-                      <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-4">
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground mb-4">
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />
                           Created{" "}
@@ -322,7 +322,7 @@ export default function FormsPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                         <div className="flex items-center">
                           <Users className="h-4 w-4 mr-1" />
                           {responseStats.total} responses
@@ -356,8 +356,8 @@ export default function FormsPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end space-y-2">
-                      <div className="flex items-center space-x-2">
+                    <div className="flex flex-col md:items-end space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -414,7 +414,7 @@ export default function FormsPage() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent className="bg-card border-border text-foreground">
+        <DialogContent className="bg-card border-border text-foreground max-w-[95vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className={`${textStyles.subheading.large} text-brand-white`}>
               Delete Brief
@@ -423,7 +423,7 @@ export default function FormsPage() {
               Are you sure you want to delete &quot;{formToDelete?.title}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={cancelDelete}

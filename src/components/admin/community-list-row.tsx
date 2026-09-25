@@ -46,7 +46,7 @@ export function CommunityListRow({
     <Card className="bg-card border-border hover:border-primary/50 transition-colors">
       <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 flex-1 min-w-0">
             <div className="flex-shrink-0">
               {community.image_url && !imageError ? (
                 <div className="relative w-12 h-12 rounded-full overflow-hidden">
@@ -72,13 +72,13 @@ export function CommunityListRow({
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-3 mb-1">
+              <div className="flex items-center space-x-3 mb-1 min-w-0">
                 <CardTitle
                   className={`${textStyles.subheading.regular} truncate`}
                 >
                   {community.name}
                 </CardTitle>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 shrink-0">
                   <Users className="h-3 w-3 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">
                     {community.member_count} members
@@ -94,8 +94,8 @@ export function CommunityListRow({
                 </p>
               )}
 
-              <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                <div className="flex items-center space-x-1">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <div className="flex items-center space-x-1 min-w-0">
                   <Avatar className="w-4 h-4">
                     <AvatarImage
                       src={community.creator_avatar || undefined}
@@ -110,7 +110,7 @@ export function CommunityListRow({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"

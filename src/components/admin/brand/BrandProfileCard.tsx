@@ -210,7 +210,7 @@ export function BrandProfileCard({
       {/* Top accent stripe */}
       <div className="h-1.5 w-full bg-brand-green" />
 
-      <div className="p-6 sm:p-8">
+      <div className="p-4 sm:p-8">
         <div className="flex flex-col sm:flex-row sm:items-start gap-5 sm:gap-7">
           {avatar}
 
@@ -244,9 +244,9 @@ export function BrandProfileCard({
                   {profile.first_name} {profile.last_name}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
                 <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                <span>{profile.email}</span>
+                <span className="break-all">{profile.email}</span>
               </div>
               {profile.website && (
                 <a

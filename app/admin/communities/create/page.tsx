@@ -125,22 +125,23 @@ export default function CreateCommunityPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="space-y-8 p-6 animate-blur-in">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+      <div className="space-y-6 sm:space-y-8 sm:p-6 animate-blur-in">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-3 sm:items-center sm:gap-4 min-w-0">
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Back"
               onClick={() => router.back()}
-              className="text-brand-white hover:bg-brand-green/10 hover:text-brand-green transition-all duration-300"
+              className="shrink-0 text-brand-white hover:bg-brand-green/10 hover:text-brand-green transition-all duration-300"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <h1 className="font-ts-block ts-3xl uppercase text-left text-brand-white tracking-wide">
+            <div className="min-w-0">
+              <h1 className="font-ts-block ts-3xl uppercase text-left text-brand-white tracking-wide text-lg sm:text-xl md:text-2xl break-words">
                 CREATE COMMUNITY
               </h1>
-              <p className="font-helvetica-regular helvetica-lg text-muted-foreground mt-2">
+              <p className="font-helvetica-regular helvetica-lg text-muted-foreground mt-2 text-sm sm:text-base">
                 Build your underground music community
               </p>
             </div>
@@ -148,15 +149,15 @@ export default function CreateCommunityPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="lg:col-span-2 space-y-6 sm:space-y-8">
               <Card className="bg-card border-border/50 backdrop-blur-sm shadow-2xl">
                 <CardHeader className="border-b border-border/30">
                   <CardTitle className="font-ts-block ts-xl uppercase text-brand-white tracking-wide">
                     Basic Information
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6 p-6">
+                <CardContent className="space-y-6 p-4 sm:p-6">
                   <div className="space-y-3">
                     <Label
                       htmlFor="name"
@@ -235,7 +236,7 @@ export default function CreateCommunityPage() {
                     Community Image
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <ImageUpload
                     value={formData.imageUrl || undefined}
                     onChange={(url) =>
@@ -257,7 +258,7 @@ export default function CreateCommunityPage() {
                     Actions
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 p-6">
+                <CardContent className="space-y-4 p-4 sm:p-6">
                   <Button
                     type="submit"
                     className="w-full bg-brand-green hover:bg-brand-green/90 text-brand-black font-helvetica-bold helvetica-base h-12 shadow-glow-primary transition-all duration-300 hover:shadow-glow-accent"
@@ -294,7 +295,7 @@ export default function CreateCommunityPage() {
                     Tips
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 p-6">
+                <CardContent className="space-y-4 p-4 sm:p-6">
                   <div className="space-y-3">
                     <div className="flex items-start space-x-3">
                       <div className="w-2 h-2 bg-brand-green rounded-full mt-2 flex-shrink-0"></div>

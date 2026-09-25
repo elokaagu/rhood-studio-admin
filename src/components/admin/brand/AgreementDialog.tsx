@@ -91,7 +91,7 @@ export function AgreementDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-2xl">
+      <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className={textStyles.subheading.small}>
             Performance Agreement

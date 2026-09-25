@@ -113,7 +113,7 @@ export function BrandInviteSection() {
           <span className="sm:hidden">Invite</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+      <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className={textStyles.subheading.large}>
             Invite New Brand

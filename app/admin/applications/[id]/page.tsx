@@ -307,29 +307,37 @@ export default function ApplicationDetailsPage() {
   return (
     <div className="space-y-6 animate-blur-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3 sm:items-center sm:gap-4 min-w-0">
           <Button
             variant="outline"
+            size="icon"
+            className="shrink-0 sm:w-auto sm:px-4"
             onClick={() => router.push("/admin/applications")}
+            aria-label="Back to applications"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
-          <div>
-            <h1 className={textStyles.headline.section}>APPLICATION DETAILS</h1>
-            <p className={textStyles.body.regular}>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl`}>
+                APPLICATION DETAILS
+              </h1>
+              <span className="md:hidden">{getStatusBadge(application.status)}</span>
+            </div>
+            <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
               Review application information
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          {getStatusBadge(application.status)}
+        <div className="flex items-center gap-2">
+          <span className="hidden md:inline-flex">{getStatusBadge(application.status)}</span>
           {application.status === "pending" && (
             <>
               <Button
                 variant="outline"
-                className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-colors"
+                className="flex-1 md:flex-none border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-colors"
                 onClick={() => handleStatusUpdate("approved")}
                 disabled={isUpdatingStatus}
               >
@@ -338,7 +346,7 @@ export default function ApplicationDetailsPage() {
               </Button>
               <Button
                 variant="outline"
-                className="text-red-600 hover:text-red-700"
+                className="flex-1 md:flex-none text-red-600 hover:text-red-700"
                 onClick={() => handleStatusUpdate("rejected")}
                 disabled={isUpdatingStatus}
               >
@@ -362,8 +370,8 @@ export default function ApplicationDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-start space-x-4">
-                <Avatar className="h-16 w-16 bg-brand-green">
+              <div className="flex items-start space-x-4 min-w-0">
+                <Avatar className="h-16 w-16 shrink-0 bg-brand-green">
                   <AvatarImage
                     src={application.applicant.avatar}
                     alt={application.applicant.name}
@@ -376,17 +384,17 @@ export default function ApplicationDetailsPage() {
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                  <h3 className={textStyles.subheading.large}>
+                <div className="flex-1 min-w-0">
+                  <h3 className={`${textStyles.subheading.large} break-words`}>
                     {application.applicant.name}
                   </h3>
                   <div className="flex items-center text-sm text-muted-foreground mt-2">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    {application.applicant.location}
+                    <MapPin className="h-4 w-4 mr-1 shrink-0" />
+                    <span className="truncate">{application.applicant.location}</span>
                   </div>
                   <div className="flex items-center text-sm text-muted-foreground mt-1">
-                    <Mail className="h-4 w-4 mr-1" />
-                    {application.applicant.email}
+                    <Mail className="h-4 w-4 mr-1 shrink-0" />
+                    <span className="truncate">{application.applicant.email}</span>
                   </div>
                 </div>
               </div>

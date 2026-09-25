@@ -309,7 +309,7 @@ export default function CommunitiesPage() {
       )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-card border-border/50 backdrop-blur-sm shadow-2xl max-w-md">
+        <AlertDialogContent className="bg-card border-border/50 backdrop-blur-sm shadow-2xl max-w-[95vw] sm:max-w-md">
           <AlertDialogHeader className="space-y-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-brand-green/20 rounded-full flex items-center justify-center">

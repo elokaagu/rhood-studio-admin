@@ -193,12 +193,12 @@ export default function EditCommunityPage() {
   if (!communityId || !community) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <Button variant="ghost" size="icon" className="shrink-0" aria-label="Back" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+          <div className="min-w-0">
+            <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl break-words">
               Community Not Found
             </h1>
           </div>
@@ -224,15 +224,15 @@ export default function EditCommunityPage() {
   return (
     <div className="space-y-6 animate-blur-in">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <Button variant="ghost" size="icon" className="shrink-0" aria-label="Back" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+          <div className="min-w-0">
+            <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl break-words">
               EDIT COMMUNITY
             </h1>
-            <p className={textStyles.body.regular}>
+            <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
               Update community information and settings
             </p>
           </div>

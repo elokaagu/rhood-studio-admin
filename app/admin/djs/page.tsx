@@ -316,7 +316,7 @@ export default function DJsPage() {
               <span className="sm:hidden">Invite</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+          <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className={textStyles.subheading.large}>
                 Invite New DJ
@@ -688,7 +688,7 @@ export default function DJsPage() {
 
       {/* Message Modal */}
       <Dialog open={messageModalOpen} onOpenChange={setMessageModalOpen}>
-        <DialogContent className="bg-brand-black border-brand-green/20 text-foreground max-w-lg">
+        <DialogContent className="bg-brand-black border-brand-green/20 text-foreground max-w-[95vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-brand-green font-bold flex items-center gap-2">
               <Mail className="h-5 w-5" />

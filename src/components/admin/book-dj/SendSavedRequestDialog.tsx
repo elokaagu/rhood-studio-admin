@@ -136,7 +136,7 @@ export function SendSavedRequestDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg bg-card border-border">
+      <DialogContent className="max-w-[95vw] sm:max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Send a saved request</DialogTitle>
           <DialogDescription>

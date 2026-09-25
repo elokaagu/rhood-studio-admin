@@ -101,7 +101,7 @@ export function StudioAgreementDialog({
       }}
     >
       <DialogContent
-        className={`bg-card border-border max-w-[95vw] sm:max-w-2xl ${
+        className={`bg-card border-border max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto ${
           required ? "[&>button.absolute]:hidden" : ""
         }`}
         onPointerDownOutside={required ? (e) => e.preventDefault() : undefined}

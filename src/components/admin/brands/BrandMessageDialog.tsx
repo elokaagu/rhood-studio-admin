@@ -37,7 +37,7 @@ export function BrandMessageDialog({
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-brand-black border-brand-green/20 text-foreground max-w-lg">
+      <DialogContent className="bg-brand-black border-brand-green/20 text-foreground max-w-[95vw] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-brand-green font-bold flex items-center gap-2">
             <Mail className="h-5 w-5" />

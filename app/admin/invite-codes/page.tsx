@@ -640,7 +640,7 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
 
       {/* Generate Code Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Generate Invite Code</DialogTitle>
             <DialogDescription>

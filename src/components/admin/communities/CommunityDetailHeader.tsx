@@ -38,18 +38,18 @@ export function CommunityDetailHeader({
   const router = useRouter();
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center space-x-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+    <div className="flex items-start justify-between gap-2 sm:items-center">
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+        <Button variant="ghost" size="icon" className="shrink-0" aria-label="Back" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-3 min-w-0">
           {!community.image_url || imageError ? (
-            <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 shrink-0 bg-primary/20 rounded-full flex items-center justify-center">
               <MessageSquare className="h-5 w-5 text-primary" />
             </div>
           ) : (
-            <div className="relative w-10 h-10 rounded-full overflow-hidden">
+            <div className="relative w-10 h-10 shrink-0 rounded-full overflow-hidden">
               <Image
                 src={community.image_url}
                 alt={community.name}
@@ -71,11 +71,11 @@ export function CommunityDetailHeader({
               )}
             </div>
           )}
-          <div>
-            <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white">
+          <div className="min-w-0">
+            <h1 className="font-ts-block ts-xl uppercase text-left text-brand-white text-lg sm:text-xl md:text-2xl break-words">
               {community.name}
             </h1>
-            <p className={textStyles.body.regular}>
+            <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
               {memberCount} members • Created {formatTime(community.created_at)}
             </p>
           </div>
@@ -84,7 +84,7 @@ export function CommunityDetailHeader({
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="shrink-0" aria-label="Community actions">
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>

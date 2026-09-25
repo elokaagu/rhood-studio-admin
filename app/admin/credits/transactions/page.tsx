@@ -116,12 +116,12 @@ export default function CreditTransactionsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select
             value={filterType}
             onValueChange={(v) => setFilterType(v as CreditFilterType)}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
@@ -178,7 +178,7 @@ export default function CreditTransactionsPage() {
       </div>
 
       <Card className="bg-card border-border">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle className={textStyles.subheading.small}>Transaction Ledger</CardTitle>
           <div className="flex items-center gap-2">
             <Button
@@ -214,11 +214,11 @@ export default function CreditTransactionsPage() {
               {transactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex items-center justify-between p-4 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                  className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/50 transition-colors"
                 >
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
                         <h3 className={`${textStyles.subheading.small} truncate`}>
                           {getTransactionTypeLabel(transaction.transaction_type)}
                         </h3>
@@ -235,7 +235,7 @@ export default function CreditTransactionsPage() {
                         {formatDate(transaction.created_at)}
                       </p>
                       {transaction.user_profile && (
-                        <p className={`${textStyles.body.small} text-muted-foreground`}>
+                        <p className={`${textStyles.body.small} text-muted-foreground break-all`}>
                           User: {getDisplayName(transaction)}
                           {transaction.user_profile.email && (
                             <span className="text-muted-foreground/70">

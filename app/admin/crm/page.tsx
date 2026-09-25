@@ -528,8 +528,8 @@ export default function CrmPage() {
                       </p>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
                         {contact.email && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Mail className="h-3 w-3" />
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground min-w-0 break-all">
+                            <Mail className="h-3 w-3 shrink-0" />
                             {contact.email}
                           </span>
                         )}
@@ -612,7 +612,7 @@ export default function CrmPage() {
 
       {/* Add / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-lg">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingContact ? "Edit contact" : "Add contact"}</DialogTitle>
             <DialogDescription>
@@ -734,7 +734,7 @@ export default function CrmPage() {
         open={!!deleteTarget}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
       >
-        <AlertDialogContent className="bg-card border-border">
+        <AlertDialogContent className="bg-card border-border max-w-[95vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete contact?</AlertDialogTitle>
             <AlertDialogDescription>

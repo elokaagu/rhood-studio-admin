@@ -487,7 +487,7 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen w-full flex bg-background">
         <AppSidebar />
 
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col min-w-0">
           {/* Header */}
           <header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-3 sm:px-4">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -551,7 +551,7 @@ function AdminLayoutShell({ children }: { children: React.ReactNode }) {
 
       {/* Account Settings Dialog */}
       <Dialog open={accountSettingsOpen} onOpenChange={setAccountSettingsOpen}>
-        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Account Settings</DialogTitle>
             <DialogDescription>

@@ -212,18 +212,21 @@ export default function ScheduleEventPage() {
 
   return (
     <div className="space-y-6 animate-blur-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3 sm:items-center sm:gap-4 min-w-0">
           <Button
             variant="outline"
+            size="icon"
+            className="shrink-0 sm:w-auto sm:px-4"
+            aria-label="Back"
             onClick={() => router.push(`/admin/opportunities/${opportunityId}`)}
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
-          <div>
-            <h1 className={textStyles.headline.section}>SCHEDULE EVENT</h1>
-            <p className={textStyles.body.regular}>
+          <div className="min-w-0">
+            <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl break-words`}>SCHEDULE EVENT</h1>
+            <p className={`${textStyles.body.regular} text-sm sm:text-base break-words`}>
               Schedule event details for {opportunityTitle}
             </p>
           </div>
@@ -422,7 +425,7 @@ export default function ScheduleEventPage() {
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-end gap-4">
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
           <Button
             type="button"
             variant="outline"

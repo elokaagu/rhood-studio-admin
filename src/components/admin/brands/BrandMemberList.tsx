@@ -123,7 +123,7 @@ export function BrandMemberList({
                     {member.email}
                   </p>
                   {member.teammates?.length > 0 && (
-                    <p className="text-muted-foreground text-xs mt-1">
+                    <p className="text-muted-foreground text-xs mt-1 break-all">
                       Also:{" "}
                       {member.teammates
                         .map((person) => person.email || person.name)

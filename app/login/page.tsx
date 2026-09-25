@@ -11,7 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
 import { textStyles } from "@/lib/typography";
-import { PORTAL_BASE_URL } from "@/lib/portal-url";
+import { portalAuthRedirectUrl } from "@/lib/portal-url";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { safePortalNextPath } from "@/lib/auth/login-redirect";
 
 function fromUntyped(table: string) {
@@ -31,6 +32,7 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isBrandSignup, setIsBrandSignup] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -60,7 +62,7 @@ export default function AdminLoginPage() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (session) {
+      if (session && !/type=recovery/.test(window.location.hash)) {
         router.push(destinationAfterLogin());
       }
     };
@@ -168,29 +170,11 @@ export default function AdminLoginPage() {
           }
         }
 
-        // Get the callback URL for email confirmation
-        const getCallbackUrl = () => {
-          if (typeof window !== "undefined") {
-            // Get the base URL from environment variables or use current origin
-            const rawBaseUrl =
-              process.env.NEXT_PUBLIC_APP_URL ||
-              process.env.NEXT_PUBLIC_SITE_URL ||
-              window.location.origin;
-            const baseUrl = /portal\.rhood\.co/i.test(rawBaseUrl)
-              ? PORTAL_BASE_URL
-              : rawBaseUrl.replace(/\/$/, "");
-            return `${baseUrl}/auth/callback`;
-          }
-          // Fallback for SSR (shouldn't happen in this client component)
-          return "http://localhost:3000/auth/callback";
-        };
-
-        // Sign up new user
         const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
-            emailRedirectTo: getCallbackUrl(),
+            emailRedirectTo: portalAuthRedirectUrl("/auth/callback"),
           },
         });
 
@@ -337,13 +321,17 @@ export default function AdminLoginPage() {
               priority={true}
             />
             <CardTitle className={`text-center ${textStyles.headline.card}`}>
-              {isSignUp
+              {isForgotPassword
+                ? "RESET"
+                : isSignUp
                 ? isBrandSignup
                   ? "BRAND"
                   : "CREATE"
                 : "ADMIN"}
               <br />
-              {isSignUp
+              {isForgotPassword
+                ? "PASSWORD"
+                : isSignUp
                 ? isBrandSignup
                   ? "SIGNUP"
                   : "ACCOUNT"
@@ -362,6 +350,12 @@ export default function AdminLoginPage() {
           )}
         </CardHeader>
         <CardContent className="space-y-6">
+          {isForgotPassword ? (
+            <ForgotPasswordForm
+              initialEmail={formData.email}
+              onBack={() => setIsForgotPassword(false)}
+            />
+          ) : (
           <form
             onSubmit={handleSubmit}
             className="space-y-4"
@@ -439,9 +433,20 @@ export default function AdminLoginPage() {
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password" className={textStyles.body.regular}>
-                Password
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className={textStyles.body.regular}>
+                  Password
+                </Label>
+                {!isSignUp && (
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPassword(true)}
+                    className={`${textStyles.body.small} text-primary hover:underline`}
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <Input
                 id="password"
                 type={isSignUp ? "text" : "password"}
@@ -514,11 +519,12 @@ export default function AdminLoginPage() {
                 : "Sign In"}
             </Button>
           </form>
+          )}
         </CardContent>
       </Card>
 
       {/* Toggle between Sign In and Sign Up */}
-      <div className="text-center mt-6 space-y-2">
+      <div className={`text-center mt-6 space-y-2${isForgotPassword ? " hidden" : ""}`}>
         {isSignUp && (
           <div className="mb-4">
             <button

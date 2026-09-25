@@ -8,6 +8,21 @@ export function getPortalBaseUrl(): string {
   return PORTAL_BASE_URL;
 }
 
+/**
+ * Absolute URL on this deployment for Supabase auth emails (confirm, reset).
+ * Must be in Supabase Auth → URL Configuration → Redirect URLs.
+ */
+export function portalAuthRedirectUrl(path: string): string {
+  const rawBaseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (typeof window !== "undefined" ? window.location.origin : PORTAL_BASE_URL);
+  const baseUrl = /portal\.rhood\.co/i.test(rawBaseUrl)
+    ? PORTAL_BASE_URL
+    : rawBaseUrl.replace(/\/$/, "");
+  return `${baseUrl}${path}`;
+}
+
 function trimUrl(value: string | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;

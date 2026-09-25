@@ -17,6 +17,7 @@ import { getCurrentUserProfile } from "@/lib/auth-utils";
 import type { UserProfile } from "@/lib/auth-utils";
 import { fetchBookableDjs } from "@/lib/booking/fetch-bookable-djs";
 import { filterBookableDjs } from "@/lib/booking/filter-bookable-djs";
+import { buildGenreOptions } from "@/lib/booking/genre-match";
 import type { BookableDJ } from "@/lib/booking/bookable-dj";
 import { BookableDJCard } from "@/components/admin/book-dj/BookableDJCard";
 import { SendSavedRequestDialog } from "@/components/admin/book-dj/SendSavedRequestDialog";
@@ -106,6 +107,11 @@ export default function BookDJPage() {
       loadDjs();
     }
   }, [brandAccessOk, loadDjs]);
+
+  const genreOptions = useMemo(
+    () => buildGenreOptions(GENRES, djs.map((dj) => dj.genres)),
+    [djs]
+  );
 
   const filteredDjs = useMemo(
     () =>
@@ -199,7 +205,7 @@ export default function BookDJPage() {
                   <SelectItem value="all" className="text-foreground hover:bg-accent">
                     All Genres
                   </SelectItem>
-                  {GENRES.map((genre) => (
+                  {genreOptions.map((genre) => (
                     <SelectItem
                       key={genre}
                       value={genre}

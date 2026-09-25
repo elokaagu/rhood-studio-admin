@@ -85,6 +85,40 @@ function availabilityFromUpcomingCount(n: number): "available" | "busy" {
 }
 
 /**
+ * Upcoming pending/accepted bookings per DJ across all brands. Falls back to the
+ * brand's own bookings (RLS-limited) if the counting function isn't deployed yet.
+ */
+async function fetchUpcomingBookingCounts(
+  ids: string[],
+  nowIso: string
+): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  const { data, error } = await supabase.rpc(
+    "dj_upcoming_booking_counts" as never,
+    { p_dj_ids: ids } as never
+  );
+  if (!error && Array.isArray(data)) {
+    for (const row of data as { dj_id: string; upcoming: number }[]) {
+      counts.set(row.dj_id, Number(row.upcoming) || 0);
+    }
+    return counts;
+  }
+
+  const { data: rows } = await supabase
+    .from("booking_requests")
+    .select("dj_id")
+    .in("dj_id", ids)
+    .in("status", ["pending", "accepted"])
+    .gte("event_date", nowIso);
+  for (const row of rows ?? []) {
+    const id = row.dj_id as string | null;
+    if (!id) continue;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/**
  * Loads DJ profiles and enriches with batched queries (no per-DJ N+1).
  */
 export async function fetchBookableDjs(): Promise<BookableDJ[]> {
@@ -115,12 +149,7 @@ export async function fetchBookableDjs(): Promise<BookableDJ[]> {
       .in("uploaded_by", ids)
       .eq("status", "approved")
       .order("created_at", { ascending: false }),
-    supabase
-      .from("booking_requests")
-      .select("dj_id")
-      .in("dj_id", ids)
-      .in("status", ["pending", "accepted"])
-      .gte("event_date", nowIso),
+    fetchUpcomingBookingCounts(ids, nowIso),
   ]);
 
   const ratingByUser = averageRatingByUser(
@@ -129,12 +158,7 @@ export async function fetchBookableDjs(): Promise<BookableDJ[]> {
 
   const { latestByUser, countByUser } = latestMixAndCounts((mixesRes.data ?? []) as MixRow[]);
 
-  const upcomingCountByDj = new Map<string, number>();
-  for (const row of bookingsRes.data ?? []) {
-    const id = row.dj_id as string | null;
-    if (!id) continue;
-    upcomingCountByDj.set(id, (upcomingCountByDj.get(id) ?? 0) + 1);
-  }
+  const upcomingCountByDj = bookingsRes;
 
   const result: BookableDJ[] = list.map((profile) => {
     const rating = ratingByUser.get(profile.id) ?? 0;

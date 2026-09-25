@@ -201,6 +201,10 @@ export function djMatchesLocationFilter(
       if (want.country && dj.country && want.country !== dj.country) return false;
       return true;
     }
+    // Half-typed filter ("Lon") should still find "London".
+    if (!want.country && !needle.includes(",")) {
+      return new RegExp(`(^|[^a-z0-9])${escapeRegExp(want.city)}`).test(normalize(haystack));
+    }
     return false;
   }
 

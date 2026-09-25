@@ -1,4 +1,5 @@
 import type { BookableDJ } from "./bookable-dj";
+import { djHasGenre, genreKey } from "./genre-match";
 import { djMatchesLocationFilter } from "./location-match";
 
 export interface BookableDJFilterState {
@@ -9,6 +10,62 @@ export interface BookableDJFilterState {
   availabilityFilter: "all" | "available" | "busy";
 }
 
+const TOP_N: Record<Exclude<BookableDJFilterState["creditsFilter"], "all">, number> = {
+  top10: 10,
+  top50: 50,
+  top100: 100,
+};
+
+function normalizeText(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function searchHaystack(dj: BookableDJ): string {
+  return normalizeText(
+    [
+      dj.dj_name,
+      `${dj.first_name} ${dj.last_name}`,
+      dj.city,
+      dj.bio ?? "",
+      ...dj.genres,
+    ].join(" \n ")
+  );
+}
+
+function genreKeys(dj: BookableDJ): string {
+  return dj.genres.map(genreKey).join(" ");
+}
+
+/** Every word must appear somewhere; genre words also match other spellings ("dnb"). */
+function matchesSearch(dj: BookableDJ, term: string): boolean {
+  const words = normalizeText(term).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const haystack = searchHaystack(dj);
+  const keys = genreKeys(dj);
+  return words.every(
+    (word) => haystack.includes(word) || (genreKey(word) && keys.includes(genreKey(word)))
+  );
+}
+
+/**
+ * Leaderboard position by credits across all DJs, ties sharing a rank.
+ * DJs with no credits are unranked.
+ */
+export function creditRanks(djs: BookableDJ[]): Map<string, number> {
+  const sorted = djs.filter((dj) => dj.credits > 0).sort((a, b) => b.credits - a.credits);
+  const ranks = new Map<string, number>();
+  sorted.forEach((dj, index) => {
+    const previous = sorted[index - 1];
+    const rank =
+      previous && previous.credits === dj.credits ? ranks.get(previous.id)! : index + 1;
+    ranks.set(dj.id, rank);
+  });
+  return ranks;
+}
+
 /**
  * Client-side filters for the discovery grid. For large catalogs, move filters server-side.
  */
@@ -16,41 +73,20 @@ export function filterBookableDjs(
   djs: BookableDJ[],
   f: BookableDJFilterState
 ): BookableDJ[] {
-  let filtered = [...djs];
+  const ranks = f.creditsFilter === "all" ? null : creditRanks(djs);
+  const maxRank = f.creditsFilter === "all" ? Infinity : TOP_N[f.creditsFilter];
 
-  if (f.searchTerm.trim()) {
-    const searchLower = f.searchTerm.toLowerCase();
-    filtered = filtered.filter(
-      (dj) =>
-        dj.dj_name.toLowerCase().includes(searchLower) ||
-        dj.first_name.toLowerCase().includes(searchLower) ||
-        dj.last_name.toLowerCase().includes(searchLower) ||
-        dj.city.toLowerCase().includes(searchLower) ||
-        dj.bio?.toLowerCase().includes(searchLower) ||
-        dj.genres.some((g) => g.toLowerCase().includes(searchLower))
-    );
-  }
-
-  if (f.selectedGenre !== "all") {
-    filtered = filtered.filter((dj) => dj.genres.includes(f.selectedGenre));
-  }
-
-  if (f.selectedLocation.trim()) {
-    filtered = filtered.filter((dj) =>
-      djMatchesLocationFilter(dj.city, f.selectedLocation)
-    );
-  }
-
-  if (f.creditsFilter !== "all") {
-    const sortedByCredits = [...filtered].sort((a, b) => b.credits - a.credits);
-    if (f.creditsFilter === "top10") filtered = sortedByCredits.slice(0, 10);
-    else if (f.creditsFilter === "top50") filtered = sortedByCredits.slice(0, 50);
-    else if (f.creditsFilter === "top100") filtered = sortedByCredits.slice(0, 100);
-  }
-
-  if (f.availabilityFilter !== "all") {
-    filtered = filtered.filter((dj) => dj.availability === f.availabilityFilter);
-  }
-
-  return filtered;
+  return djs.filter((dj) => {
+    if (!matchesSearch(dj, f.searchTerm)) return false;
+    if (f.selectedGenre !== "all" && !djHasGenre(dj.genres, f.selectedGenre)) return false;
+    if (!djMatchesLocationFilter(dj.city, f.selectedLocation)) return false;
+    if (ranks) {
+      const rank = ranks.get(dj.id);
+      if (rank == null || rank > maxRank) return false;
+    }
+    if (f.availabilityFilter !== "all" && dj.availability !== f.availabilityFilter) {
+      return false;
+    }
+    return true;
+  });
 }

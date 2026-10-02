@@ -166,7 +166,8 @@ export async function getDashboardData(viewer: ViewerContext): Promise<Dashboard
         .select("id, title, event_date, genre, location, organizer_id")
         .eq("is_active", true)
         .not("event_date", "is", null)
-        .gte("event_date", new Date().toISOString())
+        // Still running: no end time (ongoing campaign) or the end is still ahead.
+        .or(`event_end_time.is.null,event_end_time.gte.${new Date().toISOString()}`)
         .order("event_date", { ascending: true })
         .limit(3);
       if (isBrand && viewer.userId) {

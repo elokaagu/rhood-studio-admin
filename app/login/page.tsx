@@ -203,12 +203,17 @@ export default function AdminLoginPage() {
               profileData.brand_account_id = validatedInvite.brand_account_id;
             }
 
-            await fromUntyped("invite_codes")
-              .update({
-                used_by: data.user.id,
-                used_at: new Date().toISOString(),
-              })
-              .eq("id", validatedInvite.id);
+            const redeem = await fetch("/api/auth/redeem-brand-invite", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userId: data.user.id,
+                code: formData.inviteCode.trim().toUpperCase(),
+              }),
+            }).catch(() => null);
+            if (!redeem?.ok) {
+              console.warn("[signup] invite code was not marked as used");
+            }
           }
 
           let { error: profileError } = await supabase

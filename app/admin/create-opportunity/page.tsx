@@ -513,6 +513,7 @@ export default function CreateOpportunityPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               <ImageUpload
                 label="Event Image"
+                description="This is the main image on your opportunity card, shown to our community of DJs."
                 value={formData.imageUrl}
                 onChange={(url) =>
                   setFormData({ ...formData, imageUrl: url || "" })

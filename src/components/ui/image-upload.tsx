@@ -21,6 +21,7 @@ interface ImageUploadProps {
   bucketName?: string;
   folder?: string;
   aspect?: "square" | "wide";
+  description?: string;
 }
 
 export function ImageUpload({
@@ -34,6 +35,7 @@ export function ImageUpload({
   bucketName = "opportunities",
   folder = "images",
   aspect = "wide",
+  description,
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -308,6 +310,11 @@ export function ImageUpload({
                       <ImageIcon className="h-6 w-6 text-primary" />
                     </div>
                     <div className="space-y-2">
+                      {description ? (
+                        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                          {description}
+                        </p>
+                      ) : null}
                       <p className="text-sm font-medium text-foreground">
                         Drop your image here, or{" "}
                         <button
@@ -320,7 +327,9 @@ export function ImageUpload({
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Supports:{" "}
-                        {acceptedFormats.join(", ").replace("image/", "")}
+                        {acceptedFormats
+                          .map((format) => format.replace("image/", "").toUpperCase())
+                          .join(", ")}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Max size: {maxSize}MB

@@ -1,17 +1,45 @@
-export type CampaignStage =
-  | "live"
-  | "reviewing"
-  | "intro_sent"
-  | "awaiting_brand"
-  | "awaiting_dj"
-  | "in_conversation"
-  | "stalled"
-  | "completed";
+export type PipelineStep =
+  | "listed"
+  | "applicants"
+  | "approved"
+  | "intro"
+  | "talking"
+  | "done";
+
+export const PIPELINE: { id: PipelineStep; label: string }[] = [
+  { id: "listed", label: "Listed" },
+  { id: "applicants", label: "Applicants" },
+  { id: "approved", label: "DJ approved" },
+  { id: "intro", label: "Intro sent" },
+  { id: "talking", label: "Replies" },
+  { id: "done", label: "Gig done" },
+];
+
+export type CampaignOwner =
+  | "rhood"
+  | "brand"
+  | "dj"
+  | "replies"
+  | "applicants"
+  | "done";
+
+export const OWNER_LABEL: Record<CampaignOwner, string> = {
+  rhood: "R/HOOD to act",
+  brand: "Waiting on brand",
+  dj: "Waiting on DJ",
+  replies: "Waiting on replies",
+  applicants: "Waiting on applicants",
+  done: "Done",
+};
+
+export type ReplySender = "brand" | "dj" | "other";
 
 export type CampaignEmail = {
   id: string;
+  applicationId: string | null;
   direction: "inbound" | "outbound";
   fromEmail: string | null;
+  sender: ReplySender | "rhood";
   bodyText: string | null;
   subject: string | null;
   receivedAt: string;
@@ -21,265 +49,248 @@ export type CampaignPlacement = {
   applicationId: string;
   djName: string;
   djEmail: string | null;
-  status: string;
-  introSent: boolean;
+  status: "pending" | "approved" | "rejected";
+  appliedAt: string | null;
+  introAt: string | null;
+  introSource: "sent" | "marked" | null;
   gigCompleted: boolean;
-  lastEmailFrom: "rhood" | "brand" | "dj" | "other" | null;
-  lastEmailAt: string | null;
-  hoursSinceActivity: number | null;
+  lastReplyFrom: ReplySender | null;
+  lastReplyAt: string | null;
 };
 
-export type CampaignRow = {
+export type CampaignAssessment = {
+  step: PipelineStep;
+  completed: PipelineStep[];
+  owner: CampaignOwner;
+  headline: string;
+  next: string;
+};
+
+export type CampaignRow = CampaignAssessment & {
   opportunityId: string;
   title: string;
   brandName: string;
+  brandEmail: string | null;
   location: string | null;
+  eventAt: string | null;
   eventLabel: string | null;
-  pending: number;
-  approved: number;
-  rejected: number;
-  stage: CampaignStage;
-  briefing: string;
-  lastActivityAt: string | null;
+  listingLive: boolean;
   placements: CampaignPlacement[];
   emails: CampaignEmail[];
 };
 
-const STALL_HOURS = 48;
+const CHASE_AFTER_HOURS = 48;
+const STALE_REVIEW_HOURS = 72;
+const EVENT_GRACE_HOURS = 12;
 
-export function hoursSince(iso: string | null): number | null {
-  if (!iso) return null;
-  const then = new Date(iso).getTime();
+function hoursBetween(fromIso: string | null, now: number): number | null {
+  if (!fromIso) return null;
+  const then = new Date(fromIso).getTime();
   if (Number.isNaN(then)) return null;
-  return (Date.now() - then) / (1000 * 60 * 60);
+  return (now - then) / 3_600_000;
 }
 
-export type TrafficLight = "green" | "yellow" | "red";
-
-export function trafficLightForStage(stage: CampaignStage): TrafficLight {
-  if (stage === "completed" || stage === "in_conversation") return "green";
-  if (stage === "stalled") return "red";
-  return "yellow";
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-export function stageLabel(stage: CampaignStage): string {
-  switch (stage) {
-    case "live":
-      return "Live";
-    case "reviewing":
-      return "Reviewing";
-    case "intro_sent":
-      return "Intro sent";
-    case "awaiting_brand":
-      return "Waiting on brand";
-    case "awaiting_dj":
-      return "Waiting on DJ";
-    case "in_conversation":
-      return "In conversation";
-    case "stalled":
-      return "Stalled";
-    case "completed":
-      return "Completed";
-  }
+function plural(count: number, word: string): string {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
 
-export type CampaignDeliverable = {
-  id: string;
-  label: string;
-  done: boolean;
-};
-
-export function campaignDeliverables(row: {
-  pending: number;
-  approved: number;
-  rejected: number;
-  placements: CampaignPlacement[];
-  emails: CampaignEmail[];
-  listingActive?: boolean;
-}): CampaignDeliverable[] {
-  const introed = row.placements.some((p) => p.introSent);
-  const brandReplied = row.placements.some((p) => p.lastEmailFrom === "brand");
-  const djReplied = row.placements.some((p) => p.lastEmailFrom === "dj");
-  const inboundChain = row.emails
-    .filter((e) => e.direction === "inbound")
-    .map((e) => `${e.subject || ""} ${e.bodyText || ""}`)
-    .join(" ")
-    .toLowerCase();
-  const logisticsTalked =
-    /confirm|load-?in|set time|call time|deliverable|date locked|see you/i.test(inboundChain);
-  const invoiceTalked = /invoice|operation fee|vat/.test(inboundChain);
-  const payoutTalked = /paid the dj|payout sent|dj payout/.test(inboundChain);
-  return [
-    { id: "live", label: "Listing is live", done: row.listingActive !== false },
-    {
-      id: "apps",
-      label: "Applications in",
-      done: row.pending + row.approved + row.rejected > 0,
-    },
-    { id: "approved", label: "DJ approved", done: row.approved > 0 },
-    { id: "intro", label: "Intro sent — R/HOOD copied", done: introed },
-    { id: "brand_reply", label: "Brand replied on the thread", done: brandReplied },
-    { id: "dj_reply", label: "DJ replied on the thread", done: djReplied },
-    { id: "logistics", label: "Dates / deliverables confirmed", done: logisticsTalked },
-    {
-      id: "invoice",
-      label: "Invoice issued (DJ budget + 15% + VAT)",
-      done: invoiceTalked,
-    },
-    {
-      id: "payout",
-      label: "DJ paid",
-      done: payoutTalked,
-    },
-    {
-      id: "done",
-      label: "Gig marked complete",
-      done: row.placements.some((p) => p.gigCompleted),
-    },
-  ];
-}
-
-export function nextStepFromDeliverables(items: CampaignDeliverable[]): string {
-  const next = items.find((item) => !item.done);
-  if (!next) return "Nothing outstanding — this campaign is complete.";
-  switch (next.id) {
-    case "live":
-      return "Publish the listing so DJs can apply.";
-    case "apps":
-      return "Wait for applications, or nudge the brand to share the listing.";
-    case "approved":
-      return "Review applicants and approve a DJ.";
-    case "intro":
-      return "Approve sends the intro from hello@rhood.io — R/HOOD stays on the thread.";
-    case "brand_reply":
-      return "Chase the brand to reply-all on the intro thread.";
-    case "dj_reply":
-      return "Chase the DJ to reply-all with availability and logistics.";
-    case "logistics":
-      return "Confirm date, load-in, fee, and deliverables on the thread.";
-    case "invoice":
-      return "When both sides confirm, invoice the brand: DJ budget + 15% operation fee + VAT.";
-    case "payout":
-      return "After the invoice is paid, send the DJ their fee.";
-    case "done":
-      return "After the event, mark the gig as done.";
-    default:
-      return next.label;
-  }
-}
-
-export function statusUpdateCopy(input: {
-  briefing: string;
-  next: string;
-  emails: CampaignEmail[];
-}): { where: string; next: string; emailNote: string } {
-  const inbound = input.emails.filter((e) => e.direction === "inbound");
-  const latest = [...input.emails].sort(
-    (a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()
-  )[0];
-  let emailNote = "No replies on the copied thread yet — update is from Studio steps only.";
-  if (inbound.length > 0 && latest) {
-    const snippet = (latest.bodyText || latest.subject || "").replace(/\s+/g, " ").trim();
-    emailNote = `Latest on the chain (${inbound.length} repl${inbound.length === 1 ? "y" : "ies"}): ${snippet.slice(0, 240)}${snippet.length > 240 ? "…" : ""}`;
-  }
-  return { where: input.briefing, next: input.next, emailNote };
+function daysLabel(hours: number): string {
+  const days = Math.floor(hours / 24);
+  return days <= 1 ? "a day" : `${days} days`;
 }
 
 export function classifySender(
   fromEmail: string | null,
   brandEmail: string | null,
   djEmail: string | null
-): CampaignPlacement["lastEmailFrom"] {
+): ReplySender | "rhood" {
   const from = (fromEmail || "").toLowerCase();
-  if (!from) return null;
   if (brandEmail && from === brandEmail.toLowerCase()) return "brand";
   if (djEmail && from === djEmail.toLowerCase()) return "dj";
-  if (from.includes("rhood.io") || from.includes("rhood")) return "rhood";
+  if (from.endsWith("@rhood.io")) return "rhood";
   return "other";
 }
 
-export function stageAndBriefing(input: {
-  pending: number;
-  approved: number;
-  rejected: number;
+export function assessCampaign(input: {
+  listingLive: boolean;
+  eventAt: string | null;
+  eventLabel: string | null;
   placements: CampaignPlacement[];
-  hasInbound: boolean;
-}): { stage: CampaignStage; briefing: string } {
-  const done = input.placements.filter((p) => p.gigCompleted);
-  if (done.length > 0 && done.length === input.approved && input.approved > 0) {
+  now?: number;
+}): CampaignAssessment {
+  const now = input.now ?? Date.now();
+  const placements = input.placements;
+  const pending = placements.filter((p) => p.status === "pending");
+  const approved = placements.filter((p) => p.status === "approved");
+  const rejected = placements.filter((p) => p.status === "rejected");
+  const introed = approved.filter((p) => p.introAt);
+  const missingIntro = approved.filter((p) => !p.introAt);
+  const replied = approved.filter((p) => p.lastReplyFrom);
+  const gigsDone = approved.length > 0 && approved.every((p) => p.gigCompleted);
+  const sinceEvent = hoursBetween(input.eventAt, now);
+  const eventPassed = sinceEvent !== null && sinceEvent > EVENT_GRACE_HOURS;
+
+  const reached: Record<PipelineStep, boolean> = {
+    listed: input.listingLive || placements.length > 0,
+    applicants: placements.length > 0,
+    approved: approved.length > 0,
+    intro: approved.length > 0 && missingIntro.length === 0,
+    talking: replied.length > 0,
+    done: gigsDone,
+  };
+  const completed = PIPELINE.map((s) => s.id).filter((id) => reached[id]);
+  const step: PipelineStep = gigsDone
+    ? "done"
+    : PIPELINE.find((s) => !reached[s.id])?.id ?? "done";
+
+  const approvedNames = joinNames(approved.map((p) => p.djName));
+
+  if (gigsDone) {
     return {
-      stage: "completed",
-      briefing: `Gig marked done for ${done.map((p) => p.djName).join(", ")}.`,
+      step,
+      completed,
+      owner: "done",
+      headline: `Gig done with ${approvedNames}.`,
+      next: "Nothing outstanding.",
     };
   }
 
-  const introed = input.placements.filter((p) => p.introSent);
+  if (missingIntro.length > 0) {
+    return {
+      step,
+      completed,
+      owner: "rhood",
+      headline: `Approved ${joinNames(missingIntro.map((p) => p.djName))} — no intro email on record.`,
+      next: "Send the intro, or mark it as sent if it went out before tracking started.",
+    };
+  }
+
+  if (eventPassed && approved.length > 0) {
+    return {
+      step,
+      completed,
+      owner: "rhood",
+      headline: `The event was ${input.eventLabel ?? "in the past"}. ${approvedNames} ${approved.length === 1 ? "was" : "were"} booked.`,
+      next: "Confirm it happened, then mark the gig done on the application.",
+    };
+  }
+
+  if (eventPassed) {
+    return {
+      step,
+      completed,
+      owner: "rhood",
+      headline: `The event was ${input.eventLabel ?? "in the past"} and no DJ was approved.`,
+      next:
+        pending.length > 0
+          ? `Reject the ${plural(pending.length, "open application")} and archive the listing.`
+          : "Archive the listing.",
+    };
+  }
+
   if (introed.length > 0) {
-    const stalled = introed.filter(
-      (p) =>
-        (p.hoursSinceActivity ?? 0) >= STALL_HOURS &&
-        (p.lastEmailFrom === "rhood" || !p.lastEmailFrom)
-    );
-    if (stalled.length > 0 && !input.hasInbound) {
+    const latest = [...approved]
+      .filter((p) => p.lastReplyAt)
+      .sort((a, b) => (b.lastReplyAt ?? "").localeCompare(a.lastReplyAt ?? ""))[0];
+    if (latest?.lastReplyFrom === "dj") {
       return {
-        stage: "stalled",
-        briefing: `${input.pending + input.approved + input.rejected} applicant${input.pending + input.approved + input.rejected === 1 ? "" : "s"}. Intro sent to ${stalled.map((p) => p.djName).join(", ")} — no reply on the hello@rhood.io thread in ${STALL_HOURS} hours.`,
+        step,
+        completed,
+        owner: "brand",
+        headline: `${latest.djName} replied on the intro thread. Waiting on the brand.`,
+        next: "Nudge the brand to reply-all and lock in the details.",
       };
     }
-
-    const waitingBrand = introed.filter((p) => p.lastEmailFrom === "dj");
-    if (waitingBrand.length > 0) {
+    if (latest?.lastReplyFrom === "brand") {
       return {
-        stage: "awaiting_brand",
-        briefing: `${waitingBrand[0].djName} replied. Waiting on the brand.`,
+        step,
+        completed,
+        owner: "dj",
+        headline: `The brand replied on the intro thread. Waiting on ${latest.djName}.`,
+        next: `Nudge ${latest.djName} to reply-all with availability.`,
       };
     }
-    const waitingDj = introed.filter((p) => p.lastEmailFrom === "brand");
-    if (waitingDj.length > 0) {
+    if (latest) {
       return {
-        stage: "awaiting_dj",
-        briefing: `Brand replied. Waiting on ${waitingDj[0].djName}.`,
+        step,
+        completed,
+        owner: "replies",
+        headline: "Conversation is going on the intro thread.",
+        next: "Keep an eye on the thread until the gig is confirmed.",
       };
     }
-    if (input.hasInbound) {
+    const firstIntro = introed
+      .map((p) => p.introAt as string)
+      .sort()[0];
+    const since = hoursBetween(firstIntro, now) ?? 0;
+    if (since >= CHASE_AFTER_HOURS) {
       return {
-        stage: "in_conversation",
-        briefing: `Intro is live with ${introed.map((p) => p.djName).join(", ")}. Both sides are on the thread.`,
+        step,
+        completed,
+        owner: "rhood",
+        headline: `Intro sent ${daysLabel(since)} ago for ${approvedNames}. No replies logged since.`,
+        next: "Chase the brand and DJ on the intro thread.",
       };
     }
     return {
-      stage: "intro_sent",
-      briefing: `${input.pending + input.approved + input.rejected} applicant${input.pending + input.approved + input.rejected === 1 ? "" : "s"}. Approved ${introed.map((p) => p.djName).join(", ")}. Intro sent from hello@rhood.io. Waiting for the first reply on the thread.`,
+      step,
+      completed,
+      owner: "replies",
+      headline: `Intro sent for ${approvedNames}. Waiting for the brand and DJ to reply.`,
+      next: `If nobody replies within ${CHASE_AFTER_HOURS} hours, chase them.`,
     };
   }
 
-  if (input.approved > 0) {
-    const names = input.placements
-      .filter((p) => p.status === "approved")
-      .map((p) => p.djName)
-      .join(", ");
+  if (!input.listingLive && placements.length === 0) {
     return {
-      stage: "reviewing",
-      briefing: `Approved ${names || `${input.approved} DJ${input.approved === 1 ? "" : "s"}`}, but the intro email hasn't gone out yet.`,
+      step,
+      completed,
+      owner: "rhood",
+      headline: "The listing isn't live, so DJs can't apply.",
+      next: "Publish the listing.",
     };
   }
 
-  if (input.pending > 0) {
+  if (pending.length > 0) {
+    const oldest = pending
+      .map((p) => p.appliedAt)
+      .filter((v): v is string => Boolean(v))
+      .sort()[0];
+    const waited = hoursBetween(oldest ?? null, now) ?? 0;
+    const stale = waited >= STALE_REVIEW_HOURS;
     return {
-      stage: "reviewing",
-      briefing: `${input.pending} application${input.pending === 1 ? "" : "s"} waiting to be reviewed.`,
+      step,
+      completed,
+      owner: stale ? "rhood" : "brand",
+      headline: stale
+        ? `${plural(pending.length, "applicant")} waiting — the oldest for ${daysLabel(waited)}.`
+        : `${plural(pending.length, "applicant")} waiting for review.`,
+      next: stale
+        ? "Nudge the brand to review, or approve a DJ from Studio."
+        : "The brand reviews applicants and approves a DJ.",
     };
   }
 
-  if (input.rejected > 0) {
+  if (rejected.length > 0) {
     return {
-      stage: "reviewing",
-      briefing: `${input.rejected} application${input.rejected === 1 ? "" : "s"}, none approved yet.`,
+      step,
+      completed,
+      owner: "applicants",
+      headline: `${plural(rejected.length, "applicant")} rejected. Waiting for new applications.`,
+      next: "Share the listing with more DJs.",
     };
   }
 
   return {
-    stage: "live",
-    briefing: "Listing is live. No applications yet.",
+    step,
+    completed,
+    owner: "applicants",
+    headline: "Live, but no applications yet.",
+    next: "Share the listing with DJs who fit the brief.",
   };
 }

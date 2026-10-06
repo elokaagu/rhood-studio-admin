@@ -29,6 +29,7 @@ export type NotifyApprovedApplicationInput = {
   djEmail?: string | null;
   djName?: string | null;
   opportunityTitle?: string | null;
+  introOnly?: boolean;
 };
 
 type ProfileRow = {
@@ -111,16 +112,18 @@ async function loadProfile(
   return (data as ProfileRow | null) ?? null;
 }
 
+type CampaignEventKind = "approval_email" | "intro_email";
+
 async function alreadySent(
   admin: SupabaseClient,
-  type: string,
+  kind: CampaignEventKind,
   relatedId: string
 ): Promise<boolean> {
   try {
-    const { data } = await fromUntyped(admin, "notifications")
+    const { data } = await fromUntyped(admin, "campaign_events")
       .select("id")
-      .eq("type", type)
-      .eq("related_id", relatedId)
+      .eq("kind", kind)
+      .eq("application_id", relatedId)
       .limit(1)
       .maybeSingle();
     return Boolean(data?.id);
@@ -156,21 +159,19 @@ async function introOnCampaignThread(
 
 async function markSent(
   admin: SupabaseClient,
-  userId: string | null | undefined,
-  type: string,
+  kind: CampaignEventKind,
   relatedId: string,
-  title: string,
-  message: string
+  opportunityId: string | null
 ) {
-  if (!userId) return;
-  const { error } = await fromUntyped(admin, "notifications").insert({
-    user_id: userId,
-    type,
-    related_id: relatedId,
-    title,
-    message,
-    is_read: false,
-  });
+  const { error } = await fromUntyped(admin, "campaign_events").upsert(
+    {
+      application_id: relatedId,
+      opportunity_id: opportunityId,
+      kind,
+      source: "sent",
+    },
+    { onConflict: "application_id,kind", ignoreDuplicates: true }
+  );
   if (error) {
     console.warn("[Resend] Could not record email send:", error.message);
   }
@@ -313,7 +314,9 @@ export async function notifyApprovedApplication(
   let decisionSent = false;
   let introSent = false;
 
-  if (djEmail && !(await alreadySent(admin, "application_approved_email", relatedId))) {
+  if (input.introOnly && djEmail) {
+    decisionSent = true;
+  } else if (djEmail && !(await alreadySent(admin, "approval_email", relatedId))) {
     const first = djName.trim().split(/\s+/)[0] || "there";
     const safeName = escapeHtml(first);
     const safeTitle = escapeHtml(title);
@@ -368,14 +371,7 @@ export async function notifyApprovedApplication(
       };
     }
     decisionSent = true;
-    await markSent(
-      admin,
-      djUserId,
-      "application_approved_email",
-      relatedId,
-      "Application approved",
-      `Your application for "${title}" was approved.`
-    );
+    await markSent(admin, "approval_email", relatedId, opportunityId);
   } else if (djEmail) {
     decisionSent = true;
   }
@@ -404,7 +400,7 @@ export async function notifyApprovedApplication(
   }
 
   if (
-    (await alreadySent(admin, "application_intro", relatedId)) ||
+    (await alreadySent(admin, "intro_email", relatedId)) ||
     (await introOnCampaignThread(admin, applicationId))
   ) {
     return { ok: true, decisionSent, introSent: true };
@@ -446,14 +442,7 @@ export async function notifyApprovedApplication(
   }
 
   introSent = true;
-  await markSent(
-    admin,
-    organizerId || createdBy || postedBy || djUserId,
-    "application_intro",
-    relatedId,
-    "Introduction sent",
-    `${djName} and ${brandName} were introduced for ${title}.`
-  );
+  await markSent(admin, "intro_email", relatedId, opportunityId);
   await recordCampaignMessage(admin, {
     opportunityId,
     applicationId,

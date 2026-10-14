@@ -182,7 +182,7 @@ export function ImageCropDialog({
         );
       },
       "image/jpeg",
-      0.92
+      0.85
     );
   };
 

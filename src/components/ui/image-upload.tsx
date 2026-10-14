@@ -10,6 +10,10 @@ import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 
+// Originals are resized and re-encoded by the cropper before upload; this
+// only guards browser memory when decoding very large photos.
+const MAX_SOURCE_MB = 25;
+
 interface ImageUploadProps {
   value?: string;
   onChange: (url: string | null) => void;
@@ -168,10 +172,10 @@ export function ImageUpload({
   };
 
   const openCropper = (file: File) => {
-    if (file.size > maxSize * 1024 * 1024) {
+    if (file.size > MAX_SOURCE_MB * 1024 * 1024) {
       toast({
         title: "Upload Failed",
-        description: `File size must be less than ${maxSize}MB`,
+        description: `Images must be under ${MAX_SOURCE_MB}MB`,
         variant: "destructive",
       });
       return;
@@ -332,7 +336,7 @@ export function ImageUpload({
                           .join(", ")}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Max size: {maxSize}MB
+                        Up to {MAX_SOURCE_MB}MB. We resize it automatically for the app.
                       </p>
                     </div>
                     <Button

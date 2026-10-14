@@ -172,6 +172,15 @@ export function ImageUpload({
   };
 
   const openCropper = (file: File) => {
+    if (/image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name)) {
+      toast({
+        title: "iPhone photo format not supported",
+        description:
+          "This is a HEIC photo, which browsers can't read. Export it as a JPEG first (on a Mac: open it in Preview, then File → Export → JPEG) and upload that.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (file.size > MAX_SOURCE_MB * 1024 * 1024) {
       toast({
         title: "Upload Failed",
@@ -183,7 +192,9 @@ export function ImageUpload({
     if (!acceptedFormats.includes(file.type)) {
       toast({
         title: "Upload Failed",
-        description: `File must be one of: ${acceptedFormats.join(", ")}`,
+        description: `Please upload a ${acceptedFormats
+          .map((format) => format.replace("image/", "").toUpperCase())
+          .join(", ")} image.`,
         variant: "destructive",
       });
       return;

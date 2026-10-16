@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +20,7 @@ import {
   type CampaignPlacement,
   type CampaignRow,
 } from "@/lib/campaigns/status";
-import { ArrowRight, Check, Loader2, MapPin, Radar } from "lucide-react";
+import { Check, ChevronRight, Loader2, Radar } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +33,7 @@ type Filter = "all" | "action" | "waiting" | "done";
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
-  { id: "action", label: "R/HOOD to act" },
+  { id: "action", label: "Needs us" },
   { id: "waiting", label: "Waiting" },
   { id: "done", label: "Done" },
 ];
@@ -45,63 +44,16 @@ function filterFor(owner: CampaignOwner): Exclude<Filter, "all"> {
   return "waiting";
 }
 
-const OWNER_BADGE: Record<CampaignOwner, string> = {
-  rhood: "border-orange-400/60 bg-orange-400/10 text-orange-300",
-  brand: "border-border bg-muted/40 text-foreground",
-  dj: "border-border bg-muted/40 text-foreground",
-  replies: "border-border bg-muted/40 text-foreground",
-  applicants: "border-border bg-transparent text-muted-foreground",
-  done: "border-[#c2cc06]/60 bg-[#c2cc06]/10 text-[#c2cc06]",
-};
-
-function OwnerBadge({ owner }: { owner: CampaignOwner }) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide whitespace-nowrap ${OWNER_BADGE[owner]}`}
-    >
-      {OWNER_LABEL[owner]}
-    </span>
-  );
+function ownerShort(owner: CampaignOwner): string {
+  if (owner === "rhood") return "Needs us";
+  if (owner === "done") return "Done";
+  return OWNER_LABEL[owner].replace(/^Waiting on /, "");
 }
 
-function Pipeline({ campaign }: { campaign: CampaignRow }) {
-  const currentIndex = PIPELINE.findIndex((s) => s.id === campaign.step);
-  const isDone = campaign.owner === "done";
-  return (
-    <ol className="grid grid-cols-6 gap-1" aria-label="Campaign progress">
-      {PIPELINE.map((stage, index) => {
-        const reached = campaign.completed.includes(stage.id);
-        const current = !isDone && index === currentIndex;
-        const needsUs = current && campaign.owner === "rhood";
-        return (
-          <li key={stage.id} className="min-w-0">
-            <div
-              className={`h-1.5 rounded-full ${
-                reached
-                  ? "bg-[#c2cc06]"
-                  : current
-                    ? needsUs
-                      ? "bg-orange-400 animate-pulse"
-                      : "bg-[#c2cc06]/40 animate-pulse"
-                    : "bg-muted"
-              }`}
-            />
-            <p
-              className={`mt-1.5 truncate text-[10px] uppercase tracking-wide ${
-                current
-                  ? "text-foreground font-semibold"
-                  : reached
-                    ? "text-muted-foreground"
-                    : "text-muted-foreground/50"
-              } ${current ? "block" : "hidden sm:block"}`}
-            >
-              {stage.label}
-            </p>
-          </li>
-        );
-      })}
-    </ol>
-  );
+function ownerTone(owner: CampaignOwner): string {
+  if (owner === "rhood") return "text-brand-green";
+  if (owner === "done") return "text-muted-foreground";
+  return "text-foreground/80";
 }
 
 function placementState(p: CampaignPlacement): string {
@@ -123,7 +75,7 @@ export default function CampaignsPage() {
   const { toast } = useToast();
   const [campaigns, setCampaigns] = useState<CampaignRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("action");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -165,25 +117,39 @@ export default function CampaignsPage() {
   }, [load]);
 
   const counts = useMemo(() => {
-    const result: Record<Filter, number> = { all: campaigns.length, action: 0, waiting: 0, done: 0 };
+    const result: Record<Filter, number> = {
+      all: campaigns.length,
+      action: 0,
+      waiting: 0,
+      done: 0,
+    };
     for (const c of campaigns) result[filterFor(c.owner)] += 1;
     return result;
   }, [campaigns]);
 
   const visible = useMemo(
     () =>
-      filter === "all" ? campaigns : campaigns.filter((c) => filterFor(c.owner) === filter),
+      filter === "all"
+        ? campaigns
+        : campaigns.filter((c) => filterFor(c.owner) === filter),
     [campaigns, filter]
   );
 
   const selected = campaigns.find((c) => c.opportunityId === selectedId) ?? null;
 
-  const handleIntro = async (placement: CampaignPlacement, action: "send" | "mark") => {
+  const handleIntro = async (
+    placement: CampaignPlacement,
+    action: "send" | "mark"
+  ) => {
     setBusy(`${placement.applicationId}:${action}`);
     const result = await updateCampaignIntro(placement.applicationId, action);
     setBusy(null);
     if (!result.ok) {
-      toast({ title: "Intro not updated", description: result.message, variant: "destructive" });
+      toast({
+        title: "Intro not updated",
+        description: result.message,
+        variant: "destructive",
+      });
       return;
     }
     toast({
@@ -197,108 +163,108 @@ export default function CampaignsPage() {
   };
 
   return (
-    <div className="sm:p-6 space-y-6">
+    <div className="sm:p-6 space-y-5">
       <div>
         <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl`}>
           CAMPAIGNS
         </h1>
         <p className={`${textStyles.body.small} text-muted-foreground mt-1`}>
-          Where every live listing is, from listing to gig done, and who needs to move it on.
+          Who needs to move each listing next.
         </p>
       </div>
 
       {!isLoading && campaigns.length > 0 ? (
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFilter(f.id)}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                filter === f.id
-                  ? "border-[#c2cc06] bg-[#c2cc06] text-black"
-                  : "border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {f.label}
-              <span className="ml-1.5 opacity-70">{counts[f.id]}</span>
-            </button>
-          ))}
+        <div
+          className="flex gap-5 border-b border-border overflow-x-auto"
+          role="tablist"
+          aria-label="Campaign filters"
+        >
+          {FILTERS.map((f) => {
+            const active = filter === f.id;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setFilter(f.id)}
+                className={`shrink-0 pb-2.5 text-sm transition border-b-2 -mb-px ${
+                  active
+                    ? "border-brand-green text-foreground font-medium"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {f.label}
+                <span className="ml-1.5 tabular-nums text-muted-foreground">
+                  {counts[f.id]}
+                </span>
+              </button>
+            );
+          })}
         </div>
       ) : null}
 
       {isLoading ? (
-        <p className={`${textStyles.body.regular} text-muted-foreground`}>Reading campaigns…</p>
-      ) : campaigns.length === 0 ? (
-        <Card className="bg-card border-border">
-          <CardContent className="py-12 text-center">
-            <Radar className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-            <p className={`${textStyles.body.regular} text-muted-foreground`}>
-              No live campaigns yet.
-            </p>
-          </CardContent>
-        </Card>
-      ) : visible.length === 0 ? (
         <p className={`${textStyles.body.regular} text-muted-foreground`}>
+          Reading campaigns…
+        </p>
+      ) : campaigns.length === 0 ? (
+        <div className="py-16 text-center">
+          <Radar className="h-7 w-7 mx-auto text-muted-foreground mb-3" />
+          <p className={`${textStyles.body.regular} text-muted-foreground`}>
+            No live campaigns yet.
+          </p>
+        </div>
+      ) : visible.length === 0 ? (
+        <p className={`${textStyles.body.regular} text-muted-foreground py-8`}>
           Nothing in this view.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="divide-y divide-border border-y border-border">
           {visible.map((campaign) => {
             const applicants = campaign.placements.length;
+            const needsUs = campaign.owner === "rhood";
             return (
-              <Card
+              <button
                 key={campaign.opportunityId}
-                className={`bg-card border-border ${
-                  campaign.owner === "rhood" ? "border-l-2 border-l-orange-400" : ""
-                }`}
+                type="button"
+                onClick={() => setSelectedId(campaign.opportunityId)}
+                className="group w-full text-left px-1 py-3.5 sm:px-2 hover:bg-muted/30 transition-colors"
               >
-                <CardContent className="p-4 space-y-4">
-                  <button
-                    type="button"
-                    className="w-full text-left"
-                    onClick={() => setSelectedId(campaign.opportunityId)}
-                  >
-                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
-                        <p className={`${textStyles.subheading.small} text-foreground truncate`}>
-                          {campaign.title}
-                        </p>
-                        <p className={`${textStyles.body.small} text-muted-foreground mt-0.5`}>
-                          {campaign.brandName}
-                          {campaign.eventLabel ? ` · ${campaign.eventLabel}` : ""}
-                          {` · ${applicants} applicant${applicants === 1 ? "" : "s"}`}
-                        </p>
-                      </div>
-                      <div className="shrink-0">
-                        <OwnerBadge owner={campaign.owner} />
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <Pipeline campaign={campaign} />
-                    </div>
-                    <p className={`${textStyles.body.regular} text-foreground mt-4 break-words`}>
-                      {campaign.headline}
-                    </p>
-                    {campaign.owner !== "done" ? (
-                      <p
-                        className={`${textStyles.body.small} text-muted-foreground mt-1 flex items-start gap-1.5`}
-                      >
-                        <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                        <span>{campaign.next}</span>
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <span
+                    className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                      needsUs
+                        ? "bg-brand-green"
+                        : campaign.owner === "done"
+                          ? "bg-muted-foreground/40"
+                          : "bg-transparent ring-1 ring-border"
+                    }`}
+                    aria-hidden
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="text-sm sm:text-[15px] font-medium text-foreground truncate">
+                        {campaign.title}
                       </p>
-                    ) : null}
-                  </button>
-                  {campaign.location ? (
-                    <p
-                      className={`${textStyles.body.small} text-muted-foreground flex items-center gap-1`}
-                    >
-                      <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{campaign.location}</span>
+                      <span
+                        className={`shrink-0 text-xs font-medium uppercase tracking-wide ${ownerTone(campaign.owner)}`}
+                      >
+                        {ownerShort(campaign.owner)}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground truncate">
+                      {campaign.brandName}
+                      {campaign.eventLabel ? ` · ${campaign.eventLabel}` : ""}
+                      {` · ${applicants} applicant${applicants === 1 ? "" : "s"}`}
                     </p>
-                  ) : null}
-                </CardContent>
-              </Card>
+                    <p className="mt-1.5 text-sm text-foreground/90 line-clamp-1">
+                      {campaign.next}
+                    </p>
+                  </div>
+                  <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground" />
+                </div>
+              </button>
             );
           })}
         </div>
@@ -317,54 +283,58 @@ export default function CampaignsPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-5 pt-2">
-                <OwnerBadge owner={selected.owner} />
-
-                <ol className="space-y-2">
-                  {PIPELINE.map((stage) => {
-                    const reached = selected.completed.includes(stage.id);
-                    const current = selected.owner !== "done" && stage.id === selected.step;
-                    return (
-                      <li key={stage.id} className="flex items-center gap-3 text-sm">
-                        <span
-                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                            reached
-                              ? "border-[#c2cc06] bg-[#c2cc06] text-black"
-                              : current
-                                ? selected.owner === "rhood"
-                                  ? "border-orange-400"
-                                  : "border-[#c2cc06]"
-                                : "border-border"
-                          }`}
-                        >
-                          {reached ? <Check className="h-3 w-3" /> : null}
-                        </span>
-                        <span
-                          className={
-                            current
-                              ? "font-semibold text-foreground"
-                              : reached
-                                ? "text-muted-foreground"
-                                : "text-muted-foreground/60"
-                          }
-                        >
-                          {stage.label}
-                          {current ? " — in progress" : ""}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ol>
-
-                <section>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-                    Where we are
+                <div>
+                  <p className={`text-sm font-medium ${ownerTone(selected.owner)}`}>
+                    {OWNER_LABEL[selected.owner]}
                   </p>
-                  <p className={`${textStyles.body.regular} text-foreground`}>{selected.headline}</p>
+                  <p className={`${textStyles.body.regular} text-foreground mt-1`}>
+                    {selected.headline}
+                  </p>
                   {selected.owner !== "done" ? (
                     <p className={`${textStyles.body.small} text-muted-foreground mt-1`}>
                       Next: {selected.next}
                     </p>
                   ) : null}
+                </div>
+
+                <section>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
+                    Pipeline
+                  </p>
+                  <ol className="space-y-2">
+                    {PIPELINE.map((stage) => {
+                      const reached = selected.completed.includes(stage.id);
+                      const current =
+                        selected.owner !== "done" && stage.id === selected.step;
+                      return (
+                        <li key={stage.id} className="flex items-center gap-3 text-sm">
+                          <span
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                              reached
+                                ? "border-brand-green bg-brand-green text-brand-black"
+                                : current
+                                  ? "border-brand-green"
+                                  : "border-border"
+                            }`}
+                          >
+                            {reached ? <Check className="h-3 w-3" /> : null}
+                          </span>
+                          <span
+                            className={
+                              current
+                                ? "font-semibold text-foreground"
+                                : reached
+                                  ? "text-muted-foreground"
+                                  : "text-muted-foreground/60"
+                            }
+                          >
+                            {stage.label}
+                            {current ? " — now" : ""}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ol>
                 </section>
 
                 <section>
@@ -394,7 +364,9 @@ export default function CampaignsPage() {
                                   <p className="text-sm text-foreground truncate">{p.djName}</p>
                                   <p
                                     className={`text-xs mt-0.5 ${
-                                      needsIntro ? "text-orange-300" : "text-muted-foreground"
+                                      needsIntro
+                                        ? "text-brand-green"
+                                        : "text-muted-foreground"
                                     }`}
                                   >
                                     {placementState(p)}
@@ -487,15 +459,14 @@ export default function CampaignsPage() {
                         ))}
                     </ul>
                   )}
-                  <p className="text-[11px] text-muted-foreground mt-2">
-                    Replies show up here once hello@rhood.io forwards intro replies to Resend.
-                  </p>
                 </section>
 
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => router.push(`/admin/opportunities/${selected.opportunityId}`)}
+                  onClick={() =>
+                    router.push(`/admin/opportunities/${selected.opportunityId}`)
+                  }
                 >
                   Open listing
                 </Button>

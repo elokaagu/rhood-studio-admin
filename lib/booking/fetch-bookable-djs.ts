@@ -30,15 +30,17 @@ type MixRow = {
 };
 
 function averageRatingByUser(
-  rows: { user_id: string | null; rating: number | null }[]
+  rows: { ratee_id?: string | null; user_id?: string | null; stars?: number | null; rating?: number | null }[]
 ): Map<string, number> {
   const sums = new Map<string, { total: number; n: number }>();
   for (const row of rows) {
-    if (!row.user_id || row.rating == null) continue;
-    const cur = sums.get(row.user_id) ?? { total: 0, n: 0 };
-    cur.total += row.rating;
+    const id = row.ratee_id || row.user_id;
+    const stars = row.stars ?? row.rating;
+    if (!id || stars == null) continue;
+    const cur = sums.get(id) ?? { total: 0, n: 0 };
+    cur.total += stars;
     cur.n += 1;
-    sums.set(row.user_id, cur);
+    sums.set(id, cur);
   }
   const out = new Map<string, number>();
   sums.forEach((v, uid) => {
@@ -142,7 +144,11 @@ export async function fetchBookableDjs(): Promise<BookableDJ[]> {
   const nowIso = new Date().toISOString();
 
   const [feedbackRes, mixesRes, bookingsRes] = await Promise.all([
-    supabase.from("ai_matching_feedback").select("user_id, rating").in("user_id", ids),
+    (supabase as unknown as { from: (name: string) => any })
+      .from("ratings")
+      .select("ratee_id, stars")
+      .eq("rating_type", "dj_rating")
+      .in("ratee_id", ids),
     supabase
       .from("mixes")
       .select("id, title, genre, file_url, description, uploaded_by, created_at")
@@ -153,7 +159,10 @@ export async function fetchBookableDjs(): Promise<BookableDJ[]> {
   ]);
 
   const ratingByUser = averageRatingByUser(
-    (feedbackRes.data ?? []) as { user_id: string | null; rating: number | null }[]
+    (feedbackRes.data ?? []) as {
+      ratee_id: string | null;
+      stars: number | null;
+    }[]
   );
 
   const { latestByUser, countByUser } = latestMixAndCounts((mixesRes.data ?? []) as MixRow[]);

@@ -24,12 +24,12 @@ export function emailLimeButton(href: string, label: string): string {
 const secondaryButtonStyle =
   "display:inline-block;padding:14px 28px;background-color:#252525;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;border:1px solid #3a3a3a;";
 
-/** App Store / Play Store buttons for DJ emails. */
+/** App Store / Play Store buttons for DJ emails. Always links to the live App Store. */
 export function emailAppStoreButtons(label = "Get the R/HOOD app"): string {
   const ios = getDjIosAppStoreUrl();
   const android = getDjAndroidPlayStoreUrl();
-  // Booking emails pass a custom label — keep a single in-app CTA even when
-  // store URLs differ, so DJs are not sent to the App Store listing.
+  // Custom labels (e.g. "View in the R/HOOD app") still open the App Store so
+  // DJs without the app can download it first.
   if (label !== "Get the R/HOOD app" || ios === android) {
     return `<a href="${ios}" style="${buttonStyle}">${label}</a>`;
   }

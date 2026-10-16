@@ -11,6 +11,7 @@ export type ApprovalIntroductionContent = {
   location?: string | null;
   eventDateLabel?: string | null;
   additionalInfo?: string | null;
+  requirements?: string | null;
   compensation?: string | null;
 };
 
@@ -44,6 +45,7 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
   const location = input.location?.trim() || "";
   const eventDateLabel = input.eventDateLabel?.trim() || "";
   const additionalInfo = input.additionalInfo?.trim() || "";
+  const requirements = input.requirements?.trim() || "";
   const compensation = input.compensation?.trim() || "";
   const details = [location, eventDateLabel].filter(Boolean).join(" · ");
 
@@ -69,6 +71,9 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
   const safeAdditional = additionalInfo
     ? escapeHtml(additionalInfo).replace(/\n/g, "<br/>")
     : "";
+  const safeRequirements = requirements
+    ? escapeHtml(requirements).replace(/\n/g, "<br/>")
+    : "";
   const safeCompensation = compensation ? escapeHtml(compensation) : "";
   const factsRows = [
     safeDetails
@@ -77,8 +82,11 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
     safeCompensation
       ? `<tr><td style="padding:6px 0;color:#9e9e9e;width:110px;vertical-align:top;">Fee</td><td style="padding:6px 0;color:#dddddd;">${safeCompensation}</td></tr>`
       : "",
+    safeRequirements
+      ? `<tr><td style="padding:6px 0;color:#9e9e9e;width:110px;vertical-align:top;">Requirements</td><td style="padding:6px 0;color:#dddddd;">${safeRequirements}</td></tr>`
+      : "",
     safeAdditional
-      ? `<tr><td style="padding:6px 0;color:#9e9e9e;width:110px;vertical-align:top;">Notes</td><td style="padding:6px 0;color:#dddddd;">${safeAdditional}</td></tr>`
+      ? `<tr><td style="padding:6px 0;color:#9e9e9e;width:110px;vertical-align:top;">Additional info</td><td style="padding:6px 0;color:#dddddd;">${safeAdditional}</td></tr>`
       : "",
   ]
     .filter(Boolean)
@@ -262,8 +270,9 @@ export function buildApprovalIntroduction(input: ApprovalIntroductionContent): {
     "All communication about this campaign stays in this email thread — dates, brief, logistics, questions, and anything else. Don't move it to WhatsApp, DMs, or a separate email.",
     `${opsEmail} is on this thread as R/HOOD. That's how we follow the work and manage this campaign in the R/HOOD portal.`,
     details ? details : "",
-    additionalInfo ? `Notes:\n${additionalInfo}` : "",
     compensation ? `Fee: ${compensation}` : "",
+    requirements ? `Requirements:\n${requirements}` : "",
+    additionalInfo ? `Additional information:\n${additionalInfo}` : "",
     "",
     "How this will be executed:",
     "1. Stay on this thread for everything related to this campaign.",

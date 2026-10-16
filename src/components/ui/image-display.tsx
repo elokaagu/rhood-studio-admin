@@ -13,8 +13,7 @@ interface ImageDisplayProps {
   className?: string;
   sizes?: string;
   priority?: boolean;
-  placeholder?: "blur" | "empty";
-  blurDataURL?: string;
+  unoptimized?: boolean;
 }
 
 export function ImageDisplay({
@@ -26,66 +25,51 @@ export function ImageDisplay({
   className = "",
   sizes,
   priority = false,
-  placeholder = "blur",
-  blurDataURL,
+  unoptimized = true,
 }: ImageDisplayProps) {
   const [imageError, setImageError] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
-
-  const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    console.error("Image load error:", src);
-    console.error("Error details:", e);
-    setImageError(true);
-    setImageLoading(false);
-  };
-
-  const handleLoad = () => {
-    console.log("Image loaded successfully:", src);
-    setImageLoading(false);
-  };
+  const [loaded, setLoaded] = useState(false);
 
   if (imageError) {
     return (
       <div
         className={`flex items-center justify-center bg-muted text-muted-foreground ${className}`}
       >
-        <div className="text-center">
-          <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-          <p className="text-sm">Image failed to load</p>
+        <div className="text-center p-2">
+          <AlertCircle className="h-6 w-6 mx-auto mb-1 opacity-60" />
+          <p className="text-xs">Image unavailable</p>
         </div>
       </div>
     );
   }
 
-  // Generate a simple blur placeholder if none provided
-  const defaultBlurDataURL = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q==";
-
-  const imageProps = {
-    src,
-    alt,
-    onError: handleError,
-    onLoad: handleLoad,
-    className: `${className} ${
-      imageLoading ? "opacity-0" : "opacity-100"
-    } transition-opacity duration-300`,
-    priority,
-    placeholder,
-    blurDataURL: blurDataURL || defaultBlurDataURL,
-    loading: (priority ? "eager" : "lazy") as "eager" | "lazy",
-    ...(fill ? { fill: true } : { width, height }),
-    ...(sizes && { sizes }),
-  };
-
   return (
-    <div className="relative overflow-hidden">
-      {imageLoading && (
+    <div className={`relative overflow-hidden bg-muted ${fill ? "h-full w-full" : ""}`}>
+      {!loaded ? (
         <div
-          className={`absolute inset-0 flex items-center justify-center bg-muted/50 backdrop-blur-sm animate-pulse ${className}`}
-        >
-          <div className="text-sm text-muted-foreground">Loading...</div>
-        </div>
-      )}
-      <Image {...imageProps} alt={alt} />
+          className="absolute inset-0 animate-pulse bg-muted"
+          aria-hidden
+        />
+      ) : null}
+      <Image
+        src={src}
+        alt={alt}
+        onError={() => {
+          setImageError(true);
+          setLoaded(true);
+        }}
+        onLoad={() => setLoaded(true)}
+        className={`${className} transition-[opacity,filter,transform] duration-500 ease-out ${
+          loaded
+            ? "opacity-100 blur-0 scale-100"
+            : "opacity-0 blur-md scale-[1.02]"
+        }`}
+        priority={priority}
+        loading={priority ? "eager" : "lazy"}
+        unoptimized={unoptimized}
+        {...(fill ? { fill: true } : { width, height })}
+        {...(sizes ? { sizes } : {})}
+      />
     </div>
   );
 }

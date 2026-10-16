@@ -114,20 +114,23 @@ export default function MembersPage() {
         // Transform the data to match the expected format
         const transformedMembers = await Promise.all(
           (data || []).map(async (member: any) => {
-            // Calculate rating from ai_matching_feedback table
             let rating = 0.0;
             try {
-              const { data: feedbackData } = await supabase
-                .from("ai_matching_feedback")
-                .select("rating")
-                .eq("user_id", member.id);
+              const { data: ratingData } = await (
+                supabase as unknown as { from: (name: string) => any }
+              )
+                .from("ratings")
+                .select("stars")
+                .eq("rating_type", "dj_rating")
+                .eq("ratee_id", member.id);
 
-              if (feedbackData && feedbackData.length > 0) {
-                const totalRating = feedbackData.reduce(
-                  (sum, feedback) => sum + feedback.rating,
+              if (ratingData && ratingData.length > 0) {
+                const totalRating = ratingData.reduce(
+                  (sum: number, row: { stars?: number | null }) =>
+                    sum + (row.stars || 0),
                   0
                 );
-                rating = totalRating / feedbackData.length;
+                rating = totalRating / ratingData.length;
               }
             } catch (ratingError) {
               console.warn(

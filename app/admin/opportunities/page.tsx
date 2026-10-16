@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatOpportunityClock } from "@/lib/date-utils";
-import Image from "next/image";
+import { ImageDisplay } from "@/components/ui/image-display";
 import { GoogleMapsLink } from "@/components/google-maps-link";
 import { formatCompensationDisplay } from "@/lib/opportunities/compensation";
 import { isMappableLocation } from "@/lib/opportunities/location";
@@ -711,16 +711,12 @@ export default function OpportunitiesPage() {
                   {opportunity.image_url && (
                     <div className="flex-shrink-0 w-full sm:w-auto">
                       <div className="relative w-full sm:w-32 h-48 sm:h-32 rounded-lg overflow-hidden bg-muted aspect-auto sm:aspect-square">
-                        <Image
+                        <ImageDisplay
                           src={opportunity.image_url}
                           alt={opportunity.title}
                           fill
-                          className="object-cover transition-all duration-300 ease-in-out"
+                          className="object-cover"
                           sizes="(max-width: 640px) 100vw, 128px"
-                          placeholder="blur"
-                          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWESEyMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
-                          loading="lazy"
-                          unoptimized={true}
                         />
                       </div>
                     </div>

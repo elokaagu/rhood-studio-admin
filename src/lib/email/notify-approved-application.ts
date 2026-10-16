@@ -238,6 +238,7 @@ export async function notifyApprovedApplication(
   let location: string | null = null;
   let dateLabel: string | null = null;
   let additionalInfo: string | null = null;
+  let requirements: string | null = null;
   let compensation: string | null = null;
   let createdBy: string | null = null;
   let postedBy: string | null = null;
@@ -246,7 +247,7 @@ export async function notifyApprovedApplication(
   if (opportunityId) {
     const full = await fromUntyped(admin, "opportunities")
       .select(
-        "id, title, organizer_id, organizer_name, created_by, posted_by, location, event_date, event_start_time, event_timezone, additional_info, compensation, payment"
+        "id, title, organizer_id, organizer_name, created_by, posted_by, location, event_date, event_start_time, event_timezone, additional_info, skill_level, compensation, payment"
       )
       .eq("id", opportunityId)
       .maybeSingle();
@@ -269,6 +270,8 @@ export async function notifyApprovedApplication(
       location = typeof row.location === "string" ? row.location : null;
       additionalInfo =
         typeof row.additional_info === "string" ? row.additional_info : null;
+      requirements =
+        typeof row.skill_level === "string" ? row.skill_level : null;
       compensation =
         formatCompensationDisplay(
           typeof row.compensation === "string" ? row.compensation : null,
@@ -415,6 +418,7 @@ export async function notifyApprovedApplication(
     location,
     eventDateLabel: dateLabel,
     additionalInfo,
+    requirements,
     compensation,
   });
 

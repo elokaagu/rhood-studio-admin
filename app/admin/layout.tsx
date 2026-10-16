@@ -61,6 +61,7 @@ import {
   ContactRound,
   UserCheck,
   Radar,
+  QrCode,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -165,6 +166,12 @@ const allSidebarItems = [
     title: "Invite Codes",
     url: "/admin/invite-codes",
     icon: Key,
+    roles: ["admin"] as UserRole[],
+  },
+  {
+    title: "QR Codes",
+    url: "/admin/qr-codes",
+    icon: QrCode,
     roles: ["admin"] as UserRole[],
   },
   {

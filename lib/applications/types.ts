@@ -59,6 +59,7 @@ export interface ApplicationListItem {
   applicant: ApplicationListApplicant;
   opportunity: string;
   opportunityId: string | null;
+  opportunityImageUrl: string | null;
   appliedDate: string;
   appliedAt: string | null;
   status: ApplicationStatus;

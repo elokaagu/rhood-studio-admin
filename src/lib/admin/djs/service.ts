@@ -116,27 +116,13 @@ export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
 
   const userIds = visibleRows.map((r) => r.id);
 
-  const [ratingRes, appRes] = await Promise.all([
-    userIds.length
-      ? supabase
-          .from("ai_matching_feedback")
-          .select("user_id, rating")
-          .in("user_id", userIds)
-      : Promise.resolve({ data: [], error: null } as any),
+  const { fetchDjRatingAverages } = await import("@/lib/ratings/dj-ratings");
+  const [ratingByDj, appRes] = await Promise.all([
+    userIds.length ? fetchDjRatingAverages(userIds) : Promise.resolve(new Map<string, number>()),
     userIds.length
       ? applicationsTable().select("user_id, status, gig_completed").in("user_id", userIds)
       : Promise.resolve({ data: [], error: null } as any),
   ]);
-
-  const ratingRows = (ratingRes.data ?? []) as Array<{ user_id: string; rating: number | null }>;
-  const ratingMap = new Map<string, { total: number; count: number }>();
-  for (const row of ratingRows) {
-    const current = ratingMap.get(row.user_id) ?? { total: 0, count: 0 };
-    ratingMap.set(row.user_id, {
-      total: current.total + (row.rating ?? 0),
-      count: current.count + 1,
-    });
-  }
 
   const appRows = (appRes.data ?? []) as Array<{
     user_id: string;
@@ -152,11 +138,7 @@ export async function fetchDjs(sortBy: DjSortBy): Promise<FetchDjsResult> {
 
   const members: DjMember[] = visibleRows.map((row) => {
     const displayName = toDisplayName(row);
-    const ratingStats = ratingMap.get(row.id);
-    const avgRating =
-      ratingStats && ratingStats.count > 0
-        ? Math.round((ratingStats.total / ratingStats.count) * 10) / 10
-        : 0;
+    const avgRating = ratingByDj.get(row.id) ?? 0;
 
     const membership =
       row.is_verified === true || row.membership_status === "approved"

@@ -2,7 +2,7 @@
 export const LISTING_STATUS_LABELS: Record<string, string> = {
   pending: "Submit for review",
   active: "Publish to app",
-  draft: "Draft",
+  draft: "Save as draft",
   closed: "Closed",
   completed: "Completed",
   archived: "Archived",

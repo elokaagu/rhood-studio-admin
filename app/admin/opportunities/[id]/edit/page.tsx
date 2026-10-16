@@ -910,16 +910,16 @@ export default function EditOpportunityPage() {
                     {listingStatusLabel("pending")}
                   </SelectItem>
                   <SelectItem
-                    value="draft"
-                    className="text-foreground hover:bg-accent"
-                  >
-                    Draft
-                  </SelectItem>
-                  <SelectItem
                     value="active"
                     className="text-foreground hover:bg-accent"
                   >
                     {listingStatusLabel("active")}
+                  </SelectItem>
+                  <SelectItem
+                    value="draft"
+                    className="text-foreground hover:bg-accent"
+                  >
+                    Save as draft
                   </SelectItem>
                   <SelectItem
                     value="closed"

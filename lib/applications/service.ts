@@ -57,7 +57,7 @@ type RawProfile = {
   genres?: string[] | null;
   email?: string | null;
 };
-type RawOpportunity = { title?: string | null };
+type RawOpportunity = { title?: string | null; image_url?: string | null };
 type RawForm = { title?: string | null };
 type RawSimpleApplication = {
   id: string;
@@ -366,6 +366,7 @@ function buildDemoPortalApplications(): ApplicationListItem[] {
       },
       opportunity: "Underground Warehouse Rave",
       opportunityId: "1",
+      opportunityImageUrl: null,
       appliedDate: "2024-01-15",
       appliedAt: "2024-01-15T00:00:00.000Z",
       status: "pending",
@@ -386,6 +387,7 @@ function buildDemoPortalApplications(): ApplicationListItem[] {
       },
       opportunity: "Rooftop Summer Sessions",
       opportunityId: "2",
+      opportunityImageUrl: null,
       appliedDate: "2024-01-18",
       appliedAt: "2024-01-18T00:00:00.000Z",
       status: "approved",
@@ -411,6 +413,7 @@ function mapSimpleApplication(app: RawSimpleApplication): ApplicationListItem {
     },
     opportunity: app.opportunities?.title || "Unknown Opportunity",
     opportunityId: app.opportunity_id || null,
+    opportunityImageUrl: app.opportunities?.image_url || null,
     appliedDate: toDateLabel(app.created_at),
     appliedAt: app.created_at || null,
     status: app.status || "pending",
@@ -440,6 +443,7 @@ function mapFormResponse(response: RawFormResponse): ApplicationListItem {
       response.application_forms?.title ||
       "Form Submission",
     opportunityId: response.opportunity_id || null,
+    opportunityImageUrl: response.opportunities?.image_url || null,
     appliedDate: toDateLabel(response.submitted_at),
     appliedAt: response.submitted_at || null,
     status: response.status || "pending",
@@ -470,13 +474,13 @@ export async function listPortalApplications(
 
     let applicationsQuery = supabase.from("applications").select(`
         *,
-        opportunities(title, organizer_id),
-        user_profiles(dj_name, first_name, last_name, city, genres, email)
+        opportunities(title, organizer_id, image_url),
+        user_profiles(dj_name, first_name, last_name, city, genres, email, profile_image_url)
       `);
     /* user_id FK targets `users` in types, not user_profiles — embed would be a type/runtime error; profiles loaded below */
     let formResponsesQuery = supabase.from("application_form_responses").select(`
         *,
-        opportunities(title, organizer_id),
+        opportunities(title, organizer_id, image_url),
         application_forms(title)
       `);
 

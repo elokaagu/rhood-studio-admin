@@ -35,7 +35,9 @@ import {
   Eye,
   Search,
   Star,
+  ImageOff,
 } from "lucide-react";
+import { ImageDisplay } from "@/components/ui/image-display";
 import {
   Dialog,
   DialogContent,
@@ -495,40 +497,31 @@ function ApplicationsContent() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {filteredApplications.map((application: ApplicationListItem) => (
-            <Card key={application.id} className="bg-card border-border">
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className={`${textStyles.subheading.large} text-base sm:text-lg`}>
-                      {application.opportunity}
-                    </h3>
-
-                    <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground mt-2">
-                      <div className="flex items-center">
-                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        {application.appliedDate}
-                      </div>
-                      <div className="flex items-center">
-                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        <span className="truncate">{application.applicant.location}</span>
-                      </div>
+              <Card
+                key={application.id}
+                className="bg-card border-border overflow-hidden flex flex-col"
+              >
+                <div className="relative aspect-[16/10] bg-muted">
+                  {application.opportunityImageUrl ? (
+                    <ImageDisplay
+                      src={application.opportunityImageUrl}
+                      alt={application.opportunity}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                      <ImageOff className="h-7 w-7 mb-1.5 opacity-60" />
+                      <p className="text-xs">No artwork</p>
                     </div>
-
-                    <div className="flex items-center space-x-4 text-xs sm:text-sm text-muted-foreground mt-2">
-                      <div className="flex items-center">
-                        <span className="text-foreground font-medium">
-                          {application.applicant.name}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2">
+                  )}
+                  <div className="absolute top-3 left-3">
                     <Badge
                       variant="outline"
-                      className="border-border text-foreground bg-transparent text-xs w-full sm:w-auto justify-center sm:justify-start"
+                      className="border-border/80 text-foreground bg-background/85 backdrop-blur-sm text-xs"
                     >
                       {getStatusIcon(application.status)}
                       <span className="ml-1">
@@ -536,61 +529,77 @@ function ApplicationsContent() {
                           application.status.slice(1)}
                       </span>
                     </Badge>
+                  </div>
+                </div>
 
-                    <div className="flex items-center gap-2 sm:space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-foreground text-xs sm:text-sm flex-1 sm:flex-initial"
-                        onClick={() => router.push(`/admin/applications/${application.id}`)}
-                      >
-                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        <span className="hidden sm:inline">View Details</span>
-                        <span className="sm:hidden">View</span>
-                      </Button>
-                      {application.status === "pending" && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-200 text-xs sm:text-sm flex-1 sm:flex-initial font-medium"
-                            onClick={() => handleStatusUpdate(application, "approved")}
-                            disabled={isLoading}
-                          >
-                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
-                            <span className="hidden sm:inline">Approve</span>
-                            <span className="sm:hidden">✓</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 text-xs sm:text-sm flex-1 sm:flex-initial"
-                            onClick={() => handleStatusUpdate(application, "rejected")}
-                          >
-                            <XCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                            <span className="hidden sm:inline">Reject</span>
-                            <span className="sm:hidden">✗</span>
-                          </Button>
-                        </>
-                      )}
-                      {application.status === "approved" && !application.gig_completed && (
+                <CardContent className="p-4 flex flex-col gap-3 flex-1">
+                  <div className="min-w-0">
+                    <h3 className={`${textStyles.subheading.large} text-base sm:text-lg line-clamp-2`}>
+                      {application.opportunity}
+                    </h3>
+                    <p className="text-sm text-foreground font-medium mt-1 truncate">
+                      {application.applicant.name}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
+                      <div className="flex items-center min-w-0">
+                        <Calendar className="h-3.5 w-3.5 mr-1 shrink-0" />
+                        {application.appliedDate}
+                      </div>
+                      <div className="flex items-center min-w-0">
+                        <MapPin className="h-3.5 w-3.5 mr-1 shrink-0" />
+                        <span className="truncate">{application.applicant.location}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-foreground text-xs flex-1 sm:flex-initial"
+                      onClick={() => router.push(`/admin/applications/${application.id}`)}
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      View
+                    </Button>
+                    {application.status === "pending" && (
+                      <>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-200 text-xs sm:text-sm flex-1 sm:flex-initial font-medium"
-                          onClick={() => handleCompleteGigClick(application)}
+                          className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-200 text-xs font-medium flex-1 sm:flex-initial"
+                          onClick={() => handleStatusUpdate(application, "approved")}
                           disabled={isLoading}
                         >
-                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
-                          <span className="hidden sm:inline">Mark Gig Done</span>
-                          <span className="sm:hidden">✓ Gig</span>
+                          <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                          Approve
                         </Button>
-                      )}
-                    </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 text-xs flex-1 sm:flex-initial"
+                          onClick={() => handleStatusUpdate(application, "rejected")}
+                        >
+                          <XCircle className="h-3.5 w-3.5 mr-1" />
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                    {application.status === "approved" && !application.gig_completed && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-200 text-xs font-medium flex-1 sm:flex-initial"
+                        onClick={() => handleCompleteGigClick(application)}
+                        disabled={isLoading}
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                        Mark Gig Done
+                      </Button>
+                    )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { averageDjRatings } from "@/lib/ratings/dj-ratings";
 import type {
   AnalyticsDashboardData,
   TopUser,
@@ -43,6 +44,20 @@ const defaultAnalyticsDashboardData: AnalyticsDashboardData = {
   topUsers: defaultTopUsers,
 };
 
+function fromUntyped(table: string) {
+  return (supabase as unknown as { from: (name: string) => any }).from(table);
+}
+
+function displayName(member: {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  dj_name?: string | null;
+}): string {
+  const fullName = `${member.first_name ?? ""} ${member.last_name ?? ""}`.trim();
+  return member.dj_name?.trim() || fullName || "Unknown DJ";
+}
+
 export async function fetchAnalyticsDashboardData(): Promise<AnalyticsDashboardData> {
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(
@@ -54,7 +69,7 @@ export async function fetchAnalyticsDashboardData(): Promise<AnalyticsDashboardD
 
   const [
     membersCreatedRes,
-    opportunitiesRes,
+    applicationsCountRes,
     profilesCityRes,
     dailyActiveRes,
     aiSessionsRes,
@@ -62,16 +77,16 @@ export async function fetchAnalyticsDashboardData(): Promise<AnalyticsDashboardD
     todayMixesRes,
     todayMessagesRes,
     todayProfileUpdatesRes,
-    allMembersRes,
-    feedbackRes,
-    allApplicationsRes,
+    djMembersRes,
+    ratingsRes,
+    completedGigsRes,
   ] = await Promise.all([
     supabase
       .from("user_profiles")
       .select("created_at")
       .order("created_at", { ascending: false }),
-    supabase.from("opportunities").select("*", { count: "exact", head: true }),
-    supabase.from("user_profiles").select("city"),
+    supabase.from("applications").select("*", { count: "exact", head: true }),
+    supabase.from("user_profiles").select("city").eq("role", "dj"),
     supabase
       .from("user_profiles")
       .select("*", { count: "exact", head: true })
@@ -85,11 +100,14 @@ export async function fetchAnalyticsDashboardData(): Promise<AnalyticsDashboardD
     supabase.from("mixes").select("uploaded_by").gte("created_at", todayIso),
     supabase.from("messages").select("sender_id").gte("created_at", todayIso),
     supabase.from("user_profiles").select("id").gte("updated_at", todayIso),
-    supabase.from("user_profiles").select("id, first_name, last_name, dj_name"),
-    supabase.from("ai_matching_feedback").select("user_id, rating"),
-    // `gig_completed` exists in runtime schema but may be missing from generated types.
-    (supabase as any)
-      .from("applications")
+    supabase
+      .from("user_profiles")
+      .select("id, first_name, last_name, dj_name, role")
+      .eq("role", "dj"),
+    fromUntyped("ratings")
+      .select("ratee_id, stars")
+      .eq("rating_type", "dj_rating"),
+    fromUntyped("applications")
       .select("user_id")
       .eq("status", "approved")
       .eq("gig_completed", true),
@@ -140,7 +158,7 @@ export async function fetchAnalyticsDashboardData(): Promise<AnalyticsDashboardD
 
   const locationMap = new Map<string, number>();
   (profilesCityRes.data ?? []).forEach((profile) => {
-    const location = profile.city || "Unknown";
+    const location = profile.city?.trim() || "Unknown";
     locationMap.set(location, (locationMap.get(location) ?? 0) + 1);
   });
   const locationData = Array.from(locationMap.entries())
@@ -187,45 +205,52 @@ export async function fetchAnalyticsDashboardData(): Promise<AnalyticsDashboardD
       ? Math.round((totalEngagementMinutes / activeUserIds.size) * 10) / 10
       : 0;
 
-  const ratingMap = new Map<string, { total: number; count: number }>();
-  (feedbackRes.data ?? []).forEach((item) => {
-    if (!item.user_id) return;
-    const current = ratingMap.get(item.user_id) ?? { total: 0, count: 0 };
-    ratingMap.set(item.user_id, {
-      total: current.total + (item.rating ?? 0),
-      count: current.count + 1,
-    });
-  });
+  const ratingByDj = averageDjRatings(
+    (!ratingsRes.error ? ratingsRes.data : []) as Array<{
+      ratee_id: string | null;
+      stars: number | null;
+    }>
+  );
 
   const gigsMap = new Map<string, number>();
-  (allApplicationsRes.data ?? []).forEach((application: { user_id: string | null }) => {
+  (completedGigsRes.data ?? []).forEach((application: { user_id: string | null }) => {
     if (!application.user_id) return;
     gigsMap.set(application.user_id, (gigsMap.get(application.user_id) ?? 0) + 1);
   });
 
-  const usersWithStats: TopUser[] = (allMembersRes.data ?? []).map((member) => {
-    const ratingStats = ratingMap.get(member.id);
-    const rating =
-      ratingStats && ratingStats.count > 0 ? ratingStats.total / ratingStats.count : 0;
+  const djs = (djMembersRes.data ?? []) as Array<{
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    dj_name: string | null;
+  }>;
+
+  const usersWithStats: TopUser[] = djs.map((member) => {
+    const rating = ratingByDj.get(member.id) ?? 0;
     const gigs = gigsMap.get(member.id) ?? 0;
-    const fullName = `${member.first_name ?? ""} ${member.last_name ?? ""}`.trim();
     return {
       id: member.id,
-      name: member.dj_name || fullName || "Unknown Member",
+      name: displayName(member),
       rating,
       gigs,
-      status: rating > 3 ? "active" : rating > 1 ? "upcoming" : "inactive",
+      status: gigs > 0 ? "active" : "upcoming",
     };
   });
 
   const sortedByGigs = [...usersWithStats].sort((a, b) => b.gigs - a.gigs);
-  const sortedByRating = [...usersWithStats].sort((a, b) => b.rating - a.rating);
-  const sortedByRecent = usersWithStats.filter((user) => user.gigs === 0);
+  const withRatings = usersWithStats.filter((user) => user.rating > 0);
+  const sortedByRating = [...withRatings].sort((a, b) => b.rating - a.rating);
+  const upAndComing = usersWithStats
+    .filter((user) => user.gigs === 0)
+    .slice(0, 5);
+  const leastActive = [...usersWithStats]
+    .sort((a, b) => a.gigs - b.gigs || a.name.localeCompare(b.name))
+    .slice(0, 5);
 
   return {
     ...defaultAnalyticsDashboardData,
     currentMonthSignups,
-    brandApplications: opportunitiesRes.count || 0,
+    brandApplications: applicationsCountRes.count || 0,
     dailyActiveUsers: dailyActiveRes.count || 0,
     minutesPerUser,
     monthlySignups: trimmedMonthlySignups,
@@ -233,8 +258,8 @@ export async function fetchAnalyticsDashboardData(): Promise<AnalyticsDashboardD
     topUsers: {
       mostActive: sortedByGigs.slice(0, 5),
       highestRating: sortedByRating.slice(0, 5),
-      upAndComing: sortedByRecent.slice(0, 5),
-      leastActive: sortedByGigs.slice(-5).reverse(),
+      upAndComing,
+      leastActive,
     },
   };
 }

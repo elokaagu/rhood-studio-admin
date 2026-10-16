@@ -172,10 +172,11 @@ export async function fetchAdminMemberProfile(
       .eq("user_id", data.id)
       .eq("status", "approved")
       .eq("gig_completed", true),
-    supabase
-      .from("ai_matching_feedback")
-      .select("rating")
-      .eq("user_id", data.id),
+    (supabase as unknown as { from: (name: string) => any })
+      .from("ratings")
+      .select("stars")
+      .eq("rating_type", "dj_rating")
+      .eq("ratee_id", data.id),
     supabase
       .from("invite_codes")
       .select(
@@ -198,13 +199,10 @@ export async function fetchAdminMemberProfile(
   }
 
   let rating = 0;
-  const feedbackData = feedbackRes.data;
-  if (!feedbackRes.error && feedbackData && feedbackData.length > 0) {
-    const totalRating = feedbackData.reduce(
-      (sum, f) => sum + (f.rating || 0),
-      0
-    );
-    rating = Math.round((totalRating / feedbackData.length) * 10) / 10;
+  const ratingRows = (feedbackRes.data ?? []) as Array<{ stars?: number | null }>;
+  if (!feedbackRes.error && ratingRows.length > 0) {
+    const totalRating = ratingRows.reduce((sum, f) => sum + (f.stars || 0), 0);
+    rating = Math.round((totalRating / ratingRows.length) * 10) / 10;
   }
 
   const inviteCodes: AdminMemberInviteCodeRow[] = (inviteRes.data ?? []).map(

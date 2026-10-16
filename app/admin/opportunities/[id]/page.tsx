@@ -10,7 +10,7 @@ import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { LinkText } from "@/components/ui/link-text";
 import { BriefRenderer } from "@/components/ui/brief-renderer";
-import Image from "next/image";
+import { ImageDisplay } from "@/components/ui/image-display";
 import { GoogleMapsLink } from "@/components/google-maps-link";
 import { parseGenres } from "@/lib/opportunities/genres";
 import { isMappableLocation } from "@/lib/opportunities/location";
@@ -411,15 +411,12 @@ export default function OpportunityDetailsPage() {
             <div className="grid grid-cols-1 md:grid-cols-[minmax(0,280px)_1fr]">
               <div className="relative aspect-square bg-muted">
                 {opportunity.image_url ? (
-                  <Image
+                  <ImageDisplay
                     src={opportunity.image_url}
                     alt={opportunity.title}
                     fill
                     className="object-cover"
                     sizes="(max-width: 768px) 100vw, 280px"
-                    placeholder="blur"
-                    blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWESEyMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
-                    unoptimized={true}
                   />
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">

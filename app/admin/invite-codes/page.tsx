@@ -29,7 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatDate } from "@/lib/date-utils";
-import { PORTAL_BASE_URL } from "@/lib/portal-url";
+import { PORTAL_BASE_URL, getDjIosAppStoreUrl } from "@/lib/portal-url";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function InviteCodesPage() {
@@ -99,7 +99,10 @@ export default function InviteCodesPage() {
 
 Invite code: ${code.code}
 
-Download the R/HOOD app, create your account, and enter this code. You'll skip the waitlist and get in immediately.
+Download the R/HOOD app from the App Store:
+${getDjIosAppStoreUrl()}
+
+Create your account, enter this code, and you'll skip the waitlist and get in immediately.
 
 The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "the expiration date set by the admin"}.`;
     }
@@ -447,7 +450,7 @@ The invite code expires on ${code.expires_at ? formatDate(code.expires_at) : "th
             <strong>2. Share the code:</strong> Send it to the brand or DJ. Use Share to copy ready-to-send instructions.
           </p>
           <p>
-            <strong>3. They sign up:</strong> Brands open portal.rhood.io with the code filled in. DJs enter the code in the R/HOOD app.
+            <strong>3. They sign up:</strong> Brands open portal.rhood.io with the code filled in. DJs download from the App Store, then enter the code in the R/HOOD app.
           </p>
           <p>
             <strong>4. Automatic access:</strong> Brands get a brand account. DJs are approved immediately and skip DJ Applications.

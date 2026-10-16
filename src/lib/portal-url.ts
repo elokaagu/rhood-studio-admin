@@ -1,8 +1,11 @@
 export const PORTAL_BASE_URL = "https://portal.rhood.io";
 export const DJ_APP_URL =
   process.env.NEXT_PUBLIC_DJ_APP_URL || "https://www.rhood.io/";
-/** Marketing app page used until store URLs are set. */
+/** Marketing / Android fallback until Play Store URL is set. */
 export const DJ_APP_PAGE_URL = "https://www.rhood.io/app";
+/** Live iOS App Store listing for R/HOOD. */
+export const DJ_IOS_APP_STORE_URL_DEFAULT =
+  "https://apps.apple.com/gb/app/r-hood/id6753610300";
 
 export function getPortalBaseUrl(): string {
   return PORTAL_BASE_URL;
@@ -28,16 +31,20 @@ function trimUrl(value: string | undefined): string | null {
   return trimmed ? trimmed : null;
 }
 
-/** iOS App Store listing. Set DJ_IOS_APP_STORE_URL or NEXT_PUBLIC_APP_STORE_URL. */
+/** iOS App Store listing. Override with DJ_IOS_APP_STORE_URL or NEXT_PUBLIC_APP_STORE_URL. */
 export function getDjIosAppStoreUrl(): string {
   return (
     trimUrl(process.env.DJ_IOS_APP_STORE_URL) ||
     trimUrl(process.env.NEXT_PUBLIC_APP_STORE_URL) ||
-    DJ_APP_PAGE_URL
+    DJ_IOS_APP_STORE_URL_DEFAULT
   );
 }
 
-/** Google Play listing. Set DJ_ANDROID_PLAY_STORE_URL. */
+/** Google Play listing. Falls back to marketing page until Play Store URL is set. */
 export function getDjAndroidPlayStoreUrl(): string {
-  return trimUrl(process.env.DJ_ANDROID_PLAY_STORE_URL) || DJ_APP_PAGE_URL;
+  return (
+    trimUrl(process.env.DJ_ANDROID_PLAY_STORE_URL) ||
+    trimUrl(process.env.NEXT_PUBLIC_PLAY_STORE_URL) ||
+    DJ_APP_PAGE_URL
+  );
 }

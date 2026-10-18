@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import QRCode from "qrcode";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +33,7 @@ import {
   type QrCodeRow,
 } from "@/lib/qr/service";
 import { defaultQrDestinationUrl } from "@/lib/qr/constants";
+import { renderBrandedQrPng } from "@/lib/qr/branded-qr";
 import { Download, Loader2, QrCode, Plus } from "lucide-react";
 
 export default function QrCodesPage() {
@@ -99,12 +99,25 @@ export default function QrCodesPage() {
       setPreviewDataUrl(null);
       return;
     }
-    void QRCode.toDataURL(preview.shortUrl, {
-      width: 512,
-      margin: 2,
-      color: { dark: "#1d1d1b", light: "#ffffff" },
-    }).then(setPreviewDataUrl);
-  }, [preview]);
+    let cancelled = false;
+    setPreviewDataUrl(null);
+    renderBrandedQrPng(preview.shortUrl)
+      .then((dataUrl) => {
+        if (!cancelled) setPreviewDataUrl(dataUrl);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        toast({
+          title: "Could not draw QR code",
+          description: error instanceof Error ? error.message : "Please try again.",
+          variant: "destructive",
+        });
+        setPreview(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [preview, toast]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -291,7 +304,7 @@ export default function QrCodesPage() {
                   <img
                     src={previewDataUrl}
                     alt={`QR for ${preview.name}`}
-                    className="w-56 h-56 rounded-lg bg-white"
+                    className="w-64 h-64 rounded-lg bg-black"
                   />
                 ) : (
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

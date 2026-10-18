@@ -28,6 +28,9 @@ function fromUntyped(table: string) {
 
 export const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 700;
 
+/** Shown as the brand in the app when the R/HOOD team posts without picking a brand. */
+export const RHOOD_ORGANIZER_NAME = "R/HOOD";
+
 export type OpportunityCreateMode = "draft" | "publish";
 
 export type OpportunityCreateFormInput = {
@@ -308,7 +311,9 @@ export async function createOpportunity(
     organizer_id: organizerId,
     organizer_name: brandOverride
       ? brandOverride.name
-      : profile?.brand_name || organizerName,
+      : userProfile?.role === "admin"
+        ? RHOOD_ORGANIZER_NAME
+        : profile?.brand_name || organizerName,
     is_active: isActive,
     is_archived: false,
     listing_status: listingStatus,

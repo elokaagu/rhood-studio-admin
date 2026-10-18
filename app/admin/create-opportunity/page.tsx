@@ -392,19 +392,19 @@ export default function CreateOpportunityPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-foreground flex items-center gap-2 text-base">
                 <Building2 className="h-4 w-4 text-brand-green" />
-                Post on behalf of a brand
+                Post as
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Label className="text-foreground text-sm">Brand account</Label>
+                <Label className="text-foreground text-sm">Brand shown in the app</Label>
                 <Select value={selectedBrandId} onValueChange={setSelectedBrandId}>
                   <SelectTrigger className="bg-secondary border-border text-foreground">
                     <SelectValue placeholder="Select a brand (optional)" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
                     <SelectItem value="none" className="text-foreground hover:bg-accent">
-                      — Post as admin (no brand) —
+                      R/HOOD
                     </SelectItem>
                     {brands.map((brand) => (
                       <SelectItem
@@ -417,13 +417,19 @@ export default function CreateOpportunityPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {selectedBrandId !== "none" && (
-                  <p className="text-xs text-brand-green">
-                    This opportunity will be attributed to{" "}
-                    <strong>{brands.find((b) => b.id === selectedBrandId)?.name}</strong> and will appear
-                    under their brand account.
-                  </p>
-                )}
+                <p className="text-xs text-brand-green">
+                  {selectedBrandId === "none" ? (
+                    <>
+                      This opportunity will show as an <strong>R/HOOD</strong> opportunity in the app.
+                    </>
+                  ) : (
+                    <>
+                      This opportunity will be attributed to{" "}
+                      <strong>{brands.find((b) => b.id === selectedBrandId)?.name}</strong> and will appear
+                      under their brand account.
+                    </>
+                  )}
+                </p>
               </div>
             </CardContent>
           </Card>

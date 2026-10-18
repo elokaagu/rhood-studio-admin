@@ -225,7 +225,7 @@ export default function ScheduleEventPage() {
             <span className="hidden sm:inline">Back</span>
           </Button>
           <div className="min-w-0">
-            <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl break-words`}>SCHEDULE EVENT</h1>
+            <h1 className={`${textStyles.headline.page} break-words`}>SCHEDULE EVENT</h1>
             <p className={`${textStyles.body.regular} text-sm sm:text-base break-words`}>
               Schedule event details for {opportunityTitle}
             </p>

@@ -472,7 +472,7 @@ export default function EditOpportunityPage() {
             <span className="hidden sm:inline">Back</span>
           </Button>
           <div className="min-w-0">
-            <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl break-words`}>EDIT OPPORTUNITY</h1>
+            <h1 className={`${textStyles.headline.page} break-words`}>EDIT OPPORTUNITY</h1>
             <p className={`${textStyles.body.regular} text-sm sm:text-base`}>
               Update opportunity information
             </p>

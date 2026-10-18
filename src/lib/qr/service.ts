@@ -139,6 +139,18 @@ export async function createQrCode(input: {
   return { ok: false, message: lastError };
 }
 
+/** Deletes the code and its scan history. Printed copies fall back to the App Store. */
+export async function deleteQrCode(
+  id: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { data, error } = await fromUntyped("qr_codes").delete().eq("id", id).select("id");
+  if (error) return { ok: false, message: error.message || "Could not delete QR code." };
+  if (!data || data.length === 0) {
+    return { ok: false, message: "QR code was not deleted. Only admins can delete codes." };
+  }
+  return { ok: true };
+}
+
 export async function setQrCodeActive(
   id: string,
   isActive: boolean

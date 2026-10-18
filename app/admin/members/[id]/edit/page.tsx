@@ -202,7 +202,7 @@ export default function EditMemberPage() {
     <div className="space-y-6 animate-blur-in">
       <div className="flex items-start justify-between gap-3 sm:items-center">
         <div className="min-w-0">
-          <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl`}>EDIT MEMBER</h1>
+          <h1 className={textStyles.headline.page}>EDIT MEMBER</h1>
           <p className={`${textStyles.body.regular} text-sm sm:text-base break-words`}>
             Update {member.name}&apos;s profile information
           </p>

@@ -321,7 +321,7 @@ export default function ApplicationDetailsPage() {
           </Button>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl`}>
+              <h1 className={textStyles.headline.page}>
                 APPLICATION DETAILS
               </h1>
               <span className="md:hidden">{getStatusBadge(application.status)}</span>

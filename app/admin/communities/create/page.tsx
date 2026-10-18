@@ -125,7 +125,7 @@ export default function CreateCommunityPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="space-y-6 sm:space-y-8 sm:p-6 animate-blur-in">
+      <div className="space-y-6 sm:space-y-8 animate-blur-in">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3 sm:items-center sm:gap-4 min-w-0">
             <Button

@@ -108,7 +108,7 @@ export default function CreditTransactionsPage() {
     <div className="space-y-6 animate-blur-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className={`${textStyles.headline.section} text-xl sm:text-2xl md:text-3xl`}>
+          <h1 className={textStyles.headline.page}>
             Credit Transactions Ledger
           </h1>
           <p className={`${textStyles.body.regular} text-sm sm:text-base mt-1`}>

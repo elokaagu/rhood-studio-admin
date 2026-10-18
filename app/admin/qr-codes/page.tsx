@@ -21,6 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { textStyles } from "@/lib/typography";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentUserProfile } from "@/lib/auth-utils";
@@ -28,6 +38,7 @@ import { loginPathWithNext } from "@/lib/auth/login-redirect";
 import { supabase } from "@/integrations/supabase/client";
 import {
   createQrCode,
+  deleteQrCode,
   listQrCodes,
   setQrCodeActive,
   type QrCodeRow,
@@ -51,6 +62,8 @@ export default function QrCodesPage() {
   const [destinationUrl, setDestinationUrl] = useState(defaultQrDestinationUrl());
   const [preview, setPreview] = useState<QrCodeRow | null>(null);
   const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<QrCodeRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     const profile = await getCurrentUserProfile();
@@ -150,10 +163,10 @@ export default function QrCodesPage() {
   };
 
   return (
-    <div className="sm:p-6 space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4 sm:space-y-6 animate-blur-in">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl`}>
+          <h1 className={textStyles.headline.page}>
             QR CODES
           </h1>
           <p className={`${textStyles.body.small} text-muted-foreground mt-1`}>
@@ -219,12 +232,62 @@ export default function QrCodesPage() {
                   >
                     {code.is_active ? "Pause" : "Activate"}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-500 hover:text-red-600"
+                    onClick={() => setPendingDelete(code)}
+                  >
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <AlertDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(next) => !next && !deleting && setPendingDelete(null)}
+      >
+        <AlertDialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {pendingDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the code and its {pendingDelete?.scanCount ?? 0} recorded scans. Anyone
+              who scans a printed copy will still land on the App Store, but it won&apos;t be tracked.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              disabled={deleting}
+              onClick={async (event) => {
+                event.preventDefault();
+                if (!pendingDelete) return;
+                setDeleting(true);
+                const result = await deleteQrCode(pendingDelete.id);
+                setDeleting(false);
+                if (!result.ok) {
+                  toast({
+                    title: "Could not delete",
+                    description: result.message,
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                toast({ title: "QR code deleted", description: pendingDelete.name });
+                setPendingDelete(null);
+                await load();
+              }}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">

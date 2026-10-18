@@ -365,7 +365,7 @@ export default function OpportunityDetailsPage() {
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
               Opportunity
             </p>
-            <h1 className={`${textStyles.headline.section} text-left text-lg sm:text-xl md:text-2xl mt-0.5 break-words`}>
+            <h1 className={`${textStyles.headline.page} mt-0.5 break-words`}>
               {opportunity.title}
             </h1>
           </div>

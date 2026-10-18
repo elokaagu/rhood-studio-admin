@@ -163,9 +163,9 @@ export default function CampaignsPage() {
   };
 
   return (
-    <div className="sm:p-6 space-y-5">
+    <div className="space-y-5">
       <div>
-        <h1 className={`${textStyles.headline.section} text-lg sm:text-xl md:text-2xl`}>
+        <h1 className={textStyles.headline.page}>
           CAMPAIGNS
         </h1>
         <p className={`${textStyles.body.small} text-muted-foreground mt-1`}>

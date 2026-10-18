@@ -171,7 +171,7 @@ export default function BookingRequestsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className={textStyles.headline.section}>
+          <h1 className={textStyles.headline.page}>
             {isBrand ? "MY BOOKING REQUESTS" : "BOOKING REQUESTS"}
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground mt-1">

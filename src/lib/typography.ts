@@ -69,6 +69,8 @@ export const brandColors = {
 export const textStyles = {
   // Headlines using TS Block
   headline: {
+    /** Studio page titles: left-aligned, same size on every page. */
+    page: `font-ts-block ts-xl uppercase text-left text-lg sm:text-xl md:text-2xl ${brandColors.white}`,
     main: `${tsBlockStyles["2xl"]} ${brandColors.white}`,
     section: `${tsBlockStyles.xl} ${brandColors.white}`,
     card: `${tsBlockStyles.lg} ${brandColors.white}`,

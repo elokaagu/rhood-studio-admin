@@ -62,6 +62,7 @@ import {
   UserCheck,
   Radar,
   QrCode,
+  Mail,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -172,6 +173,12 @@ const allSidebarItems = [
     title: "QR Codes",
     url: "/admin/qr-codes",
     icon: QrCode,
+    roles: ["admin"] as UserRole[],
+  },
+  {
+    title: "Email",
+    url: "/admin/email",
+    icon: Mail,
     roles: ["admin"] as UserRole[],
   },
   {

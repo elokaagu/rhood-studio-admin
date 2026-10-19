@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { recordCampaignMessage } from "@/lib/campaigns/store-message";
 import { sanitizeEmail } from "@/lib/email/helpers";
+import {
+  isTrackedEmailEvent,
+  recordEmailEvent,
+  resolveWebhookSecret,
+  serviceClient,
+} from "@/lib/email/marketing/server";
 
 function addresses(value: unknown): string[] {
   if (!value) return [];
@@ -87,16 +92,15 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Accepts only Resend webhooks with a valid Svix signature
- * (RESEND_WEBHOOK_SECRET), or callers presenting CAMPAIGN_INBOUND_SECRET.
- * Anything else is rejected, including when no secret is configured.
+ * Accepts only Resend webhooks with a valid Svix signature (RESEND_WEBHOOK_SECRET,
+ * or the signing secret saved by the Studio email setup), or callers presenting
+ * CAMPAIGN_INBOUND_SECRET. Anything else is rejected, including when no secret is configured.
  */
-function isAuthorized(request: Request, rawBody: string): boolean {
+function isAuthorized(request: Request, rawBody: string, webhookSecret: string | null): boolean {
   const svixId = request.headers.get("svix-id");
   const svixTimestamp = request.headers.get("svix-timestamp");
   const svixSignature = request.headers.get("svix-signature");
   if (svixId && svixTimestamp && svixSignature) {
-    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
     if (!webhookSecret) return false;
     try {
       new Resend(process.env.RESEND_API_KEY || "re_verify_only").webhooks.verify({
@@ -120,17 +124,17 @@ function isAuthorized(request: Request, rawBody: string): boolean {
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
-  if (!isAuthorized(request, rawBody)) {
+  const admin = serviceClient();
+  const webhookSecret = await resolveWebhookSecret(admin);
+  if (!isAuthorized(request, rawBody, webhookSecret)) {
     console.warn("[email/inbound] rejected unauthenticated request", {
       hasSvixHeaders: Boolean(request.headers.get("svix-signature")),
-      webhookSecretSet: Boolean(process.env.RESEND_WEBHOOK_SECRET),
+      webhookSecretSet: Boolean(webhookSecret),
     });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
+  if (!admin) {
     return NextResponse.json({ error: "Missing Supabase service role." }, { status: 500 });
   }
 
@@ -141,6 +145,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
   const eventType = (raw as { type?: unknown } | null)?.type;
+  if (isTrackedEmailEvent(eventType)) {
+    await recordEmailEvent(admin, request.headers.get("svix-id"), raw);
+    return NextResponse.json({ ok: true });
+  }
   if (typeof eventType === "string" && eventType !== "email.received") {
     return NextResponse.json({ ok: true, ignored: eventType });
   }
@@ -164,7 +172,6 @@ export async function POST(request: Request) {
     subject = subject || extra.subject;
   }
 
-  const admin = createClient(url, key, { auth: { persistSession: false } });
   await recordCampaignMessage(admin, {
     subject,
     fromEmail: from,

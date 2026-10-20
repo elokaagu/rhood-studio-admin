@@ -116,6 +116,8 @@ export async function fetchAdminMemberProfile(
     "invite_code",
     "invite_code_used",
     "credits",
+    "gigs_completed",
+    "rating",
   ];
 
   let row: unknown = null;
@@ -164,6 +166,8 @@ export async function fetchAdminMemberProfile(
     invite_code?: string | null;
     invite_code_used?: string | null;
     credits?: number | null;
+    gigs_completed?: number | null;
+    rating?: number | string | null;
   };
 
   const [gigsRes, feedbackRes, inviteRes] = await Promise.all([
@@ -203,6 +207,17 @@ export async function fetchAdminMemberProfile(
   if (!feedbackRes.error && ratingRows.length > 0) {
     const totalRating = ratingRows.reduce((sum, f) => sum + (f.stars || 0), 0);
     rating = Math.round((totalRating / ratingRows.length) * 10) / 10;
+  }
+
+  // user_profiles.gigs_completed / rating are recounted by the database from
+  // both completed applications and completed gig records, so prefer them.
+  const storedGigs = Number(data.gigs_completed);
+  if (Number.isFinite(storedGigs) && storedGigs > gigsCount) {
+    gigsCount = storedGigs;
+  }
+  const storedRating = Number(data.rating);
+  if (Number.isFinite(storedRating) && storedRating > 0) {
+    rating = storedRating;
   }
 
   const inviteCodes: AdminMemberInviteCodeRow[] = (inviteRes.data ?? []).map(

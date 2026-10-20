@@ -37,8 +37,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { usePortalUser } from "@/contexts/portal-user-context";
 import { deleteAdminMember } from "@/lib/admin/members/delete-member";
+import {
+  completeGigAndRate,
+  fetchMemberGigs,
+  type MemberGigRow,
+} from "@/lib/admin/members/member-gigs";
 import {
   creatorLabelFromInviteCode,
   fetchAdminMemberProfile,
@@ -66,6 +73,11 @@ export default function MemberDetailsPage() {
     name: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [gigs, setGigs] = useState<MemberGigRow[]>([]);
+  const [gigToRate, setGigToRate] = useState<MemberGigRow | null>(null);
+  const [gigStars, setGigStars] = useState(0);
+  const [gigComment, setGigComment] = useState("");
+  const [isSavingGig, setIsSavingGig] = useState(false);
 
   const loadProfile = useCallback(async () => {
     if (!memberId) return;
@@ -84,9 +96,58 @@ export default function MemberDetailsPage() {
     setIsLoading(false);
   }, [memberId]);
 
+  const loadGigs = useCallback(async () => {
+    if (!memberId || !viewerIsAdmin) return;
+    const result = await fetchMemberGigs(memberId);
+    setGigs(result.ok ? result.gigs : []);
+  }, [memberId, viewerIsAdmin]);
+
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  useEffect(() => {
+    loadGigs();
+  }, [loadGigs]);
+
+  const openRateGig = (gig: MemberGigRow) => {
+    setGigToRate(gig);
+    setGigStars(0);
+    setGigComment("");
+  };
+
+  const closeRateGig = () => {
+    setGigToRate(null);
+    setGigStars(0);
+    setGigComment("");
+  };
+
+  const confirmRateGig = async () => {
+    if (!gigToRate || gigStars === 0) return;
+    setIsSavingGig(true);
+    const result = await completeGigAndRate({
+      gigId: gigToRate.id,
+      stars: gigStars,
+      comment: gigComment,
+    });
+    setIsSavingGig(false);
+    if (!result.ok) {
+      toast({
+        title: "Couldn't complete gig",
+        description: result.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({
+      title: "Gig completed & rated",
+      description: `${gigToRate.name || "Gig"} marked done with ${gigStars} ${
+        gigStars === 1 ? "star" : "stars"
+      }.`,
+    });
+    closeRateGig();
+    await Promise.all([loadGigs(), loadProfile()]);
+  };
 
   const handleDelete = () => {
     if (!viewerIsAdmin || !member) return;
@@ -358,6 +419,77 @@ export default function MemberDetailsPage() {
             </CardContent>
           </Card>
 
+          {viewerIsAdmin && !memberIsBrand && (
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className={`${textStyles.subheading.small} flex items-center gap-2`}>
+                  <Music className="h-4 w-4" />
+                  Gigs
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {gigs.length === 0 ? (
+                  <p className={`${textStyles.body.regular} text-muted-foreground`}>
+                    No gigs recorded for this DJ yet.
+                  </p>
+                ) : (
+                  gigs.map((gig) => {
+                    const done = gig.status === "completed";
+                    return (
+                      <div
+                        key={gig.id}
+                        className="p-4 bg-secondary rounded-md border border-border flex items-start justify-between gap-4"
+                      >
+                        <div className="min-w-0">
+                          <p className={`${textStyles.body.regular} font-semibold truncate`}>
+                            {gig.name || "Untitled gig"}
+                          </p>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {[gig.venue, gig.eventDate ? formatDate(gig.eventDate) : null]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                          {done && gig.djRating ? (
+                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                              {gig.djRating.toFixed(1)}
+                            </p>
+                          ) : null}
+                        </div>
+                        {done ? (
+                          <Badge
+                            variant="outline"
+                            className="border-brand-green text-brand-green bg-transparent text-xs shrink-0"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Done
+                          </Badge>
+                        ) : gig.status === "cancelled" ? (
+                          <Badge
+                            variant="outline"
+                            className="border-gray-400 text-gray-400 bg-transparent text-xs shrink-0"
+                          >
+                            Cancelled
+                          </Badge>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="shrink-0"
+                            onClick={() => openRateGig(gig)}
+                          >
+                            <Star className="h-4 w-4 mr-2" />
+                            Mark done &amp; rate
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {viewerIsAdmin && (
             <>
               <Card className="bg-card border-border">
@@ -591,6 +723,83 @@ export default function MemberDetailsPage() {
           )}
         </div>
       </div>
+
+      <Dialog
+        open={Boolean(gigToRate)}
+        onOpenChange={(open) => {
+          if (!open) closeRateGig();
+        }}
+      >
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className={textStyles.subheading.large}>
+              Mark Gig Done &amp; Rate DJ
+            </DialogTitle>
+            <DialogDescription className={textStyles.body.regular}>
+              Rate {member.name} for {gigToRate?.name || "this gig"}. This counts
+              towards their gigs done and star rating in the app.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className={textStyles.body.regular}>Rating (Required) *</Label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setGigStars(star)}
+                    className="focus:outline-none transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`h-8 w-8 ${
+                        star <= gigStars
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gig-rating-comment" className={textStyles.body.regular}>
+                Feedback (Optional)
+              </Label>
+              <Textarea
+                id="gig-rating-comment"
+                placeholder="How did the DJ do?"
+                value={gigComment}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setGigComment(e.target.value)
+                }
+                className="bg-secondary border-border text-foreground min-h-[100px]"
+                maxLength={500}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={closeRateGig}
+              className="border-border text-foreground hover:bg-secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmRateGig}
+              className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+              disabled={gigStars === 0 || isSavingGig}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              {isSavingGig ? "Saving…" : "Complete & Rate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>

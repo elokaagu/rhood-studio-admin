@@ -43,9 +43,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { deleteDj, fetchDjs } from "@/lib/admin/djs/service";
-import { recordDjInvite } from "@/lib/admin/djs/record-invite";
+import { sendDjInvite } from "@/lib/admin/djs/send-invite";
 import type { DjMember, DjSortBy } from "@/lib/admin/djs/types";
-import { upsertContactFromInvite } from "@/lib/crm/service";
 import Link from "next/link";
 
 export default function DJsPage() {
@@ -160,46 +159,21 @@ export default function DJsPage() {
 
     setIsSendingInvite(true);
     try {
-      const response = await fetch("/api/notifications/dj-invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          message: inviteFormData.message.trim() || null,
-        }),
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(
-          payload.message ||
-            payload.error ||
-            "The invitation email could not be sent."
-        );
-      }
-
-      const crm = await upsertContactFromInvite({
+      const result = await sendDjInvite({
         name,
         email,
-        category: "DJ",
-        note: inviteFormData.message.trim() || "Invited to join R/HOOD as a DJ.",
+        message: inviteFormData.message,
       });
-
-      const recorded = await recordDjInvite({
-        name,
-        email,
-        message: inviteFormData.message.trim() || null,
-      });
+      if (!result.ok) throw new Error(result.message);
 
       toast({
         title: "Invite sent",
-        description: recorded.ok
-          ? recorded.autoApproved
+        description: result.recorded
+          ? result.autoApproved
             ? `Emailed ${name}. They already had a pending application, so they were approved.`
             : `Emailed ${name} at ${email}. They will skip the waitlist when they sign up.`
           : `Emailed ${name} at ${email}. ${
-              crm.ok ? "Launch CRM updated." : "Launch CRM could not be updated."
+              result.crmUpdated ? "Launch CRM updated." : "Launch CRM could not be updated."
             }`,
       });
 

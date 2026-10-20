@@ -40,6 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { textStyles } from "@/lib/typography";
 import {
   Users,
@@ -56,8 +57,11 @@ import {
   MessageCircle,
   Database,
   Upload,
+  Send,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { sendDjInvite } from "@/lib/admin/djs/send-invite";
 import {
   listContacts,
   createContact,
@@ -101,6 +105,19 @@ function StatusBadge({ status }: { status: OnboardingStatus }) {
   );
 }
 
+/** DJs with an email who haven't joined yet can be sent the app invite from here. */
+function isInvitable(contact: CrmContact): boolean {
+  return (
+    contact.category === "DJ" &&
+    Boolean(contact.email?.includes("@")) &&
+    ["Not Contacted", "Contacted", "Responded"].includes(contact.onboarding_status)
+  );
+}
+
+function contactName(contact: CrmContact): string {
+  return [contact.first_name, contact.last_name].filter(Boolean).join(" ").trim();
+}
+
 function CategoryIcon({ category }: { category: CrmCategory }) {
   return category === "Brand" ? (
     <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -128,6 +145,15 @@ export default function CrmPage() {
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<CrmContact | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Invite state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [inviteTargets, setInviteTargets] = useState<CrmContact[]>([]);
+  const [inviteName, setInviteName] = useState("");
+  const [inviteMessage, setInviteMessage] = useState("");
+  const [inviteProgress, setInviteProgress] = useState<{ done: number; total: number } | null>(
+    null
+  );
 
   const fetchContacts = useCallback(async () => {
     setIsLoading(true);
@@ -290,6 +316,65 @@ export default function CrmPage() {
     setIsDeleting(false);
   };
 
+  const toggleSelected = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const openInvite = (targets: CrmContact[]) => {
+    const invitable = targets.filter(isInvitable);
+    if (invitable.length === 0) return;
+    setInviteTargets(invitable);
+    setInviteName(invitable.length === 1 ? contactName(invitable[0]) : "");
+    setInviteMessage("");
+  };
+
+  const closeInvite = () => {
+    if (inviteProgress) return;
+    setInviteTargets([]);
+  };
+
+  const handleSendInvites = async () => {
+    const targets = inviteTargets;
+    const single = targets.length === 1;
+    if (single && !inviteName.trim()) return;
+
+    let sent = 0;
+    const failures: string[] = [];
+    setInviteProgress({ done: 0, total: targets.length });
+    for (const contact of targets) {
+      const result = await sendDjInvite({
+        name: single ? inviteName : contactName(contact),
+        email: contact.email!,
+        message: inviteMessage,
+      });
+      if (result.ok) sent += 1;
+      else failures.push(`${contactName(contact)}: ${result.message}`);
+      setInviteProgress({ done: sent + failures.length, total: targets.length });
+    }
+    setInviteProgress(null);
+    setInviteTargets([]);
+    setSelectedIds(new Set());
+    await fetchContacts();
+
+    if (failures.length === 0) {
+      toast({
+        title: sent === 1 ? "Invite sent" : `${sent} invites sent`,
+        description: "They're marked Contacted and will skip the waitlist when they sign up.",
+      });
+    } else {
+      toast({
+        title: `${sent} sent, ${failures.length} failed`,
+        description: failures.slice(0, 3).join(" "),
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleStatusChange = async (contact: CrmContact, status: OnboardingStatus) => {
     const result = await updateContact(contact.id, { onboarding_status: status });
     if (!result.ok) {
@@ -313,6 +398,14 @@ export default function CrmPage() {
       return matchSearch && matchCategory && matchStatus;
     });
   }, [contacts, searchTerm, categoryFilter, statusFilter]);
+
+  const invitableVisible = useMemo(() => filtered.filter(isInvitable), [filtered]);
+  const selectedForInvite = useMemo(
+    () => contacts.filter((c) => selectedIds.has(c.id) && isInvitable(c)),
+    [contacts, selectedIds]
+  );
+  const allVisibleSelected =
+    invitableVisible.length > 0 && invitableVisible.every((c) => selectedIds.has(c.id));
 
   const pipelineCounts = useMemo(() => {
     const counts: Record<OnboardingStatus, number> = {
@@ -512,6 +605,44 @@ export default function CrmPage() {
             </div>
           ) : (
             <div className="space-y-2">
+              {invitableVisible.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3 px-1 pb-1 text-sm">
+                  <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
+                    <Checkbox
+                      checked={allVisibleSelected}
+                      onCheckedChange={(checked) =>
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev);
+                          invitableVisible.forEach((c) =>
+                            checked ? next.add(c.id) : next.delete(c.id)
+                          );
+                          return next;
+                        })
+                      }
+                    />
+                    Select all {invitableVisible.length} DJs to invite
+                  </label>
+                  {selectedForInvite.length > 0 && (
+                    <>
+                      <Button
+                        size="sm"
+                        className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+                        onClick={() => openInvite(selectedForInvite)}
+                      >
+                        <Send className="h-3.5 w-3.5 mr-1.5" />
+                        Invite {selectedForInvite.length} selected
+                      </Button>
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setSelectedIds(new Set())}
+                      >
+                        Clear
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
               {filtered.map((contact) => (
                 <div
                   key={contact.id}
@@ -519,6 +650,19 @@ export default function CrmPage() {
                 >
                   {/* Left: name + meta */}
                   <div className="flex items-start gap-3 min-w-0">
+                    {invitableVisible.length > 0 && (
+                      <div className="mt-2 w-4 flex-shrink-0">
+                        {isInvitable(contact) && (
+                          <Checkbox
+                            checked={selectedIds.has(contact.id)}
+                            onCheckedChange={(checked) =>
+                              toggleSelected(contact.id, checked === true)
+                            }
+                            aria-label={`Select ${contactName(contact)}`}
+                          />
+                        )}
+                      </div>
+                    )}
                     <div className="mt-0.5 flex-shrink-0 h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
                       <CategoryIcon category={contact.category} />
                     </div>
@@ -556,6 +700,17 @@ export default function CrmPage() {
 
                   {/* Right: status + actions */}
                   <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+                    {isInvitable(contact) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => openInvite([contact])}
+                      >
+                        <Send className="h-3.5 w-3.5 mr-1.5" />
+                        {contact.onboarding_status === "Contacted" ? "Resend invite" : "Invite"}
+                      </Button>
+                    )}
                     <Select
                       value={contact.onboarding_status}
                       onValueChange={(v) => handleStatusChange(contact, v as OnboardingStatus)}
@@ -609,6 +764,80 @@ export default function CrmPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Invite Dialog */}
+      <Dialog open={inviteTargets.length > 0} onOpenChange={(open) => !open && closeInvite()}>
+        <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {inviteTargets.length === 1
+                ? `Invite ${contactName(inviteTargets[0])}`
+                : `Invite ${inviteTargets.length} DJs`}
+            </DialogTitle>
+            <DialogDescription>
+              They get an email with the App Store link and skip the waitlist when they sign up with
+              this email. Their CRM status moves to Contacted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {inviteTargets.length === 1 ? (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite-name">Name in the email</Label>
+                  <Input
+                    id="invite-name"
+                    value={inviteName}
+                    onChange={(e) => setInviteName(e.target.value)}
+                    className="bg-secondary border-border"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground break-all">
+                  Sending to {inviteTargets[0].email}
+                </p>
+              </>
+            ) : (
+              <div className="max-h-32 overflow-y-auto rounded-md border border-border bg-background/40 p-2 text-xs text-muted-foreground">
+                {inviteTargets.map((c) => contactName(c)).join(", ")}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="invite-message">Personal note (optional)</Label>
+              <Textarea
+                id="invite-message"
+                value={inviteMessage}
+                onChange={(e) => setInviteMessage(e.target.value)}
+                rows={3}
+                placeholder="Khadija mentioned you'd be a great fit for R/HOOD..."
+                className="bg-secondary border-border"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={closeInvite} disabled={Boolean(inviteProgress)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-brand-green text-brand-black hover:bg-brand-green/90"
+              disabled={
+                Boolean(inviteProgress) || (inviteTargets.length === 1 && !inviteName.trim())
+              }
+              onClick={() => void handleSendInvites()}
+            >
+              {inviteProgress ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending {Math.min(inviteProgress.done + 1, inviteProgress.total)} of{" "}
+                  {inviteProgress.total}
+                </>
+              ) : inviteTargets.length === 1 ? (
+                "Send invite"
+              ) : (
+                `Send ${inviteTargets.length} invites`
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

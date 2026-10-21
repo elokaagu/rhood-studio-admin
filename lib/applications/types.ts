@@ -22,6 +22,10 @@ export interface ApplicationDetails {
   userId: string | null;
   gigCompleted: boolean;
   organizerId: string | null;
+  /** Average star rating on the DJ profile (from all gigs). */
+  djProfileRating: number | null;
+  /** Brand→DJ rating specifically for this application, if any. */
+  applicationDjRating: BrandRating | null;
 }
 
 export interface UserMix {

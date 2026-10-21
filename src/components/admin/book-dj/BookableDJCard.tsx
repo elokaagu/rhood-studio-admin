@@ -18,26 +18,6 @@ type Props = {
   onBook: (djId: string) => void;
 };
 
-function AvailabilityPill({ status }: { status: string }) {
-  const available = status === "available";
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${
-        available
-          ? "bg-green-500/15 text-green-400 border border-green-500/30"
-          : "bg-orange-500/15 text-orange-400 border border-orange-500/30"
-      }`}
-    >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          available ? "bg-green-400" : "bg-orange-400"
-        }`}
-      />
-      {available ? "Available" : "Busy"}
-    </span>
-  );
-}
-
 export function BookableDJCard({ dj, variant, onBook }: Props) {
   const router = useRouter();
   const displayName = bookableDjDisplayName(dj);
@@ -77,19 +57,14 @@ export function BookableDJCard({ dj, variant, onBook }: Props) {
                   </span>
                 </div>
               )}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                {dj.credits > 0 && (
-                  <div className="flex items-center gap-1">
-                    <Trophy className="h-3 w-3 text-brand-green" />
-                    <span className="text-xs font-medium text-foreground">
-                      {dj.credits} credits
-                    </span>
-                  </div>
-                )}
-                {dj.availability && (
-                  <AvailabilityPill status={dj.availability} />
-                )}
-              </div>
+              {dj.credits > 0 && (
+                <div className="flex items-center gap-1 mt-2">
+                  <Trophy className="h-3 w-3 text-brand-green" />
+                  <span className="text-xs font-medium text-foreground">
+                    {dj.credits} credits
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -208,9 +183,6 @@ export function BookableDJCard({ dj, variant, onBook }: Props) {
                         {dj.credits} credits
                       </span>
                     </div>
-                  )}
-                  {dj.availability && (
-                    <AvailabilityPill status={dj.availability} />
                   )}
                 </div>
                 {dj.genres.length > 0 && (

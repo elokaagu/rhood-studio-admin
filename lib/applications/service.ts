@@ -118,6 +118,8 @@ function getDemoApplications(): ApplicationDetails[] {
       userId: null,
       gigCompleted: false,
       organizerId: null,
+      djProfileRating: null,
+      applicationDjRating: null,
     },
     {
       id: "2",
@@ -140,6 +142,8 @@ function getDemoApplications(): ApplicationDetails[] {
       userId: null,
       gigCompleted: false,
       organizerId: null,
+      djProfileRating: 4.5,
+      applicationDjRating: null,
     },
     {
       id: "3",
@@ -162,6 +166,8 @@ function getDemoApplications(): ApplicationDetails[] {
       userId: null,
       gigCompleted: false,
       organizerId: null,
+      djProfileRating: null,
+      applicationDjRating: null,
     },
   ];
 }
@@ -207,7 +213,7 @@ export async function getApplicationDetails(
         `
           *,
           opportunities!inner(title, organizer_id),
-          user_profiles!inner(dj_name, city, genres, email, bio, profile_image_url, instagram, soundcloud)
+          user_profiles!inner(dj_name, city, genres, email, bio, profile_image_url, instagram, soundcloud, rating)
         `
       )
       .eq("id", applicationId)
@@ -226,6 +232,26 @@ export async function getApplicationDetails(
         };
       }
       throw error;
+    }
+
+    const profileRatingRaw = (
+      data.user_profiles as { rating?: number | string | null } | null
+    )?.rating;
+    const profileRating =
+      profileRatingRaw === null || profileRatingRaw === undefined
+        ? null
+        : Number(profileRatingRaw);
+
+    let applicationDjRating: BrandRating | null = null;
+    const { data: djRatingRow } = await fromUntyped("ratings")
+      .select("stars, comment")
+      .eq("application_id", data.id)
+      .eq("rating_type", "dj_rating")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (djRatingRow) {
+      applicationDjRating = djRatingRow as BrandRating;
     }
 
     const application: ApplicationDetails = {
@@ -250,6 +276,11 @@ export async function getApplicationDetails(
         (data as { gig_completed?: boolean | null }).gig_completed
       ),
       organizerId: data.opportunities?.organizer_id || null,
+      djProfileRating:
+        profileRating !== null && !Number.isNaN(profileRating)
+          ? profileRating
+          : null,
+      applicationDjRating,
     };
 
     const userMix = data.user_id ? await fetchLatestUserMix(data.user_id) : null;

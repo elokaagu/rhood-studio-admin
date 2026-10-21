@@ -162,7 +162,17 @@ export function StudioAgreementDialog({
           <Button
             variant="outline"
             onClick={handleDownloadPdf}
-            className="border-brand-green/50 text-brand-green hover:bg-brand-green/10"
+            disabled={!alreadySigned}
+            title={
+              alreadySigned
+                ? "Download signed agreement"
+                : "Sign the agreement to download the PDF"
+            }
+            className={
+              alreadySigned
+                ? "border-brand-green/50 text-brand-green hover:bg-brand-green/10"
+                : "border-border text-muted-foreground opacity-50 cursor-not-allowed"
+            }
           >
             <Download className="h-4 w-4 mr-2" />
             Download PDF

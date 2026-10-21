@@ -825,7 +825,7 @@ export default function CreateOpportunityPage() {
 
             <div className="space-y-2">
               <Label htmlFor="additionalInfo" className="text-foreground">
-                Additional Information
+                Other details
               </Label>
               <Textarea
                 id="additionalInfo"

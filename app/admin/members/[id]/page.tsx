@@ -22,6 +22,7 @@ import {
   Key,
   CheckCircle,
   Coins,
+  Instagram,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -373,49 +374,41 @@ export default function MemberDetailsPage() {
                 Contact Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className={textStyles.subheading.small}>Email</h4>
-                  <p className={`${textStyles.body.regular} break-all`}>{member.email}</p>
-                </div>
-                <div>
-                  <h4 className={textStyles.subheading.small}>Phone</h4>
-                  <p className={`${textStyles.body.regular} text-muted-foreground`}>
-                    Not on file (not stored on this profile)
-                  </p>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <a
+                    href={`mailto:${member.email}`}
+                    className={`${textStyles.body.regular} text-foreground hover:text-brand-green transition-colors break-all`}
+                  >
+                    {member.email}
+                  </a>
                 </div>
               </div>
 
-              <div>
-                <h4 className={textStyles.subheading.small}>Social Links</h4>
-                {socialEntries.length === 0 ? (
-                  <p className={`${textStyles.body.regular} text-muted-foreground`}>
-                    No social links on file.
-                  </p>
-                ) : (
-                  <div className="space-y-2 mt-2">
-                    {socialEntries.map(({ platform, label, handle }) => {
-                      const url = socialUrlForPlatform(platform, handle);
-                      return (
-                        <div key={platform} className="flex flex-col gap-1">
-                          <span className="capitalize text-sm text-muted-foreground">
-                            {label}:
-                          </span>
-                          <a
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`${textStyles.body.regular} text-brand-green hover:text-brand-green/80 underline hover:no-underline transition-colors break-words`}
-                          >
-                            {handle}
-                          </a>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              {socialEntries.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {socialEntries.map(({ platform, label, handle }) => {
+                    const url = socialUrlForPlatform(platform, handle);
+                    const Icon = platform === "instagram" ? Instagram : Music;
+                    return (
+                      <a
+                        key={platform}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/50 px-2.5 py-1.5 text-xs text-brand-green hover:border-brand-green/40 hover:bg-brand-green/10 transition-colors"
+                        title={`${label}: ${handle}`}
+                      >
+                        <Icon className="h-3.5 w-3.5 shrink-0" />
+                        <span className="font-medium">{handle}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 

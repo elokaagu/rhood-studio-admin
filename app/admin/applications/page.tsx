@@ -3,7 +3,6 @@
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,17 +26,14 @@ import {
 import type { ApplicationListItem } from "@/lib/applications/types";
 import { useApplicationsRealtime } from "@/hooks/use-applications-realtime";
 import {
-  Calendar,
-  MapPin,
   CheckCircle,
   XCircle,
   Clock,
-  Eye,
   Search,
   Star,
-  ImageOff,
+  LayoutGrid,
+  List,
 } from "lucide-react";
-import { ImageDisplay } from "@/components/ui/image-display";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { ApplicationCard } from "@/components/admin/applications/ApplicationCard";
 
 function ApplicationsContent() {
   const router = useRouter();
@@ -63,6 +60,7 @@ function ApplicationsContent() {
   const [selectedApplication, setSelectedApplication] = useState<ApplicationListItem | null>(null);
   const [djRating, setDjRating] = useState<number>(0);
   const [djRatingComment, setDjRatingComment] = useState<string>("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Fetch applications from database
   const fetchApplications = async (opts?: { silent?: boolean }) => {
@@ -163,19 +161,6 @@ function ApplicationsContent() {
     }),
     [applications]
   );
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "approved":
-        return <CheckCircle className="h-4 w-4 text-foreground" />;
-      case "rejected":
-        return <XCircle className="h-4 w-4 text-foreground" />;
-      case "pending":
-        return <Clock className="h-4 w-4 text-foreground" />;
-      default:
-        return <Clock className="h-4 w-4 text-foreground" />;
-    }
-  };
 
   const handleStatusUpdate = async (
     application: ApplicationListItem,
@@ -478,6 +463,27 @@ function ApplicationsContent() {
                 <SelectItem value="opportunity_desc">Opportunity (Z-A)</SelectItem>
               </SelectContent>
             </Select>
+
+            <div className="flex items-center border border-border rounded-md p-1 self-stretch sm:self-auto">
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className="h-8 px-3"
+                aria-label="Grid view"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="h-8 px-3"
+                aria-label="Row view"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -485,10 +491,8 @@ function ApplicationsContent() {
       {/* Applications List */}
       <div className="space-y-4">
         {isLoading ? (
-          <div className="text-center py-8">
-            <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-16">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-green border-t-transparent" />
-          </div>
           </div>
         ) : filteredApplications.length === 0 ? (
           <Card className="bg-card border-border mx-auto max-w-lg">
@@ -497,109 +501,24 @@ function ApplicationsContent() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                : "space-y-3"
+            }
+          >
             {filteredApplications.map((application: ApplicationListItem) => (
-              <Card
-                key={application.id}
-                className="bg-card border-border overflow-hidden flex flex-col"
-              >
-                <div className="relative aspect-[16/10] bg-muted">
-                  {application.opportunityImageUrl ? (
-                    <ImageDisplay
-                      src={application.opportunityImageUrl}
-                      alt={application.opportunity}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-                      <ImageOff className="h-7 w-7 mb-1.5 opacity-60" />
-                      <p className="text-xs">No artwork</p>
-                    </div>
-                  )}
-                  <div className="absolute top-3 left-3">
-                    <Badge
-                      variant="outline"
-                      className="border-border/80 text-foreground bg-background/85 backdrop-blur-sm text-xs"
-                    >
-                      {getStatusIcon(application.status)}
-                      <span className="ml-1">
-                        {application.status.charAt(0).toUpperCase() +
-                          application.status.slice(1)}
-                      </span>
-                    </Badge>
-                  </div>
-                </div>
-
-                <CardContent className="p-4 flex flex-col gap-3 flex-1">
-                  <div className="min-w-0">
-                    <h3 className={`${textStyles.subheading.large} text-base sm:text-lg line-clamp-2`}>
-                      {application.opportunity}
-                    </h3>
-                    <p className="text-sm text-foreground font-medium mt-1 truncate">
-                      {application.applicant.name}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
-                      <div className="flex items-center min-w-0">
-                        <Calendar className="h-3.5 w-3.5 mr-1 shrink-0" />
-                        {application.appliedDate}
-                      </div>
-                      <div className="flex items-center min-w-0">
-                        <MapPin className="h-3.5 w-3.5 mr-1 shrink-0" />
-                        <span className="truncate">{application.applicant.location}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-foreground text-xs flex-1 sm:flex-initial"
-                      onClick={() => router.push(`/admin/applications/${application.id}`)}
-                    >
-                      <Eye className="h-3.5 w-3.5 mr-1" />
-                      View
-                    </Button>
-                    {application.status === "pending" && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-200 text-xs font-medium flex-1 sm:flex-initial"
-                          onClick={() => handleStatusUpdate(application, "approved")}
-                          disabled={isLoading}
-                        >
-                          <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                          Approve
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 text-xs flex-1 sm:flex-initial"
-                          onClick={() => handleStatusUpdate(application, "rejected")}
-                        >
-                          <XCircle className="h-3.5 w-3.5 mr-1" />
-                          Reject
-                        </Button>
-                      </>
-                    )}
-                    {application.status === "approved" && !application.gig_completed && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-brand-green text-brand-green hover:bg-brand-green hover:text-brand-black transition-all duration-200 text-xs font-medium flex-1 sm:flex-initial"
-                        onClick={() => handleCompleteGigClick(application)}
-                        disabled={isLoading}
-                      >
-                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                        Mark Gig Done
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <ApplicationCard
+                key={`${application.type}:${application.id}`}
+                application={application}
+                variant={viewMode}
+                isUpdating={isLoading}
+                onView={(id) => router.push(`/admin/applications/${id}`)}
+                onApprove={(app) => handleStatusUpdate(app, "approved")}
+                onReject={(app) => handleStatusUpdate(app, "rejected")}
+                onCompleteGig={handleCompleteGigClick}
+              />
             ))}
           </div>
         )}

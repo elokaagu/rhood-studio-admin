@@ -870,7 +870,7 @@ export default function EditOpportunityPage() {
                 htmlFor="additionalInfo"
                 className={textStyles.body.regular}
               >
-                Additional Information
+                Other details
               </Label>
               <Textarea
                 id="additionalInfo"

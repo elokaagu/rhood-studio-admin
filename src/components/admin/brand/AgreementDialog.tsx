@@ -150,7 +150,17 @@ export function AgreementDialog({
           <Button
             variant="outline"
             onClick={handleDownloadPdf}
-            className="border-brand-green/50 text-brand-green hover:bg-brand-green/10"
+            disabled={!isSigned}
+            title={
+              isSigned
+                ? "Download signed agreement"
+                : "Sign the agreement to download the PDF"
+            }
+            className={
+              isSigned
+                ? "border-brand-green/50 text-brand-green hover:bg-brand-green/10"
+                : "border-border text-muted-foreground opacity-50 cursor-not-allowed"
+            }
           >
             <Download className="h-4 w-4 mr-2" />
             Download PDF

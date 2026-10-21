@@ -213,7 +213,7 @@ export async function getApplicationDetails(
         `
           *,
           opportunities!inner(title, organizer_id),
-          user_profiles!inner(dj_name, city, genres, email, bio, profile_image_url, instagram, soundcloud, rating)
+          user_profiles!inner(dj_name, city, genres, email, bio, profile_image_url, instagram, soundcloud)
         `
       )
       .eq("id", applicationId)
@@ -234,13 +234,18 @@ export async function getApplicationDetails(
       throw error;
     }
 
-    const profileRatingRaw = (
-      data.user_profiles as { rating?: number | string | null } | null
-    )?.rating;
-    const profileRating =
-      profileRatingRaw === null || profileRatingRaw === undefined
-        ? null
-        : Number(profileRatingRaw);
+    let profileRating: number | null = null;
+    if (data.user_id) {
+      const { data: ratingProfile } = await fromUntyped("user_profiles")
+        .select("rating")
+        .eq("id", data.user_id)
+        .maybeSingle();
+      const raw = (ratingProfile as { rating?: number | string | null } | null)?.rating;
+      if (raw !== null && raw !== undefined) {
+        const n = Number(raw);
+        if (!Number.isNaN(n)) profileRating = n;
+      }
+    }
 
     let applicationDjRating: BrandRating | null = null;
     const { data: djRatingRow } = await fromUntyped("ratings")
@@ -276,10 +281,7 @@ export async function getApplicationDetails(
         (data as { gig_completed?: boolean | null }).gig_completed
       ),
       organizerId: data.opportunities?.organizer_id || null,
-      djProfileRating:
-        profileRating !== null && !Number.isNaN(profileRating)
-          ? profileRating
-          : null,
+      djProfileRating: profileRating,
       applicationDjRating,
     };
 

@@ -251,14 +251,22 @@ export async function notifyApprovedApplication(
       )
       .eq("id", opportunityId)
       .maybeSingle();
-    const opp =
-      full.error
-        ? await fromUntyped(admin, "opportunities")
-            .select("id, title, organizer_id, organizer_name, location")
-            .eq("id", opportunityId)
-            .maybeSingle()
-        : full;
-    const row = (opp.data ?? null) as Record<string, unknown> | null;
+    let row = (full.data ?? null) as Record<string, unknown> | null;
+    if (full.error || !row) {
+      const slim = await fromUntyped(admin, "opportunities")
+        .select("id, title, organizer_id, organizer_name, location")
+        .eq("id", opportunityId)
+        .maybeSingle();
+      row = (slim.data ?? null) as Record<string, unknown> | null;
+      // Still try to pull brief fields even if the full select failed.
+      const brief = await fromUntyped(admin, "opportunities")
+        .select("additional_info, skill_level, compensation, payment, event_date, event_start_time, event_timezone, created_by, posted_by")
+        .eq("id", opportunityId)
+        .maybeSingle();
+      if (!brief.error && brief.data) {
+        row = { ...(row ?? {}), ...(brief.data as Record<string, unknown>) };
+      }
+    }
     if (row) {
       organizerId = organizerId || (typeof row.organizer_id === "string" ? row.organizer_id : null);
       createdBy = typeof row.created_by === "string" ? row.created_by : null;
@@ -269,9 +277,9 @@ export async function notifyApprovedApplication(
         opportunityTitle || (typeof row.title === "string" ? row.title : null);
       location = typeof row.location === "string" ? row.location : null;
       additionalInfo =
-        typeof row.additional_info === "string" ? row.additional_info : null;
+        typeof row.additional_info === "string" ? row.additional_info.trim() || null : null;
       requirements =
-        typeof row.skill_level === "string" ? row.skill_level : null;
+        typeof row.skill_level === "string" ? row.skill_level.trim() || null : null;
       compensation =
         formatCompensationDisplay(
           typeof row.compensation === "string" ? row.compensation : null,

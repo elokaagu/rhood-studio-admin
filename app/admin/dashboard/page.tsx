@@ -14,6 +14,7 @@ import {
   type DashboardStat,
   type UpcomingEvent,
 } from "@/lib/dashboard/get-dashboard-data";
+import { DashboardEmptyVisual } from "@/components/admin/dashboard/DashboardEmptyVisual";
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -150,7 +151,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-border overflow-hidden">
               <CardHeader className="pb-4">
                 <CardTitle className={`${textStyles.headline.section} text-left`}>
                   RECENT
@@ -159,25 +160,36 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-4">
-                  {recentActivity.map((activity: ActivityItem) => (
-                    <Card
-                      key={`${activity.type}:${activity.createdAt}:${activity.message}`}
-                      className="bg-card border-border"
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex-1 min-w-0">
-                          <p className={textStyles.body.regular}>{activity.message}</p>
-                          <p className={`${textStyles.body.small} mt-2`}>{activity.time}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                {recentActivity.length > 0 ? (
+                  <div className="space-y-3">
+                    {recentActivity.map((activity: ActivityItem) => (
+                      <div
+                        key={`${activity.type}:${activity.createdAt}:${activity.message}`}
+                        className="relative pl-4 border-l border-brand-green/30 py-2"
+                      >
+                        <span className="absolute -left-[3px] top-3 h-1.5 w-1.5 rounded-full bg-brand-green" />
+                        <p className={textStyles.body.regular}>{activity.message}</p>
+                        <p className={`${textStyles.body.small} mt-1 text-muted-foreground`}>
+                          {activity.time}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                    <DashboardEmptyVisual variant="activity" />
+                    <p className={`${textStyles.body.regular} text-muted-foreground mt-4`}>
+                      No recent activity
+                    </p>
+                    <p className={`${textStyles.body.small} text-muted-foreground mt-1`}>
+                      Approvals, applications, and bookings will show up here
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-border overflow-hidden">
               <CardHeader className="pb-4">
                 <CardTitle className={`${textStyles.headline.section} text-left`}>
                   UPCOMING
@@ -186,43 +198,43 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-4">
-                  {upcomingEvents.length > 0 ? (
-                    upcomingEvents.map((event: UpcomingEvent) => (
-                      <Card
+                {upcomingEvents.length > 0 ? (
+                  <div className="space-y-3">
+                    {upcomingEvents.map((event: UpcomingEvent) => (
+                      <div
                         key={`${event.title}:${event.date}:${event.time}`}
-                        className="bg-card border-border"
+                        className="flex items-start justify-between gap-3 rounded-md border border-border/60 bg-secondary/30 px-3 py-3"
                       >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className={textStyles.body.regular}>{event.title}</p>
-                              <p className={`${textStyles.body.small} mt-2`}>
-                                {event.date} - {event.time}
-                              </p>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase ml-3"
-                            >
-                              {event.genre}
-                            </Badge>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="text-4xl mb-4">📅</div>
-                      <p className={`${textStyles.body.regular} text-muted-foreground`}>
-                        No upcoming events
-                      </p>
-                      <p className={`${textStyles.body.small} text-muted-foreground mt-2`}>
-                        Create opportunities to see upcoming events here
-                      </p>
-                    </div>
-                  )}
-                </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`${textStyles.body.regular} truncate`}>
+                            {event.title}
+                          </p>
+                          <p className={`${textStyles.body.small} mt-1 text-muted-foreground`}>
+                            {event.date} — {event.time}
+                          </p>
+                        </div>
+                        {event.genre ? (
+                          <Badge
+                            variant="outline"
+                            className="border-brand-green text-brand-green bg-transparent text-xs font-bold uppercase shrink-0"
+                          >
+                            {event.genre}
+                          </Badge>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                    <DashboardEmptyVisual variant="events" />
+                    <p className={`${textStyles.body.regular} text-muted-foreground mt-4`}>
+                      No upcoming events
+                    </p>
+                    <p className={`${textStyles.body.small} text-muted-foreground mt-1`}>
+                      Create opportunities to see dates land here
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

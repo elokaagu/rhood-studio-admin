@@ -24,14 +24,17 @@ export function emailLimeButton(href: string, label: string): string {
 const secondaryButtonStyle =
   "display:inline-block;padding:14px 28px;background-color:#252525;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;border:1px solid #3a3a3a;";
 
-/** App Store / Play Store buttons for DJ emails. Always links to the live App Store. */
+/** App Store button for DJ emails. Google Play only if a real Play Store URL is configured. */
 export function emailAppStoreButtons(label = "Get the R/HOOD app"): string {
   const ios = getDjIosAppStoreUrl();
   const android = getDjAndroidPlayStoreUrl();
   // Custom labels (e.g. "View in the R/HOOD app") still open the App Store so
   // DJs without the app can download it first.
-  if (label !== "Get the R/HOOD app" || ios === android) {
+  if (label !== "Get the R/HOOD app") {
     return `<a href="${ios}" style="${buttonStyle}">${label}</a>`;
+  }
+  if (!android) {
+    return `<a href="${ios}" style="${buttonStyle}">Download on the App Store</a>`;
   }
   return `
                   <a href="${ios}" style="${buttonStyle}">Download on the App Store</a>
@@ -43,8 +46,11 @@ export function emailAppStoreButtons(label = "Get the R/HOOD app"): string {
 export function emailAppStorePlainText(label = "Get the R/HOOD app"): string {
   const ios = getDjIosAppStoreUrl();
   const android = getDjAndroidPlayStoreUrl();
-  if (label !== "Get the R/HOOD app" || ios === android) {
+  if (label !== "Get the R/HOOD app") {
     return `${label}: ${ios}`;
+  }
+  if (!android) {
+    return `Download on the App Store: ${ios}`;
   }
   return `Download on the App Store: ${ios}\nGet it on Google Play: ${android}`;
 }

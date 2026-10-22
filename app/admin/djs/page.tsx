@@ -168,13 +168,13 @@ export default function DJsPage() {
 
       toast({
         title: "Invite sent",
-        description: result.recorded
+        description: result.inviteCode
           ? result.autoApproved
+            ? `Emailed ${name} with code ${result.inviteCode}. They already had a pending application, so they were approved.`
+            : `Emailed ${name} with invite code ${result.inviteCode}. They enter it in the app to skip the waitlist.`
+          : result.autoApproved
             ? `Emailed ${name}. They already had a pending application, so they were approved.`
-            : `Emailed ${name} at ${email}. They will skip the waitlist when they sign up.`
-          : `Emailed ${name} at ${email}. ${
-              result.crmUpdated ? "Launch CRM updated." : "Launch CRM could not be updated."
-            }`,
+            : `Emailed ${name} at ${email}. They will skip the waitlist when they sign up.`,
       });
 
       setInviteFormData({ name: "", email: "", message: "" });
@@ -296,7 +296,7 @@ export default function DJsPage() {
                 Invite New DJ
               </DialogTitle>
               <DialogDescription className={textStyles.body.regular}>
-                Send an invitation to join R/HOOD For DJs. Invited DJs skip the application queue and are approved when they sign up.
+                Sends an App Store invite with a unique code. They enter the code in the iOS app to skip the waitlist.
               </DialogDescription>
             </DialogHeader>
 

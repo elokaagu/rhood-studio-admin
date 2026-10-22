@@ -40,11 +40,13 @@ export function getDjIosAppStoreUrl(): string {
   );
 }
 
-/** Google Play listing. Falls back to marketing page until Play Store URL is set. */
-export function getDjAndroidPlayStoreUrl(): string {
-  return (
+/** Google Play listing when configured. Otherwise null — app is iOS-only for now. */
+export function getDjAndroidPlayStoreUrl(): string | null {
+  const configured =
     trimUrl(process.env.DJ_ANDROID_PLAY_STORE_URL) ||
-    trimUrl(process.env.NEXT_PUBLIC_PLAY_STORE_URL) ||
-    DJ_APP_PAGE_URL
-  );
+    trimUrl(process.env.NEXT_PUBLIC_PLAY_STORE_URL);
+  if (!configured) return null;
+  // Only treat real Play Store links as available (not a marketing fallback).
+  if (!/play\.google\.com/i.test(configured)) return null;
+  return configured;
 }

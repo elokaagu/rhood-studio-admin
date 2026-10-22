@@ -170,7 +170,7 @@ export async function POST(request: Request) {
               <tr>
                 <td style="padding-top:28px;font-size:13px;line-height:1.6;color:#9e9e9e;">
                   Open the R/HOOD app on your phone to view and respond to this booking request.<br/>
-                  If you do not have the app yet, download it from the App Store or Google Play, then sign in with this email.
+                  If you do not have the app yet, download it from the App Store, then sign in with this email.
                 </td>
               </tr>
             </table>

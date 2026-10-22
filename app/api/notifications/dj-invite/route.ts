@@ -10,6 +10,7 @@ interface DjInvitePayload {
   email?: string;
   name?: string;
   message?: string | null;
+  inviteCode?: string | null;
 }
 
 function isValidEmail(email: string): boolean {
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as DjInvitePayload;
     const name = body.name?.trim() ?? "";
     const personalMessage = body.message?.trim() || "";
+    const inviteCode = body.inviteCode?.trim().toUpperCase() || "";
 
     if (!body.email || !name) {
       return NextResponse.json(
@@ -62,8 +64,33 @@ export async function POST(request: Request) {
 
     const resend = new Resend(resendApiKey);
     const safeName = escapeHtml(name);
+    const safeCode = inviteCode ? escapeHtml(inviteCode) : "";
     const safeMessage = personalMessage
       ? `<tr><td style="padding-top:20px;font-size:15px;line-height:1.6;color:#dddddd;">${escapeHtml(personalMessage).replace(/\n/g, "<br/>")}</td></tr>`
+      : "";
+
+    const codeBlock = safeCode
+      ? `<tr>
+                <td style="padding-top:24px;">
+                  <table style="width:100%;background-color:#111111;border:1px solid #c2cc06;border-radius:12px;padding:18px 20px;">
+                    <tr>
+                      <td style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#c2cc06;font-weight:700;padding-bottom:8px;">
+                        Your invite code
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="font-size:28px;font-weight:700;letter-spacing:4px;color:#ffffff;font-family:Menlo,Monaco,Consolas,monospace;">
+                        ${safeCode}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding-top:10px;font-size:14px;line-height:1.6;color:#dddddd;">
+                        Download the app, create your account with this email, then enter this code to skip the waitlist.
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>`
       : "";
 
     const html = `
@@ -78,9 +105,10 @@ export async function POST(request: Request) {
               <tr>
                 <td style="padding-top:16px;font-size:16px;line-height:1.6;color:#dddddd;">
                   ${safeName}, you've been invited to create a DJ account on R/HOOD.<br/><br/>
-                  Open this email on your mobile phone, then download the R/HOOD app from the App Store or Google Play. Because you were invited, you skip the waitlist and are approved as soon as you create your account with this email.
+                  Open this email on your iPhone, download R/HOOD from the App Store, then sign up with this email${safeCode ? " and enter your invite code" : ""}. You'll skip the waitlist and get in immediately.
                 </td>
               </tr>
+              ${codeBlock}
               ${safeMessage}
               <tr>
                 <td style="padding-top:32px;">
@@ -89,7 +117,7 @@ export async function POST(request: Request) {
               </tr>
               <tr>
                 <td style="padding-top:28px;font-size:13px;line-height:1.6;color:#9e9e9e;">
-                  R/HOOD for DJs is a mobile app. Open this invite on your phone, install the app, create your account with this email, and start applying to opportunities.
+                  R/HOOD for DJs is an iOS app. Open this invite on your iPhone, install from the App Store, create your account with this email${safeCode ? `, enter code ${safeCode}` : ""}, and start applying to opportunities.
                 </td>
               </tr>
             </table>
@@ -105,10 +133,14 @@ export async function POST(request: Request) {
 
     const text = [
       `You're invited to join R/HOOD as a DJ (${name}).`,
-      "Open this email on your mobile phone, then download the R/HOOD app from the App Store or Google Play. Because you were invited, you skip the waitlist when you sign up with this email.",
+      inviteCode
+        ? `Invite code: ${inviteCode}\n\nOpen this email on your iPhone, download R/HOOD from the App Store, create your account with this email, then enter the invite code to skip the waitlist.`
+        : "Open this email on your iPhone, download R/HOOD from the App Store, then create your account with this email to skip the waitlist.",
       personalMessage ? `\n${personalMessage}\n` : "",
       emailAppStorePlainText(),
-      "R/HOOD for DJs is a mobile app. Open this invite on your phone, install the app, create your account with this email, and start applying to opportunities.",
+      inviteCode
+        ? `R/HOOD for DJs is an iOS app. Install from the App Store, sign up with this email, enter code ${inviteCode}, and start applying.`
+        : "R/HOOD for DJs is an iOS app. Install from the App Store, sign up with this email, and start applying.",
     ]
       .filter(Boolean)
       .join("\n");
@@ -116,7 +148,9 @@ export async function POST(request: Request) {
     const emailResponse = await resend.emails.send({
       from: defaultFromAddress,
       to: sanitizedEmail,
-      subject: `You're invited to R/HOOD - ${name}`,
+      subject: inviteCode
+        ? `You're invited to R/HOOD — code ${inviteCode}`
+        : `You're invited to R/HOOD - ${name}`,
       html,
       text,
     });
@@ -136,6 +170,7 @@ export async function POST(request: Request) {
       success: true,
       emailId: emailResponse.data?.id,
       to: sanitizedEmail,
+      inviteCode: inviteCode || null,
     });
   } catch (error) {
     console.error("[Resend] Unexpected DJ invite error:", error);

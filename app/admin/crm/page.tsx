@@ -775,8 +775,8 @@ export default function CrmPage() {
                 : `Invite ${inviteTargets.length} DJs`}
             </DialogTitle>
             <DialogDescription>
-              They get an email with the App Store link and skip the waitlist when they sign up with
-              this email. Their CRM status moves to Contacted.
+              They get an App Store email with a unique invite code to enter in the iOS app. Their CRM
+              status moves to Contacted.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
